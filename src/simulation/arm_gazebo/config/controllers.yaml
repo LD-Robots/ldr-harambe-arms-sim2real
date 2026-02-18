@@ -1,0 +1,63 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      publish_rate: 50
+
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    servo_controller:
+      type: forward_command_controller/ForwardCommandController
+
+    hand_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+arm_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pitch_joint
+      - shoulder_roll_joint
+      - shoulder_yaw_joint
+      - elbow_pitch_joint
+      - elbow_yaw_joint
+      - wrist_roll_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true
+
+servo_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pitch_joint
+      - shoulder_roll_joint
+      - shoulder_yaw_joint
+      - elbow_pitch_joint
+      - elbow_yaw_joint
+      - wrist_roll_joint
+    interface_name: position
+
+hand_controller:
+  ros__parameters:
+    joints:
+      - left_thumb_proximal_yaw_joint
+      - left_thumb_proximal_pitch_joint
+      - left_index_proximal_joint
+      - left_middle_proximal_joint
+      - left_ring_proximal_joint
+      - left_pinky_proximal_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true

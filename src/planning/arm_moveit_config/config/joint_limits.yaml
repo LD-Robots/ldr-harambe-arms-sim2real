@@ -1,0 +1,73 @@
+# joint_limits.yaml allows the dynamics properties specified in the URDF to be overwritten or augmented as needed
+
+# For beginners, we downscale velocity and acceleration limits.
+# You can always specify higher scaling factors (<= 1.0) in your motion requests.
+# Set to 1.0 for maximum speed, or lower values (0.1-0.5) for safer/slower motion
+default_velocity_scaling_factor: 1.0  # 100% - Full speed
+default_acceleration_scaling_factor: 1.0  # 100% - Full acceleration
+
+# Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]
+# Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
+#
+# Joint limits based on source robot URDF specifications
+joint_limits:
+  shoulder_pitch_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 10.0  # rad/s² (shoulder pitch - moves entire arm)
+  shoulder_roll_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 10.0  # rad/s² (shoulder roll)
+  shoulder_yaw_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 15.0  # rad/s² (shoulder yaw)
+  elbow_pitch_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 15.0  # rad/s² (elbow pitch)
+  elbow_yaw_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 20.0  # rad/s² (elbow yaw - lighter load)
+  wrist_roll_joint:
+    has_velocity_limits: true
+    max_velocity: 16.0  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 20.0  # rad/s² (wrist roll - light load)
+  left_thumb_proximal_yaw_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²
+  left_thumb_proximal_pitch_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²
+  left_index_proximal_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²
+  left_middle_proximal_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²
+  left_ring_proximal_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²
+  left_pinky_proximal_joint:
+    has_velocity_limits: true
+    max_velocity: 0.5  # rad/s (from URDF)
+    has_acceleration_limits: true
+    max_acceleration: 1.0  # rad/s²

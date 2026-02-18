@@ -1,0 +1,21 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    arm_controller:
+      type: position_controllers/JointTrajectoryController
+      joints:
+        - shoulder_pitch_joint
+        - shoulder_roll_joint
+        - shoulder_yaw_joint
+        - elbow_pitch_joint
+        - elbow_yaw_joint
+      gains:
+        shoulder_pitch_joint: {p: 100.0, d: 1.0}
+        shoulder_roll_joint: {p: 100.0, d: 1.0}
+        shoulder_yaw_joint: {p: 100.0, d: 1.0}
+        elbow_pitch_joint: {p: 50.0, d: 1.0}
+        elbow_yaw_joint: {p: 50.0, d: 1.0}

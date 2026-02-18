@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <link name="world"/>
+  <joint name="base_fixed_joint" type="fixed">
+    <origin xyz="0 0 0.807" rpy="0 0 0"/>
+    <parent link="world"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- Joint 1: Shoulder pitch (from table to shoulder) -->
+  <joint name="shoulder_pitch_joint" type="revolute">
+    <origin xyz="-0.100142 0.00126819 0.000179533" rpy="1.5708 0 1.5708"/>
+    <parent link="base_link"/>
+    <child link="shoulder_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="3.14159" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <!-- Joint 2: Shoulder roll -->
+  <joint name="shoulder_roll_joint" type="revolute">
+    <origin xyz="0.041 0 -0.078" rpy="-3.14159 -1.5708 0"/>
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="3.14159" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <!-- Joint 3: Shoulder yaw -->
+  <joint name="shoulder_yaw_joint" type="revolute">
+    <origin xyz="0 0.175 -0.041" rpy="1.5708 -0.000395729 0"/>
+    <parent link="upper_arm_link"/>
+    <child link="elbow_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57119" upper="1.5704" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <!-- Joint 4: Elbow pitch -->
+  <joint name="elbow_pitch_joint" type="revolute">
+    <origin xyz="-0.035 0 -0.065" rpy="-1.5708 0 1.5708"/>
+    <parent link="elbow_link"/>
+    <child link="upper_forearm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="1.5708" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <!-- Joint 5: Elbow yaw -->
+  <joint name="elbow_yaw_joint" type="revolute">
+    <origin xyz="0 0.163 -0.035" rpy="1.5708 1.5708 0"/>
+    <parent link="upper_forearm_link"/>
+    <child link="lower_forearm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.35619" upper="2.35619" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <!-- Joint 6: Wrist roll -->
+  <joint name="wrist_roll_joint" type="revolute">
+    <origin xyz="0 0.03 -0.0615" rpy="-1.5708 0 0"/>
+    <parent link="lower_forearm_link"/>
+    <child link="end_effector_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="1.5708" velocity="10.0" effort="40.0"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+</robot>

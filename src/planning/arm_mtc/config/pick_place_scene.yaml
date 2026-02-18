@@ -1,0 +1,104 @@
+/**:
+  ros__parameters:
+    # ========== WORLD CONFIGURATION ==========
+    world_frame: "world"
+
+    # ========== TABLE CONFIGURATION ==========
+    # Source table (where cylinder starts)
+    source_table:
+      name: "test_table"
+      position:
+        x: -0.30      # Aligned with lab-ldr world
+        y: 0.35       # Right side (left arm natural reach)
+        z: 0.2125     # Table center (height/2)
+      dimensions:
+        length: 0.45  # Front-to-back (X)
+        width: 0.25   # Left-to-right (Y)
+        thickness: 0.425  # Height (Z)
+ 
+    # Destination table (where cylinder will be placed)
+    destination_table:
+      name: "destination_table"
+      position:
+        x: -0.30      # Moved farther (matches lab-ldr world)
+        y: -0.35      # Left side (symmetric)
+        z: 0.2125     # Same height (center)
+      dimensions:
+        length: 0.45
+        width: 0.25
+        thickness: 0.425
+
+    # ========== OBJECT CONFIGURATION ==========
+    # Cylinder object to grasp
+    cylinder:
+      name: "test_cylinder"
+      dimensions:
+        height: 0.15    # 15cm tall
+        radius: 0.02025 # 2.025cm radius
+      position_offset:
+        x: 0.0          # Offset from table center (X)
+        y: 0.0          # Offset from table center (Y)
+
+    # ========== GRASP CONFIGURATION ==========
+    grasp:
+      angle_delta: 0.2618    # M_PI/12 = 15 degrees between grasp poses (more samples)
+      max_ik_solutions: 64   # Explore many solutions
+      min_solution_distance: 0.5
+      # Grasp frame transform: offset from hand_frame to grasp point
+      # For inspire_hand: grasp at mid-finger level (~15cm from end_effector_link)
+      grasp_frame:
+        x: 0.05         # Lateral offset
+        y: 0.20         # Distance from end_effector_link to mid-finger grasp point
+        z: -0.03        # Vertical offset to finger plane
+        # Multiple orientations to try (parallel arrays - each index is one orientation)
+        # MTC will try all orientations and pick the best IK solution
+        rolls:  [0.0,  0.1,  0.2,  -0.1,  -0.2]
+        pitches: [0.0,  0.0, 0.0, -0.0, 0.0]
+        yaws:   [0.0,  0.0,  0.0,  0.0,  0.0]
+      # Place frame transform (same offset, used when placing object)
+      # Multiple orientations to try (parallel arrays - same pattern as grasp_frame)
+      place_frame:
+        x: 0.05
+        y: 0.20
+        z: -0.03
+        rolls:  [0.0,  0.1,  -0.1,  0.2]
+        pitches: [0.0,  0.025, -0.025, 0.0]
+        yaws:   [0.0,  0.0,  0.0,  0.0]
+
+    # ========== MOTION CONFIGURATION ==========
+    motion:
+      # Approach direction in hand_frame (end_effector_link)
+      # For inspire_hand: +Y points toward fingertips (hand rotated 180° yaw)
+      approach_direction:
+        x: 0.0
+        y: 1.0       # Toward fingertips in end_effector_link frame
+        z: 0.0
+      approach_max_distance: 0.15  # 15cm max approach
+      lift_object:
+        min_distance: 0.005   # 0.5cm minimum lift
+        max_distance: 0.1     # 10cm maximum lift
+      retreat_after_place:
+        min_distance: 0.12    # 12cm minimum retreat
+        max_distance: 0.25    # 25cm maximum retreat
+
+    # ========== PLANNER CONFIGURATION ==========
+    planner:
+      goal_joint_tolerance: 0.00001  # 1e-5 radians
+      cartesian_step_size: 0.01      # 1cm steps
+      max_velocity_scaling: 1.0
+      max_acceleration_scaling: 1.0
+      max_planning_solutions: 10
+
+    # ========== POSE NAMES ==========
+    poses:
+      hand_open: "open"
+      hand_close: "close"
+      arm_ready: "ready"
+      arm_home: "home"
+
+    # ========== GROUP NAMES ==========
+    groups:
+      arm: "arm"
+      hand: "hand"
+      eef: "hand"
+      hand_frame: "end_effector_link"

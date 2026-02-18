@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Source robot colors -->
+  <material name="blue">
+    <color rgba="0.615686 0.811765 0.929412 1"/>
+  </material>
+
+  <material name="dark_blue">
+    <color rgba="0.32549 0.529412 0.752941 1"/>
+  </material>
+
+  <material name="gold">
+    <color rgba="0.960784 0.835294 0.470588 1"/>
+  </material>
+
+  <material name="orange">
+    <color rgba="0.65098 0.486275 0.0196078 1"/>
+  </material>
+
+  <material name="purple">
+    <color rgba="0.764706 0.545098 0.803922 1"/>
+  </material>
+
+  <material name="dark_purple">
+    <color rgba="0.380392 0.0470588 0.435294 1"/>
+  </material>
+
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+
+  <!-- Additional basic colors -->
+  <material name="black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+
+  <material name="yellow">
+    <color rgba="1.0 1.0 0.0 1.0"/>
+  </material>
+
+  <!-- Grayscale variations -->
+  <material name="dark_grey">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+
+  <material name="grey">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+
+  <material name="light_grey">
+    <color rgba="0.7 0.7 0.7 1.0"/>
+  </material>
+
+  <!-- Metallic materials -->
+  <material name="silver">
+    <color rgba="0.75 0.75 0.75 1.0"/>
+  </material>
+
+  <material name="bronze">
+    <color rgba="0.804 0.498 0.196 1.0"/>
+  </material>
+
+  <!-- Robot-specific materials -->
+  <material name="robot_body">
+    <color rgba="0.8 0.8 0.8 1.0"/>
+  </material>
+
+  <material name="robot_joint">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+
+  <!-- Transparent material -->
+  <material name="transparent">
+    <color rgba="1.0 1.0 1.0 0.3"/>
+  </material>
+
+  <!-- Macro for custom material with parameters -->
+  <xacro:macro name="custom_material" params="name r g b a:=1.0">
+    <material name="${name}">
+      <color rgba="${r} ${g} ${b} ${a}"/>
+    </material>
+  </xacro:macro>
+
+  <!-- Macro for material with texture -->
+  <xacro:macro name="textured_material" params="name texture_file">
+    <material name="${name}">
+      <texture filename="${texture_file}"/>
+    </material>
+  </xacro:macro>
+
+</robot>

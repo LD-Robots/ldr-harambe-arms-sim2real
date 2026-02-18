@@ -1,0 +1,63 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    # Controller list
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      publish_rate: 50.0
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    hand_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+# Arm Trajectory Controller - main interface for motion control
+arm_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pitch_joint
+      - shoulder_roll_joint
+      - shoulder_yaw_joint
+      - elbow_pitch_joint
+      - elbow_yaw_joint
+      - wrist_roll_joint
+
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+
+    # Simple tolerances
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0  # No goal time constraint
+
+    # Allow external trajectory commands
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true
+
+# Hand Trajectory Controller - gripper control
+hand_controller:
+  ros__parameters:
+    joints:
+      - left_thumb_proximal_yaw_joint
+      - left_thumb_proximal_pitch_joint
+      - left_index_proximal_joint
+      - left_middle_proximal_joint
+      - left_ring_proximal_joint
+      - left_pinky_proximal_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true

@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="humanoid_arm_5dof">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-1.4142E-08 1.4615E-08 0.35593" rpy="0 0 0" />
+      <mass value="77.718" />
+      <inertia ixx="21.025" ixy="-8.8504E-08" ixz="6.1541E-07" iyy="21.028" iyz="-1.1273E-06" izz="1.008" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 0.94902 0.9098 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_pitch_rs04_actuator">
+    <inertial>
+      <origin xyz="-0.024532 6.1284E-13 3.0664E-13" rpy="0 0 0" />
+      <mass value="1.345" />
+      <inertia ixx="0.00087641" ixy="-1.2177E-17" ixz="-1.4781E-16" iyy="0.0005424" iyz="-3.5471E-06" izz="0.00054116" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch_rs04_actuator.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch_rs04_actuator.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_pitch_rs04_actuator_fixture_link" type="fixed">
+    <origin xyz="-0.1079 0 1.425" rpy="-0.67594 0 3.1416" />
+    <parent link="base_link" />
+    <child link="left_shoulder_pitch_rs04_actuator" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_pitch_rs04_flange">
+    <inertial>
+      <origin xyz="-0.0018894 -9.5572E-05 2.5808E-05" rpy="0 0 0" />
+      <mass value="0.0075" />
+      <inertia ixx="2.3623E-06" ixy="6.4388E-21" ixz="-7.1204E-21" iyy="1.1941E-06" iyz="3.6528E-21" izz="1.1941E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch_rs04_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch_rs04_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_pitch_rs04" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_pitch_rs04_actuator" />
+    <child link="left_shoulder_pitch_rs04_flange" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14" upper="3.14" effort="120" velocity="3" />
+    <safety_controller soft_upper_limit="3.14" soft_lower_limit="-3.14" k_velocity="0" />
+  </joint>
+  <link name="left_shoulder_pitch">
+    <inertial>
+      <origin xyz="0.068247 0.039551 -5.234E-06" rpy="0 0 0" />
+      <mass value="0.29944" />
+      <inertia ixx="0.0043457" ixy="-0.0020544" ixz="-3.8776E-07" iyy="0.0075578" iyz="-1.6186E-07" izz="0.0076907" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_pitch.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_pitch_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_pitch_rs04_flange" />
+    <child link="left_shoulder_pitch" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_roll_rs04_flange">
+    <inertial>
+      <origin xyz="-5.7019E-12 -0.0021106 2.1706E-10" rpy="0 0 0" />
+      <mass value="0.0075" />
+      <inertia ixx="1.1941E-06" ixy="3.5072E-22" ixz="1.0191E-21" iyy="2.3623E-06" iyz="-4.903E-15" izz="1.1941E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll_rs04_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll_rs04_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_roll_rs04_flange" type="fixed">
+    <origin xyz="0.11678 0.0487 -2.7056E-05" rpy="0 0 3.1416" />
+    <parent link="left_shoulder_pitch" />
+    <child link="left_shoulder_roll_rs04_flange" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_roll_rs04_actuator">
+    <inertial>
+      <origin xyz="7.5431E-05 0.020532 2.7056E-05" rpy="0 0 0" />
+      <mass value="1.345" />
+      <inertia ixx="0.00054201" ixy="-1.5116E-14" ixz="-3.5941E-06" iyy="0.00087641" iyz="-1.4055E-12" izz="0.00054156" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll_rs04_actuator.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll_rs04_actuator.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_roll_rs04" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_roll_rs04_flange" />
+    <child link="left_shoulder_roll_rs04_actuator" />
+    <axis xyz="0 -1 0" />
+    <limit lower="-3.5" upper="0.6" effort="120" velocity="3" />
+    <safety_controller soft_upper_limit="3.14" soft_lower_limit="-3.14" k_velocity="0" />
+  </joint>
+  <link name="left_shoulder_roll">
+    <inertial>
+      <origin xyz="-0.0075223 0.049755 -0.055681" rpy="0 0 0" />
+      <mass value="0.2494" />
+      <inertia ixx="0.0066808" ixy="-0.00010577" ixz="-0.00053776" iyy="0.0073988" iyz="-0.0008009" izz="0.0022285" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_roll.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulde_roll_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_roll_rs04_actuator" />
+    <child link="left_shoulder_roll" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_yaw_rs03_actuator">
+    <inertial>
+      <origin xyz="-0.00013735 -0.00027 0.025084" rpy="0 0 0" />
+      <mass value="0.83" />
+      <inertia ixx="0.00027432" ixy="-2.0735E-06" ixz="-2.5625E-07" iyy="0.00027129" iyz="-5.1493E-07" izz="0.00038166" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_rs03_actuator.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_rs03_actuator.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_yaw_rs03_actuator_fixture_link" type="fixed">
+    <origin xyz="-0.021972 0.0377 -0.17358" rpy="0.057123 0.11257 0.47088" />
+    <parent link="left_shoulder_roll" />
+    <child link="left_shoulder_yaw_rs03_actuator" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_yaw_rs03_flange">
+    <inertial>
+      <origin xyz="-2.6865E-10 -6.8053E-10 -0.0012563" rpy="0 0 0" />
+      <mass value="0.005" />
+      <inertia ixx="5.6768E-07" ixy="8.5365E-22" ixz="8.5365E-22" iyy="5.6768E-07" iyz="2.647E-23" izz="1.1311E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_rs03_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_rs03_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_yaw_rs03" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_yaw_rs03_actuator" />
+    <child link="left_shoulder_yaw_rs03_flange" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.14" upper="3.14" effort="60" velocity="1.6" />
+    <safety_controller soft_upper_limit="3.14" soft_lower_limit="-3.14" k_velocity="0" />
+  </joint>
+  <link name="left_shoulder_yaw_flange">
+    <inertial>
+      <origin xyz="-2.2214E-10 -3.6885E-10 -0.0089804" rpy="0 0 0" />
+      <mass value="0.008838" />
+      <inertia ixx="1.2318E-05" ixy="-9.4259E-08" ixz="4.4901E-16" iyy="1.1992E-05" iyz="-6.0556E-16" izz="2.339E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_yaw_flange_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_yaw_rs03_flange" />
+    <child link="left_shoulder_yaw_flange" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_shoulder_yaw">
+    <inertial>
+      <origin xyz="-0.027609 1.0122E-06 -0.076632" rpy="0 0 0" />
+      <mass value="0.122018" />
+      <inertia ixx="0.0018364" ixy="2.5971E-07" ixz="-0.00033902" iyy="0.0016454" iyz="8.6387E-08" izz="0.0010145" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_shoulder_yaw.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_shoulder_yaw_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_shoulder_yaw_flange" />
+    <child link="left_shoulder_yaw" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_elbow_rs03_actuator">
+    <inertial>
+      <origin xyz="-0.025084 8.1191E-07 -0.00030291" rpy="0 0 0" />
+      <mass value="0.83" />
+      <inertia ixx="0.00038166" ixy="3.1874E-09" ixz="5.7519E-07" iyy="0.00027537" iyz="1.1044E-08" izz="0.00027024" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow_rs03_actuator.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow_rs03_actuator.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_elbow_rs03_actuator_ficture_link" type="fixed">
+    <origin xyz="0 0 -0.0987" rpy="0 0 0" />
+    <parent link="left_shoulder_yaw" />
+    <child link="left_elbow_rs03_actuator" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_elbow_rs03_flange">
+    <inertial>
+      <origin xyz="0.0012563 -1.3773E-09 -1.6467E-10" rpy="0 0 0" />
+      <mass value="0.005" />
+      <inertia ixx="1.1311E-06" ixy="1.3467E-21" ixz="4.7778E-21" iyy="5.6768E-07" iyz="-4.4999E-22" izz="5.6768E-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow_rs03_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow_rs03_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_elbow_rs03" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_elbow_rs03_actuator" />
+    <child link="left_elbow_rs03_flange" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-1.3" upper="1.9" effort="60" velocity="1.6" />
+    <safety_controller soft_upper_limit="3.14" soft_lower_limit="-3.14" k_velocity="0" />
+  </joint>
+  <link name="left_elbow">
+    <inertial>
+      <origin xyz="0.020821 0.0089724 -0.03236" rpy="0 0 0" />
+      <mass value="0.1949" />
+      <inertia ixx="0.0036503" ixy="0.00012418" ixz="-0.00045842" iyy="0.0031234" iyz="0.00057257" izz="0.001216" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_elbow.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_elbow_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_elbow_rs03_flange" />
+    <child link="left_elbow" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_wrist_actuator">
+    <inertial>
+      <origin xyz="-6.2313E-10 -0.023014 2.7886E-07" rpy="0 0 0" />
+      <mass value="0.38" />
+      <inertia ixx="8.809E-05" ixy="-1.0059E-17" ixz="-7.708E-20" iyy="0.000127" iyz="3.6839E-17" izz="8.809E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist_actuator.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist_actuator.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_rs02_actuator_fixture_link" type="fixed">
+    <origin xyz="0.0055 0.044061 -0.15849" rpy="-1.2996 0 0" />
+    <parent link="left_elbow" />
+    <child link="left_wrist_actuator" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_wrist_rs02_flange">
+    <inertial>
+      <origin xyz="-3.2202E-10 -0.0019899 2.7874E-07" rpy="0 0 0" />
+      <mass value="0.0025" />
+      <inertia ixx="1.3495E-07" ixy="8.3809E-20" ixz="-2.7711E-22" iyy="2.634E-07" iyz="1.0102E-19" izz="1.3495E-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist_rs02_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist_rs02_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_rs02" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_wrist_actuator" />
+    <child link="left_wrist_rs02_flange" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="17" velocity="0.8" />
+    <safety_controller soft_upper_limit="3.14" soft_lower_limit="-3.14" k_velocity="0" />
+  </joint>
+  <link name="left_wrist">
+    <inertial>
+      <origin xyz="-0.012628 0.041809 0.0059405" rpy="0 0 0" />
+      <mass value="0.09723" />
+      <inertia ixx="0.0010421" ixy="0.00023897" ixz="2.5575E-06" iyy="0.00064729" iyz="-0.00011195" izz="0.0010487" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_wrist.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_wrist_rs02_flange" />
+    <child link="left_wrist" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_hand_rs02">
+    <inertial>
+      <origin xyz="-0.023014 2.2389E-07 3.2595E-07" rpy="0 0 0" />
+      <mass value="0.38" />
+      <inertia ixx="0.000127" ixy="2.2647E-11" ixz="-1.704E-11" iyy="8.809E-05" iyz="-9.7485E-18" izz="8.809E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand_rs02.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand_rs02.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_rs02_fixture_link" type="fixed">
+    <origin xyz="0 0.0945 0" rpy="0.64485 0.44406 0" />
+    <parent link="left_wrist" />
+    <child link="left_hand_rs02" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_hand_rs02_flange">
+    <inertial>
+      <origin xyz="-0.0020103 2.3612E-07 3.1674E-07" rpy="0 0 0" />
+      <mass value="0.0025" />
+      <inertia ixx="2.634E-07" ixy="7.4761E-14" ixz="-5.6253E-14" iyy="1.3495E-07" iyz="-3.2502E-20" izz="1.3495E-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand_rs02_flange.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.82353 0.82353 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand_rs02_flange.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_rs02" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_hand_rs02" />
+    <child link="left_hand_rs02_flange" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.5" upper="1.7" effort="17" velocity="0.8" />
+    <safety_controller soft_upper_limit="1.7" soft_lower_limit="-1.5" k_velocity="0" />
+  </joint>
+  <link name="left_hand">
+    <inertial>
+      <origin xyz="0.011977 0.011477 -0.011141" rpy="0 0 0" />
+      <mass value="0.07138" />
+      <inertia ixx="0.00044328" ixy="2.0211E-05" ixz="-2.0027E-05" iyy="0.00030939" iyz="3.838E-05" izz="0.00030916" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_hand.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hand_fixture" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_hand_rs02_flange" />
+    <child link="left_hand" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_palm">
+    <inertial>
+      <origin xyz="-8.9735E-10 0.0065439 -1.9599E-09" rpy="0 0 0" />
+      <mass value="0.047634" />
+      <inertia ixx="0.00014804" ixy="1.9125E-12" ixz="2.4924E-11" iyy="0.00037746" iyz="3.0995E-12" izz="0.00028521" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_palm_fixture" type="fixed">
+    <origin xyz="0 0.046829 -0.045845" rpy="-0.77494 -0.017568 0.017203" />
+    <parent link="left_hand" />
+    <child link="left_palm" />
+    <axis xyz="0 0 0" />
+  </joint>
+  <link name="left_palm_right_finger">
+    <inertial>
+      <origin xyz="0.021797 0.050369 1.1072E-11" rpy="0 0 0" />
+      <mass value="0.02913" />
+      <inertia ixx="0.00010609" ixy="1.2822E-05" ixz="2.1515E-19" iyy="4.9057E-05" iyz="2.3548E-19" izz="8.8986E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm_right_finger.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm_right_finger.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_palm_right_finger" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_palm" />
+    <child link="left_palm_right_finger" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.033" upper="0.00026" effort="0" velocity="0" />
+    <safety_controller soft_upper_limit="0.00026" soft_lower_limit="-0.033" k_velocity="0" />
+  </joint>
+  <link name="left_palm_left_finger">
+    <inertial>
+      <origin xyz="-0.017013 0.050369 1.1072E-11" rpy="0 0 0" />
+      <mass value="0.02913" />
+      <inertia ixx="0.00010609" ixy="-1.2822E-05" ixz="-2.6936E-19" iyy="4.9057E-05" iyz="1.44E-19" izz="8.8986E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm_left_finger.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://arm_description/meshes/visual/left_palm_left_finger.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_palm_left_finger" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="left_palm" />
+    <child link="left_palm_left_finger" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.0041" upper="0.033" effort="0" velocity="0" />
+    <safety_controller soft_upper_limit="0.033" soft_lower_limit="-0.0041" k_velocity="0" />
+  </joint>
+</robot>
