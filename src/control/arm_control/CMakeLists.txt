@@ -20,13 +20,7 @@ install(DIRECTORY launch/
 
 # Install Python scripts as executables
 install(PROGRAMS
-  scripts/motion_planner.py
   scripts/example.py
-  scripts/moveit_cartesian_example.py
-  scripts/complete_depth_camera.py
-  scripts/power_calculator.py
-  scripts/power_monitor_node.py
-  scripts/test_power_monitor.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
