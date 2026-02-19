@@ -15,19 +15,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 ROBOT_CONTROL_CMD = 'ros2 launch arm_control control.launch.py'
 SIMULATION_WORLD_CMD = 'ros2 launch arm_gazebo headless_sim.launch.py'
 GAZEBO_CMD = 'gz sim -g'
-GAZEBO_EXTERNAL_CMD = 'ros2 launch arm_gazebo gz_gui.launch.py'
 RVIZ_CMD = 'rviz2 -d $(ros2 pkg prefix arm_perception)/share/arm_perception/config/deep_camera.rviz'
 MOVEIT_SERVER_CMD = 'ros2 launch arm_moveit_config move_group.launch.py'
 MOVEIT_CLIENT_CMD = 'ros2 launch arm_moveit_config moveit_rviz.launch.py'
-OCTOMAP_CMD = 'ros2 launch arm_system_bringup moveit_octomap_only.launch.py'
-OBJECT_DETECTION_CMD = 'ros2 run arm_perception object_recognition_node.py'
-YOLO_TRACKING_CMD = '~/ldr-humanoid-arm-system/yolov8_native_tracking.py'
-VISUAL_ODOMETRY_CMD = '~/ldr-humanoid-arm-system/visual_odometry_exact.py'
-PERCEPTIION_CMD = 'ros2 launch arm_perception perception.launch.py'
 
 
 class LauncherWindow(QtWidgets.QMainWindow):
-    """GUI that starts/stops each ROS 2 tool inros2 launch arm_system_bringup octomap_server.launch.py dependently in the background."""
+    """GUI that starts/stops each ROS 2 tool independently in the background."""
 
     def __init__(self):
         super().__init__()
@@ -37,22 +31,15 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._load_ui()
         self._set_branding_image()
 
-        self.command_line = self.findChild(QtWidgets.QLineEdit, 'line_command')
-
         self._setup_script = None
         self.tools = {}
         self._world_combo = None
         self._current_world_path = ''
 
-        self._external_server_checkbox = None
-        self._external_ip_edit = None
-        self._external_user_edit = None
-        self._external_password_edit = None
         self._moveit_client_widgets = None
 
         self._setup_world_selector()
         self._setup_moveit_split_controls()
-        self._setup_external_server()
         self._update_launch_command()
         self._register_tool(
             name='system',
@@ -95,41 +82,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             start_button='button_moveit_start',
             stop_button='button_moveit_stop',
             status_label='label_moveit_status',
-        )
-        self._register_tool(
-            name='octomap',
-            command=OCTOMAP_CMD,
-            start_button='button_octomap_start',
-            stop_button='button_octomap_stop',
-            status_label='label_octomap_status',
-        )
-        self._register_tool(
-            name='object_detection',
-            command=OBJECT_DETECTION_CMD,
-            start_button='button_object_detection_start',
-            stop_button='button_object_detection_stop',
-            status_label='label_object_detection_status',
-        )
-        self._register_tool(
-            name='yolo',
-            command=YOLO_TRACKING_CMD,
-            start_button='button_yolo_start',
-            stop_button='button_yolo_stop',
-            status_label='label_yolo_status',
-        )
-        self._register_tool(
-            name='vo',
-            command=VISUAL_ODOMETRY_CMD,
-            start_button='button_vo_start',
-            stop_button='button_vo_stop',
-            status_label='label_vo_status',
-        )
-        self._register_tool(
-            name='perception',
-            command=PERCEPTIION_CMD,
-            start_button='button_perception_start',
-            stop_button='button_perception_stop',
-            status_label='label_perception_status',
         )
 
         self.monitor_timer = QtCore.QTimer(self)
@@ -229,49 +181,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._world_combo = combo
         self._populate_world_selector()
 
-    def _setup_external_server(self):
-        """Add an 'External Server' checkbox with IP, user and password fields."""
-        group_box = self.findChild(QtWidgets.QGroupBox, 'group_processes')
-        grid_layout = group_box.layout() if group_box else None
-        if not isinstance(grid_layout, QtWidgets.QGridLayout):
-            return
-
-        checkbox = QtWidgets.QCheckBox('External Server', self)
-        checkbox.setObjectName('checkbox_external_server')
-        checkbox.setToolTip('Connect to a headless Gazebo server running on a remote machine (e.g. Jetson)')
-
-        ip_edit = QtWidgets.QLineEdit(self)
-        ip_edit.setObjectName('edit_external_ip')
-        ip_edit.setPlaceholderText('IP (e.g. 192.168.1.50)')
-        ip_edit.setVisible(False)
-
-        user_edit = QtWidgets.QLineEdit(self)
-        user_edit.setObjectName('edit_external_user')
-        user_edit.setPlaceholderText('User')
-        user_edit.setText('nano')
-        user_edit.setMaximumWidth(100)
-        user_edit.setVisible(False)
-
-        password_edit = QtWidgets.QLineEdit(self)
-        password_edit.setObjectName('edit_external_password')
-        password_edit.setPlaceholderText('Password')
-        password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
-        password_edit.setMaximumWidth(120)
-        password_edit.setVisible(False)
-
-        row = grid_layout.rowCount()
-        grid_layout.addWidget(checkbox, row, 0)
-        grid_layout.addWidget(ip_edit, row, 1)
-        grid_layout.addWidget(user_edit, row, 2)
-        grid_layout.addWidget(password_edit, row, 3)
-
-        self._external_server_checkbox = checkbox
-        self._external_ip_edit = ip_edit
-        self._external_user_edit = user_edit
-        self._external_password_edit = password_edit
-
-        checkbox.toggled.connect(self._on_external_server_toggled)
-
     def _setup_moveit_split_controls(self):
         """Reuse existing MoveIt controls for server and add a client row."""
         group_box = self.findChild(QtWidgets.QGroupBox, 'group_processes')
@@ -334,59 +243,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             grid_layout.addWidget(child_widget, new_row, col, row_span, col_span)
 
         return insert_row
-
-    def _on_external_server_toggled(self, checked):
-        """Show/hide connection fields and swap Gazebo command."""
-        self._external_ip_edit.setVisible(checked)
-        self._external_user_edit.setVisible(checked)
-        self._external_password_edit.setVisible(checked)
-
-        # Swap Gazebo command
-        self._update_gazebo_external_command()
-        self._update_tool_buttons('moveit_server')
-        self._update_tool_buttons('moveit_client')
-        moveit_server_tool = self.tools.get('moveit_server')
-        if moveit_server_tool and checked and not self._is_running(moveit_server_tool):
-            self._set_tool_status(moveit_server_tool, 'Disabled (external server)')
-
-        # Re-update gazebo command when any field changes
-        fields = [self._external_ip_edit, self._external_user_edit, self._external_password_edit]
-        if checked:
-            for field in fields:
-                field.textChanged.connect(self._on_external_field_changed)
-        else:
-            for field in fields:
-                try:
-                    field.textChanged.disconnect(self._on_external_field_changed)
-                except TypeError:
-                    pass
-
-    def _on_external_field_changed(self):
-        """Update the Gazebo command when any external server field changes."""
-        self._update_gazebo_external_command()
-
-    def _update_gazebo_external_command(self):
-        """Build the Gazebo command based on external server fields."""
-        gazebo_tool = self.tools.get('gazebo')
-        if not gazebo_tool:
-            return
-
-        if not (self._external_server_checkbox and self._external_server_checkbox.isChecked()):
-            gazebo_tool['command'] = GAZEBO_CMD
-            return
-
-        ip = self._external_ip_edit.text().strip()
-        user = self._external_user_edit.text().strip()
-        password = self._external_password_edit.text()
-
-        cmd = GAZEBO_EXTERNAL_CMD
-        if ip:
-            cmd += f' jetson_ip:={ip}'
-        if user:
-            cmd += f' jetson_user:={user}'
-        if password:
-            cmd += f' jetson_password:={password}'
-        gazebo_tool['command'] = cmd
 
     def _populate_world_selector(self):
         """Fill the combo box with *.sdf files from arm_gazebo/worlds."""
@@ -466,10 +322,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
         return command
 
     def _update_launch_command(self):
-        """Synchronize the displayed launch command and tool entry."""
+        """Synchronize the tool entry with the selected world."""
         command = self._build_launch_command()
-        if self.command_line:
-            self.command_line.setText(command)
         simulation_tool = self.tools.get('simulation_world')
         if simulation_tool:
             simulation_tool['command'] = command
@@ -518,19 +372,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self._set_tool_status(tool, 'Already running.')
             return
 
-        if name == 'moveit_server':
-            if self._external_server_checkbox and self._external_server_checkbox.isChecked():
-                self._set_tool_status(tool, 'Disabled (external server)')
-                self._update_tool_buttons(name)
-                return
-        if name == 'moveit_client':
-            external = bool(self._external_server_checkbox and self._external_server_checkbox.isChecked())
-            moveit_server_tool = self.tools.get('moveit_server')
-            if (not external) and (not moveit_server_tool or not self._is_running(moveit_server_tool)):
-                self._set_tool_status(tool, 'Start MoveIt Server first.')
-                self._update_tool_buttons(name)
-                return
-
         try:
             tool['process'] = self._start_process(tool['command'])
         except Exception as exc:
@@ -544,8 +385,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
         self._set_tool_status(tool, f'Running (pid {tool["process"].pid}).')
         self._update_tool_buttons(name)
-        if name == 'moveit_server':
-            self._update_tool_buttons('moveit_client')
 
     def stop_tool(self, name):
         tool = self.tools[name]
@@ -554,11 +393,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         else:
             self._set_tool_status(tool, 'Not running.')
         self._update_tool_buttons(name)
-        if name == 'moveit_server':
-            moveit_client_tool = self.tools.get('moveit_client')
-            if moveit_client_tool and not self._is_running(moveit_client_tool):
-                self._set_tool_status(moveit_client_tool, 'Start MoveIt Server first.')
-            self._update_tool_buttons('moveit_client')
 
     def _start_process(self, command):
         """Launch a ROS command in the background using bash."""
@@ -619,11 +453,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 tool['process'] = None
                 self._set_tool_status(tool, 'Exited.')
                 self._update_tool_buttons(name)
-                if name == 'moveit_server':
-                    moveit_client_tool = self.tools.get('moveit_client')
-                    if moveit_client_tool and not self._is_running(moveit_client_tool):
-                        self._set_tool_status(moveit_client_tool, 'Start MoveIt Server first.')
-                    self._update_tool_buttons('moveit_client')
 
     @staticmethod
     def _is_running(tool):
@@ -634,14 +463,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         running = self._is_running(tool)
         tool['start_button'].setEnabled(not running)
         tool['stop_button'].setEnabled(running)
-        if name == 'moveit_server':
-            external = bool(self._external_server_checkbox and self._external_server_checkbox.isChecked())
-            tool['start_button'].setEnabled((not running) and (not external))
-        if name == 'moveit_client':
-            external = bool(self._external_server_checkbox and self._external_server_checkbox.isChecked())
-            moveit_server_tool = self.tools.get('moveit_server')
-            server_running = bool(moveit_server_tool and self._is_running(moveit_server_tool))
-            tool['start_button'].setEnabled((not running) and (external or server_running))
 
     @staticmethod
     def _set_tool_status(tool, text):
