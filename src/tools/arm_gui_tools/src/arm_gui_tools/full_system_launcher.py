@@ -19,6 +19,55 @@ RVIZ_CMD = 'rviz2 -d $(ros2 pkg prefix arm_perception)/share/arm_perception/conf
 MOVEIT_SERVER_CMD = 'ros2 launch arm_moveit_config move_group.launch.py'
 MOVEIT_CLIENT_CMD = 'ros2 launch arm_moveit_config moveit_rviz.launch.py'
 
+TOOL_DISPLAY_NAMES = {
+    'system': 'Robot Control',
+    'simulation_world': 'Simulation World',
+    'gazebo': 'Gazebo',
+    'rviz': 'RViz',
+    'moveit_server': 'MoveIt Server',
+    'moveit_client': 'MoveIt Client',
+}
+
+UNLOCK_DELAY_MS = 5000
+
+# Per-mode configuration.
+# 'dependencies': tools that must be in _tools_ready before this tool can start.
+# 'unavailable': tools that cannot be used at all in this mode.
+# 'initial_enabled': tools whose Start button is active at mode entry.
+MODE_CONFIGS = {
+    'full_local': {
+        'initial_enabled': {'simulation_world'},
+        'unavailable': set(),
+        'dependencies': {
+            'simulation_world': [],
+            'system': ['simulation_world'],
+            'gazebo': ['simulation_world'],
+            'rviz': ['system'],
+            'moveit_server': ['system'],
+            'moveit_client': ['moveit_server'],
+        },
+    },
+    'robot': {
+        'initial_enabled': {'system'},
+        'unavailable': {'simulation_world', 'gazebo', 'moveit_client'},
+        'dependencies': {
+            'system': [],
+            'rviz': ['system'],
+            'moveit_server': ['system'],
+        },
+    },
+    'client': {
+        'initial_enabled': {'simulation_world'},
+        'unavailable': {'system', 'moveit_server'},
+        'dependencies': {
+            'simulation_world': [],
+            'gazebo': ['simulation_world'],
+            'rviz': ['simulation_world'],
+            'moveit_client': ['simulation_world'],
+        },
+    },
+}
+
 
 class LauncherWindow(QtWidgets.QMainWindow):
     """GUI that starts/stops each ROS 2 tool independently in the background."""
@@ -37,6 +86,12 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._current_world_path = ''
 
         self._moveit_client_widgets = None
+
+        # Mode state
+        self._current_mode = 'full_local'
+        self._tools_ready = set()
+        self._pending_timers = {}
+        self._switching_mode = False
 
         self._setup_world_selector()
         self._setup_moveit_split_controls()
@@ -87,6 +142,144 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.monitor_timer = QtCore.QTimer(self)
         self.monitor_timer.timeout.connect(self._cleanup_finished_processes)
         self.monitor_timer.start(1000)
+
+        # Wire radio buttons
+        self._radio_full_local = self._require_widget(QtWidgets.QRadioButton, 'radio_full_local')
+        self._radio_robot = self._require_widget(QtWidgets.QRadioButton, 'radio_robot')
+        self._radio_client = self._require_widget(QtWidgets.QRadioButton, 'radio_client')
+
+        self._radio_full_local.toggled.connect(
+            lambda checked: checked and self._on_mode_changed('full_local'))
+        self._radio_robot.toggled.connect(
+            lambda checked: checked and self._on_mode_changed('robot'))
+        self._radio_client.toggled.connect(
+            lambda checked: checked and self._on_mode_changed('client'))
+
+        # Apply initial mode
+        self._apply_mode('full_local')
+
+    # ------------------------------------------------------------------
+    # Mode management
+    # ------------------------------------------------------------------
+
+    def _on_mode_changed(self, new_mode):
+        if self._switching_mode or new_mode == self._current_mode:
+            return
+
+        # Block mode switch if any process is still running
+        running_names = [
+            TOOL_DISPLAY_NAMES.get(n, n)
+            for n, t in self.tools.items() if self._is_running(t)
+        ]
+        if running_names:
+            self._switching_mode = True
+            self._radio_for_mode(self._current_mode).setChecked(True)
+            self._switching_mode = False
+            QtWidgets.QMessageBox.warning(
+                self,
+                'Cannot switch mode',
+                f'You need to stop all processes first:\n{", ".join(running_names)}',
+            )
+            return
+
+        self._apply_mode(new_mode)
+
+    def _apply_mode(self, mode):
+        self._current_mode = mode
+        config = MODE_CONFIGS[mode]
+
+        # Cancel all pending timers
+        for timer in self._pending_timers.values():
+            timer.stop()
+        self._pending_timers.clear()
+        self._tools_ready.clear()
+
+        # Update every tool's button state
+        for name, tool in self.tools.items():
+            if name in config['unavailable']:
+                tool['start_button'].setEnabled(False)
+                tool['stop_button'].setEnabled(False)
+                self._set_tool_status(tool, 'Unavailable')
+            elif name in config['initial_enabled']:
+                tool['start_button'].setEnabled(not self._is_running(tool))
+                tool['stop_button'].setEnabled(self._is_running(tool))
+                if not self._is_running(tool):
+                    self._set_tool_status(tool, 'Idle')
+            else:
+                tool['start_button'].setEnabled(False)
+                tool['stop_button'].setEnabled(self._is_running(tool))
+                if not self._is_running(tool):
+                    self._set_tool_status(tool, 'Waiting...')
+
+    def _radio_for_mode(self, mode):
+        return {
+            'full_local': self._radio_full_local,
+            'robot': self._radio_robot,
+            'client': self._radio_client,
+        }[mode]
+
+    # ------------------------------------------------------------------
+    # Dependency helpers
+    # ------------------------------------------------------------------
+
+    def _get_dependencies(self, tool_name):
+        """Return the list of dependency names for tool_name in current mode."""
+        config = MODE_CONFIGS[self._current_mode]
+        return config['dependencies'].get(tool_name, [])
+
+    def _get_dependents(self, tool_name):
+        """Return tool names that list tool_name as a dependency in current mode."""
+        config = MODE_CONFIGS[self._current_mode]
+        dependents = []
+        for name, deps in config['dependencies'].items():
+            if tool_name in deps:
+                dependents.append(name)
+        return dependents
+
+    def _running_dependents(self, tool_name):
+        """Return display names of running tools that depend on tool_name."""
+        names = []
+        for dep_name in self._get_dependents(tool_name):
+            tool = self.tools.get(dep_name)
+            if tool and self._is_running(tool):
+                names.append(TOOL_DISPLAY_NAMES.get(dep_name, dep_name))
+        return names
+
+    def _all_deps_ready(self, tool_name):
+        """True if every dependency of tool_name is in _tools_ready."""
+        return all(d in self._tools_ready for d in self._get_dependencies(tool_name))
+
+    def _unlock_dependents(self, tool_name):
+        """Enable start buttons for tools whose dependencies are now all ready."""
+        config = MODE_CONFIGS[self._current_mode]
+        for dep_name in self._get_dependents(tool_name):
+            if dep_name in config['unavailable']:
+                continue
+            tool = self.tools.get(dep_name)
+            if tool and not self._is_running(tool) and self._all_deps_ready(dep_name):
+                tool['start_button'].setEnabled(True)
+                self._set_tool_status(tool, 'Idle')
+
+    def _lock_transitive_dependents(self, tool_name):
+        """Disable start buttons for all tools that transitively depend on tool_name."""
+        config = MODE_CONFIGS[self._current_mode]
+        to_visit = list(self._get_dependents(tool_name))
+        visited = set()
+        while to_visit:
+            dep = to_visit.pop()
+            if dep in visited:
+                continue
+            visited.add(dep)
+            tool = self.tools.get(dep)
+            if tool and not self._is_running(tool):
+                tool['start_button'].setEnabled(False)
+                if dep not in config['unavailable']:
+                    self._set_tool_status(tool, 'Waiting...')
+            to_visit.extend(self._get_dependents(dep))
+
+    # ------------------------------------------------------------------
+    # UI loading and branding (unchanged)
+    # ------------------------------------------------------------------
 
     def _load_ui(self):
         """Load the Qt Designer file either from install or source tree."""
@@ -158,6 +351,10 @@ class LauncherWindow(QtWidgets.QMainWindow):
         ):
             self._update_branding_pixmap()
         return super().eventFilter(watched, event)
+
+    # ------------------------------------------------------------------
+    # World selector
+    # ------------------------------------------------------------------
 
     def _setup_world_selector(self):
         """Create a combo box that lists available Gazebo world files."""
@@ -328,6 +525,10 @@ class LauncherWindow(QtWidgets.QMainWindow):
         if simulation_tool:
             simulation_tool['command'] = command
 
+    # ------------------------------------------------------------------
+    # Tool registration
+    # ------------------------------------------------------------------
+
     def _register_tool(self, name, command, start_button, stop_button, status_label):
         start_btn = (
             self._require_widget(QtWidgets.QPushButton, start_button)
@@ -356,13 +557,16 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
         start_btn.clicked.connect(partial(self.start_tool, name))
         stop_btn.clicked.connect(partial(self.stop_tool, name))
-        self._update_tool_buttons(name)
 
     def _require_widget(self, widget_cls, object_name):
         widget = self.findChild(widget_cls, object_name)
         if widget is None:
             raise RuntimeError(f'{object_name} not found in UI file')
         return widget
+
+    # ------------------------------------------------------------------
+    # Start / Stop with mode awareness
+    # ------------------------------------------------------------------
 
     def start_tool(self, name):
         tool = self.tools[name]
@@ -377,7 +581,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         except Exception as exc:
             QtWidgets.QMessageBox.critical(
                 self,
-                f'{name} failed',
+                f'{TOOL_DISPLAY_NAMES.get(name, name)} failed',
                 f'Failed to start command:\n{exc}'
             )
             self._set_tool_status(tool, 'Failed to start.')
@@ -386,13 +590,53 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._set_tool_status(tool, f'Running (pid {tool["process"].pid}).')
         self._update_tool_buttons(name)
 
+        # Schedule delayed unlock of dependents
+        timer = QtCore.QTimer(self)
+        timer.setSingleShot(True)
+        timer.timeout.connect(partial(self._on_tool_ready, name))
+        timer.start(UNLOCK_DELAY_MS)
+        self._pending_timers[name] = timer
+
+    def _on_tool_ready(self, name):
+        """Called 5 seconds after a tool was started."""
+        self._pending_timers.pop(name, None)
+        tool = self.tools.get(name)
+        if not tool or not self._is_running(tool):
+            return
+        self._tools_ready.add(name)
+        self._unlock_dependents(name)
+
     def stop_tool(self, name):
         tool = self.tools[name]
+
+        # Enforce stop order: cannot stop if running dependents exist
+        running_deps = self._running_dependents(name)
+        if running_deps:
+            QtWidgets.QMessageBox.warning(
+                self,
+                'Stop order',
+                f'You need to stop {", ".join(running_deps)} first.',
+            )
+            return
+
         if self._terminate_process(tool):
             self._set_tool_status(tool, 'Stop signal sent.')
         else:
             self._set_tool_status(tool, 'Not running.')
+
+        # Cancel pending ready timer
+        timer = self._pending_timers.pop(name, None)
+        if timer:
+            timer.stop()
+
+        # Remove from ready set and lock downstream tools
+        self._tools_ready.discard(name)
+        self._lock_transitive_dependents(name)
         self._update_tool_buttons(name)
+
+    # ------------------------------------------------------------------
+    # Process management (unchanged)
+    # ------------------------------------------------------------------
 
     def _start_process(self, command):
         """Launch a ROS command in the background using bash."""
@@ -421,7 +665,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             candidate = parent / 'install' / 'setup.bash'
             if candidate.exists():
                 return candidate
-        # Fallback for development (assume environment already sourced)
         return None
 
     def _terminate_process(self, tool):
@@ -452,6 +695,13 @@ class LauncherWindow(QtWidgets.QMainWindow):
             if tool['process'] and tool['process'].poll() is not None:
                 tool['process'] = None
                 self._set_tool_status(tool, 'Exited.')
+
+                # Cancel pending timer and remove from ready set
+                timer = self._pending_timers.pop(name, None)
+                if timer:
+                    timer.stop()
+                self._tools_ready.discard(name)
+                self._lock_transitive_dependents(name)
                 self._update_tool_buttons(name)
 
     @staticmethod
@@ -460,9 +710,22 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
     def _update_tool_buttons(self, name):
         tool = self.tools[name]
+        config = MODE_CONFIGS[self._current_mode]
         running = self._is_running(tool)
-        tool['start_button'].setEnabled(not running)
+
+        if name in config['unavailable']:
+            tool['start_button'].setEnabled(False)
+            tool['stop_button'].setEnabled(False)
+            return
+
         tool['stop_button'].setEnabled(running)
+
+        if running:
+            tool['start_button'].setEnabled(False)
+        elif name in config['initial_enabled'] or self._all_deps_ready(name):
+            tool['start_button'].setEnabled(True)
+        else:
+            tool['start_button'].setEnabled(False)
 
     @staticmethod
     def _set_tool_status(tool, text):
