@@ -15,7 +15,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 ROBOT_CONTROL_CMD = 'ros2 launch arm_control control.launch.py'
 SIMULATION_WORLD_CMD = 'ros2 launch arm_gazebo headless_sim.launch.py'
 GAZEBO_CMD = 'gz sim -g'
-RVIZ_CMD = 'rviz2 -d $(ros2 pkg prefix arm_perception)/share/arm_perception/config/deep_camera.rviz'
+RVIZ_CMD = 'rviz2 -d $(ros2 pkg prefix arm_description)/share/arm_description/config/view_robot.rviz'
 MOVEIT_SERVER_CMD = 'ros2 launch arm_moveit_config move_group.launch.py'
 MOVEIT_CLIENT_CMD = 'ros2 launch arm_moveit_config moveit_rviz.launch.py'
 
