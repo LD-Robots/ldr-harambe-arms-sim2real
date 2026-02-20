@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <!-- Inspire Hand Right - Dexterous 6-DOF hand
+       Collision geometry uses box primitives (OBJ meshes lack normals for DART) -->
+
   <xacro:macro name="inspire_hand_right" params="parent prefix:=right_ mount_x:=0.0 mount_y:=0.0 mount_z:=0.0 mount_roll:=0.0 mount_pitch:=0.0 mount_yaw:=0.0">
 
     <joint name="${prefix}hand_base_joint" type="fixed">
@@ -83,9 +86,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.005 0.001 -0.007" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_thumb_proximal_base.obj"/>
+            <box size="0.015 0.012 0.014"/>
           </geometry>
         </collision>
       </link>
@@ -109,9 +112,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.022 0.013 -0.008" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_thumb_proximal.obj"/>
+            <box size="0.050 0.030 0.016"/>
           </geometry>
         </collision>
       </link>
@@ -135,9 +138,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.010 0.002 -0.007" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_thumb_intermediate.obj"/>
+            <box size="0.025 0.014 0.014"/>
           </geometry>
         </collision>
       </link>
@@ -162,9 +165,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.010 0.007 -0.006" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_thumb_distal.obj"/>
+            <box size="0.024 0.016 0.012"/>
           </geometry>
         </collision>
       </link>
@@ -189,9 +192,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.014 -0.006" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_proximal.obj"/>
+            <box size="0.014 0.032 0.012"/>
           </geometry>
         </collision>
       </link>
@@ -215,9 +218,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.020 -0.005" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_intermediate.obj"/>
+            <box size="0.014 0.042 0.010"/>
           </geometry>
         </collision>
       </link>
@@ -242,9 +245,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.014 -0.006" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_proximal.obj"/>
+            <box size="0.014 0.032 0.012"/>
           </geometry>
         </collision>
       </link>
@@ -268,9 +271,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.022 -0.005" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_middle_intermediate.obj"/>
+            <box size="0.014 0.046 0.010"/>
           </geometry>
         </collision>
       </link>
@@ -295,9 +298,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.014 -0.006" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_proximal.obj"/>
+            <box size="0.014 0.032 0.012"/>
           </geometry>
         </collision>
       </link>
@@ -321,9 +324,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.020 -0.005" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_intermediate.obj"/>
+            <box size="0.014 0.042 0.010"/>
           </geometry>
         </collision>
       </link>
@@ -348,9 +351,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.001 0.014 -0.006" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_index_proximal.obj"/>
+            <box size="0.014 0.032 0.012"/>
           </geometry>
         </collision>
       </link>
@@ -374,9 +377,9 @@
           </geometry>
         </visual>
         <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <origin xyz="0.002 0.016 -0.005" rpy="0 0 0"/>
           <geometry>
-            <mesh filename="package://hand_description/meshes/inspire_hand/collision/right_pinky_intermediate.obj"/>
+            <box size="0.014 0.034 0.010"/>
           </geometry>
         </collision>
       </link>

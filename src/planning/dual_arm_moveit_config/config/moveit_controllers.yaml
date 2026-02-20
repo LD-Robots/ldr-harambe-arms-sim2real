@@ -1,0 +1,56 @@
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - left_arm_controller
+    - right_arm_controller
+    - left_hand_controller
+    - right_hand_controller
+
+  left_arm_controller:
+    type: FollowJointTrajectory
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+    action_ns: follow_joint_trajectory
+    default: true
+
+  right_arm_controller:
+    type: FollowJointTrajectory
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+    action_ns: follow_joint_trajectory
+    default: true
+
+  left_hand_controller:
+    type: FollowJointTrajectory
+    joints:
+      - left_thumb_proximal_yaw_joint
+      - left_thumb_proximal_pitch_joint
+      - left_index_proximal_joint
+      - left_middle_proximal_joint
+      - left_ring_proximal_joint
+      - left_pinky_proximal_joint
+    action_ns: follow_joint_trajectory
+    default: true
+
+  right_hand_controller:
+    type: FollowJointTrajectory
+    joints:
+      - right_thumb_proximal_yaw_joint
+      - right_thumb_proximal_pitch_joint
+      - right_index_proximal_joint
+      - right_middle_proximal_joint
+      - right_ring_proximal_joint
+      - right_pinky_proximal_joint
+    action_ns: follow_joint_trajectory
+    default: true

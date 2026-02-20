@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dual_arm_description">
+    <xacro:arg name="pkg_share" default=""/>
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+
+    <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />
+
+    <xacro:include filename="dual_arm_description.ros2_control.xacro" />
+
+    <xacro:dual_arm_description_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+
+</robot>

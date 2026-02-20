@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://ros.org/wiki/xacro">
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="dual_arm_base">
 
   <xacro:include filename="$(find dual_arm_description)/urdf/links/dual_arm_links.xacro" />
   <xacro:include filename="$(find dual_arm_description)/urdf/joints/dual_arm_joints.xacro" />

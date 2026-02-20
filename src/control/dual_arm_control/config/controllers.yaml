@@ -1,0 +1,108 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      publish_rate: 50.0
+
+    left_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    right_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    left_hand_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    right_hand_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+# Left Arm Trajectory Controller
+left_arm_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true
+
+# Right Arm Trajectory Controller
+right_arm_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true
+
+# Left Hand Trajectory Controller
+left_hand_controller:
+  ros__parameters:
+    joints:
+      - left_thumb_proximal_yaw_joint
+      - left_thumb_proximal_pitch_joint
+      - left_index_proximal_joint
+      - left_middle_proximal_joint
+      - left_ring_proximal_joint
+      - left_pinky_proximal_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true
+
+# Right Hand Trajectory Controller
+right_hand_controller:
+  ros__parameters:
+    joints:
+      - right_thumb_proximal_yaw_joint
+      - right_thumb_proximal_pitch_joint
+      - right_index_proximal_joint
+      - right_middle_proximal_joint
+      - right_ring_proximal_joint
+      - right_pinky_proximal_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_integration_in_goal_trajectories: true

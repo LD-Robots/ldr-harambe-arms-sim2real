@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="dual_arm_description">
+    <!--GROUPS-->
+    <group name="left_arm">
+        <chain base_link="urdf_base" tip_link="urdf_l_wrist_assembly"/>
+    </group>
+    <group name="right_arm">
+        <chain base_link="urdf_base" tip_link="urdf_r_wrist_assembly"/>
+    </group>
+    <group name="both_arms">
+        <group name="left_arm"/>
+        <group name="right_arm"/>
+    </group>
+    <group name="left_hand">
+        <joint name="left_thumb_proximal_yaw_joint"/>
+        <joint name="left_thumb_proximal_pitch_joint"/>
+        <joint name="left_index_proximal_joint"/>
+        <joint name="left_middle_proximal_joint"/>
+        <joint name="left_ring_proximal_joint"/>
+        <joint name="left_pinky_proximal_joint"/>
+    </group>
+    <group name="right_hand">
+        <joint name="right_thumb_proximal_yaw_joint"/>
+        <joint name="right_thumb_proximal_pitch_joint"/>
+        <joint name="right_index_proximal_joint"/>
+        <joint name="right_middle_proximal_joint"/>
+        <joint name="right_ring_proximal_joint"/>
+        <joint name="right_pinky_proximal_joint"/>
+    </group>
+
+    <!--GROUP STATES-->
+    <group_state name="home" group="left_arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.0"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
+        <joint name="left_elbow_pitch_joint_X6" value="0.0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.0"/>
+        <joint name="left_wrist_roll_joint_X4" value="0.0"/>
+    </group_state>
+    <group_state name="home" group="right_arm">
+        <joint name="right_shoulder_pitch_joint_X6" value="0.0"/>
+        <joint name="right_shoulder_roll_joint_X6" value="0.0"/>
+        <joint name="right_shoulder_yaw_joint_X4" value="0.0"/>
+        <joint name="right_elbow_pitch_joint_X6" value="0.0"/>
+        <joint name="right_wrist_yaw_joint_X4" value="0.0"/>
+        <joint name="right_wrist_roll_joint_X4" value="0.0"/>
+    </group_state>
+    <group_state name="open" group="left_hand">
+        <joint name="left_thumb_proximal_yaw_joint" value="0.0"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.0"/>
+        <joint name="left_index_proximal_joint" value="0.0"/>
+        <joint name="left_middle_proximal_joint" value="0.0"/>
+        <joint name="left_ring_proximal_joint" value="0.0"/>
+        <joint name="left_pinky_proximal_joint" value="0.0"/>
+    </group_state>
+    <group_state name="close" group="left_hand">
+        <joint name="left_thumb_proximal_yaw_joint" value="1.0"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.6"/>
+        <joint name="left_index_proximal_joint" value="1.2"/>
+        <joint name="left_middle_proximal_joint" value="1.2"/>
+        <joint name="left_ring_proximal_joint" value="1.2"/>
+        <joint name="left_pinky_proximal_joint" value="1.2"/>
+    </group_state>
+    <group_state name="open" group="right_hand">
+        <joint name="right_thumb_proximal_yaw_joint" value="0.0"/>
+        <joint name="right_thumb_proximal_pitch_joint" value="0.0"/>
+        <joint name="right_index_proximal_joint" value="0.0"/>
+        <joint name="right_middle_proximal_joint" value="0.0"/>
+        <joint name="right_ring_proximal_joint" value="0.0"/>
+        <joint name="right_pinky_proximal_joint" value="0.0"/>
+    </group_state>
+    <group_state name="close" group="right_hand">
+        <joint name="right_thumb_proximal_yaw_joint" value="1.0"/>
+        <joint name="right_thumb_proximal_pitch_joint" value="0.6"/>
+        <joint name="right_index_proximal_joint" value="1.2"/>
+        <joint name="right_middle_proximal_joint" value="1.2"/>
+        <joint name="right_ring_proximal_joint" value="1.2"/>
+        <joint name="right_pinky_proximal_joint" value="1.2"/>
+    </group_state>
+
+    <!--END EFFECTORS-->
+    <end_effector name="left_hand" parent_link="urdf_l_wrist_assembly" group="left_hand"/>
+    <end_effector name="right_hand" parent_link="urdf_r_wrist_assembly" group="right_hand"/>
+
+    <!--VIRTUAL JOINT-->
+    <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="urdf_base"/>
+
+    <!--DISABLE COLLISIONS: Left arm chain-->
+    <disable_collisions link1="urdf_base" link2="urdf_simplified_torso_sub_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_l_shoulder_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_elbow_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_l_lower_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_l_wrist_assembly" reason="Adjacent"/>
+    <!--Left arm non-adjacent-->
+    <disable_collisions link1="urdf_base" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+
+    <!--DISABLE COLLISIONS: Right arm chain-->
+    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_r_shoulder_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_elbow_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_upper_forearm_assembly" link2="urdf_r_lower_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_lower_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Adjacent"/>
+    <!--Right arm non-adjacent-->
+    <disable_collisions link1="urdf_base" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+
+    <!--DISABLE COLLISIONS: Left hand-->
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="left_hand_base_link" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_thumb_proximal_base" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_thumb_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_index_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_middle_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_ring_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_pinky_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_thumb_proximal_base" link2="left_thumb_proximal" reason="Adjacent"/>
+    <disable_collisions link1="left_thumb_proximal" link2="left_thumb_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_thumb_intermediate" link2="left_thumb_distal" reason="Adjacent"/>
+    <disable_collisions link1="left_thumb_distal" link2="left_thumb_tip" reason="Adjacent"/>
+    <disable_collisions link1="left_index_proximal" link2="left_index_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_index_intermediate" link2="left_index_tip" reason="Adjacent"/>
+    <disable_collisions link1="left_middle_proximal" link2="left_middle_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_middle_intermediate" link2="left_middle_tip" reason="Adjacent"/>
+    <disable_collisions link1="left_ring_proximal" link2="left_ring_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_ring_intermediate" link2="left_ring_tip" reason="Adjacent"/>
+    <disable_collisions link1="left_pinky_proximal" link2="left_pinky_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_pinky_intermediate" link2="left_pinky_tip" reason="Adjacent"/>
+
+    <!--DISABLE COLLISIONS: Right hand-->
+    <disable_collisions link1="urdf_r_wrist_assembly" link2="right_hand_base_link" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_thumb_proximal_base" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_thumb_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_index_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_middle_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_ring_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_hand_base_link" link2="right_pinky_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_thumb_proximal_base" link2="right_thumb_proximal" reason="Adjacent"/>
+    <disable_collisions link1="right_thumb_proximal" link2="right_thumb_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="right_thumb_intermediate" link2="right_thumb_distal" reason="Adjacent"/>
+    <disable_collisions link1="right_thumb_distal" link2="right_thumb_tip" reason="Adjacent"/>
+    <disable_collisions link1="right_index_proximal" link2="right_index_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="right_index_intermediate" link2="right_index_tip" reason="Adjacent"/>
+    <disable_collisions link1="right_middle_proximal" link2="right_middle_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="right_middle_intermediate" link2="right_middle_tip" reason="Adjacent"/>
+    <disable_collisions link1="right_ring_proximal" link2="right_ring_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="right_ring_intermediate" link2="right_ring_tip" reason="Adjacent"/>
+    <disable_collisions link1="right_pinky_proximal" link2="right_pinky_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="right_pinky_intermediate" link2="right_pinky_tip" reason="Adjacent"/>
+
+    <!--DISABLE COLLISIONS: Cross-body (base/torso with both sides)-->
+    <disable_collisions link1="urdf_base" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+
+    <!--DISABLE COLLISIONS: Legs (all fixed, never collide with arms in normal operation)-->
+    <disable_collisions link1="urdf_base" link2="urdf_hip_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_base" link2="urdf_hip_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_femur_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_lower_femur_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_lower_femur_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_l_tibia_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_tibia_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="ankle_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="ankle_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_tibia_assembly" link2="ankle_assembly_3" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_tibia_assembly" link2="ankle_assembly_4" reason="Adjacent"/>
+</robot>

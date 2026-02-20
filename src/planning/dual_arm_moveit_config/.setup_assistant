@@ -1,0 +1,18 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: dual_arm_description
+    relative_path: urdf/dual_arm.urdf.xacro
+  srdf:
+    relative_path: config/dual_arm_description.srdf
+  package_settings:
+    author_name: ldr
+    author_email: ldr@ldr.com
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
