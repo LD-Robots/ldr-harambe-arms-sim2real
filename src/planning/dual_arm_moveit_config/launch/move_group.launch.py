@@ -2,9 +2,11 @@
 """
 MoveIt server launch for dual arm system.
 
-Starts:
-- robot_state_publisher
-- move_group (MoveIt planning/execution server)
+Starts move_group only (no robot_state_publisher).
+Use this alongside Gazebo which already provides RSP and controllers.
+
+Usage:
+    ros2 launch dual_arm_moveit_config move_group.launch.py
 """
 
 from launch import LaunchDescription
@@ -40,13 +42,6 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
-    robot_state_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[moveit_config.robot_description, {"use_sim_time": use_sim_time}],
-    )
-
     move_group = Node(
         package="moveit_ros_move_group",
         executable="move_group",
@@ -67,7 +62,6 @@ def generate_launch_description():
     return LaunchDescription(
         declared_arguments
         + [
-            robot_state_publisher,
             move_group,
         ]
     )

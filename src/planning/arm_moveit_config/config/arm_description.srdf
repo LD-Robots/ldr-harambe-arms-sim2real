@@ -82,6 +82,7 @@
     <disable_collisions link1="left_hand_base_link" link2="left_pinky_proximal" reason="Adjacent"/>
     <disable_collisions link1="left_thumb_proximal_base" link2="left_thumb_proximal" reason="Adjacent"/>
     <disable_collisions link1="left_thumb_proximal" link2="left_thumb_intermediate" reason="Adjacent"/>
+    <disable_collisions link1="left_hand_base_link" link2="left_thumb_intermediate" reason="Never"/>
     <disable_collisions link1="left_thumb_intermediate" link2="left_thumb_distal" reason="Adjacent"/>
     <disable_collisions link1="left_thumb_distal" link2="left_thumb_tip" reason="Adjacent"/>
     <disable_collisions link1="left_thumb_distal" link2="left_index_intermediate" reason="Never"/>
