@@ -165,6 +165,7 @@
       <child link="${prefix}thumb_intermediate"/>
       <axis xyz="0 0 -1"/>
       <limit lower="0" upper="0.8" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}thumb_proximal_pitch_joint" multiplier="1.334" offset="0"/>
     </joint>
 
@@ -195,6 +196,7 @@
       <child link="${prefix}thumb_distal"/>
       <axis xyz="0 0 -1"/>
       <limit lower="0" upper="0.4" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}thumb_proximal_pitch_joint" multiplier="0.667" offset="0"/>
     </joint>
 
@@ -256,6 +258,7 @@
       <child link="${prefix}index_intermediate"/>
       <axis xyz="0 0 -1"/>
       <limit lower="-0.04545" upper="1.56" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}index_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
     </joint>
 
@@ -317,6 +320,7 @@
       <child link="${prefix}middle_intermediate"/>
       <axis xyz="0 0 -1"/>
       <limit lower="-0.04545" upper="1.56" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}middle_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
     </joint>
 
@@ -378,6 +382,7 @@
       <child link="${prefix}ring_intermediate"/>
       <axis xyz="0 0 -1"/>
       <limit lower="-0.04545" upper="1.56" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}ring_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
     </joint>
 
@@ -439,6 +444,7 @@
       <child link="${prefix}pinky_intermediate"/>
       <axis xyz="0 0 -1"/>
       <limit lower="-0.04545" upper="1.56" effort="1" velocity="0.5"/>
+      <dynamics damping="0.05" friction="0.01"/>
       <mimic joint="${prefix}pinky_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
     </joint>
 
