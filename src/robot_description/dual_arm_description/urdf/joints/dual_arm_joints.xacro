@@ -93,100 +93,18 @@
     <limit effort="10" velocity="10" lower="-1.5708" upper="1.5708"/>
   </joint>
   
-<joint name="left_ankle_pitch_joint_2" type="fixed">
-    <origin xyz="-3.747e-16 -0.395 0.03" rpy="-3.14159 3.08616e-14 2.63855e-14"/>
-    <parent link="urdf_l_tibia_assembly"/>
-    <child link="ankle_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398"/>
-  </joint>
-  
-<joint name="left_ankle_pitch_joint" type="fixed">
-    <origin xyz="-3.747e-16 -0.395 0.03" rpy="-3.14159 3.08616e-14 2.63855e-14"/>
-    <parent link="urdf_l_tibia_assembly"/>
-    <child link="ankle_assembly_2"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398"/>
-  </joint>
-  
-<joint name="left_knee_joint" type="fixed">
-    <origin xyz="-0.055 8.60423e-16 -0.113" rpy="1.5708 1.15516e-14 1.5708"/>
-    <parent link="urdf_lower_femur_assembly"/>
-    <child link="urdf_l_tibia_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="0" upper="1.5708"/>
-  </joint>
-  
-<joint name="left_hip_yaw_joint" type="fixed">
-    <origin xyz="2.77556e-17 -0.217 0.0551145" rpy="-1.5708 -2.56711e-31 -1.62214e-31"/>
-    <parent link="urdf_l_upper_femur_assembly"/>
-    <child link="urdf_lower_femur_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-1.5708" upper="1.5708"/>
-  </joint>
-  
-<joint name="left_hip_roll_joint" type="fixed">
-    <origin xyz="0.055 3.33067e-16 -0.073" rpy="-1.43744e-16 -1.5708 0"/>
-    <parent link="urdf_hip_assembly"/>
-    <child link="urdf_l_upper_femur_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-3.14159" upper="0.349066"/>
-  </joint>
-  
-<joint name="left_hip_pitch_joint" type="fixed">
-    <origin xyz="-0.111301 0.0333466 -0.46826" rpy="1.5708 4.63554e-15 1.5708"/>
+  <!-- Left leg: single box replacing 6 links + 12 joints -->
+  <joint name="left_leg_joint" type="fixed">
+    <origin xyz="-0.175 0.055 -0.858" rpy="0 0 0"/>
     <parent link="urdf_base"/>
-    <child link="urdf_hip_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-1.5708" upper="2.53073"/>
+    <child link="left_leg_link"/>
   </joint>
-  
-<joint name="right_ankle_pitch_joint_2" type="fixed">
-    <origin xyz="0.025 0.423 0.056" rpy="-3.14159 1.5708 0"/>
-    <parent link="urdf_r_tibia_assembly"/>
-    <child link="ankle_assembly_3"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398"/>
-  </joint>
-  
-<joint name="right_ankle_pitch_joint" type="fixed">
-    <origin xyz="0.025 0.423 0.056" rpy="-3.14159 1.5708 0"/>
-    <parent link="urdf_r_tibia_assembly"/>
-    <child link="ankle_assembly_4"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398"/>
-  </joint>
-  
-<joint name="right_knee_joint" type="fixed">
-    <origin xyz="0.055 1.37102e-06 -0.113" rpy="-1.5708 0.0173732 1.57082"/>
-    <parent link="urdf_lower_femur_assembly_2"/>
-    <child link="urdf_r_tibia_assembly"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.191906" upper="2.33882"/>
-  </joint>
-  
-<joint name="right_hip_yaw_joint" type="fixed">
-    <origin xyz="-2.77556e-17 -0.217 0.053" rpy="-1.5708 1.68892e-21 -1.05152e-19"/>
-    <parent link="urdf_r_upper_femur_assemby"/>
-    <child link="urdf_lower_femur_assembly_2"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-1.57082" upper="1.57077"/>
-  </joint>
-  
-<joint name="right_hip_roll_joint" type="fixed">
-    <origin xyz="0.0549931 -0.000872784 -0.078" rpy="1.5708 1.56925 -1.58667"/>
-    <parent link="urdf_hip_assembly_2"/>
-    <child link="urdf_r_upper_femur_assemby"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-0.35061" upper="3.14005"/>
-  </joint>
-  
-<joint name="right_hip_pitch_joint" type="fixed">
-    <origin xyz="0.107699 0.0333466 -0.46826" rpy="-1.5708 -1.41455e-17 1.5708"/>
+
+  <!-- Right leg: single box replacing 6 links + 12 joints -->
+  <joint name="right_leg_joint" type="fixed">
+    <origin xyz="0.177 0.058 -0.858" rpy="0 0 0"/>
     <parent link="urdf_base"/>
-    <child link="urdf_hip_assembly_2"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-2.51486" upper="1.58667"/>
+    <child link="right_leg_link"/>
   </joint>
 
 </robot>
