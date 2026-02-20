@@ -95,12 +95,44 @@ def setup_ros2_bridge(robot_prim_path):
     import omni.usd
     from pxr import Sdf
     stage = omni.usd.get_context().get_stage()
-    pub_prim = stage.GetPrimAtPath("/ROS2Bridge/PublishJointState")
-    if pub_prim.IsValid():
-        rel = pub_prim.GetRelationship("inputs:targetPrim")
-        rel.SetTargets([Sdf.Path(robot_prim_path)])
+
+    for node_name in ["PublishJointState", "SubscribeJointState"]:
+        node_prim = stage.GetPrimAtPath(f"/ROS2Bridge/{node_name}")
+        if node_prim.IsValid():
+            rel = node_prim.GetRelationship("inputs:targetPrim")
+            if rel:
+                rel.SetTargets([Sdf.Path(robot_prim_path)])
+                print(f"[INFO] {node_name}.targetPrim → {robot_prim_path}")
 
     print("[INFO] ROS2 bridge OmniGraph created (/ROS2Bridge)")
+
+
+def _find_articulation_root(stage, search_root):
+    """Walk the prim tree under *search_root* and return the path of the
+    first prim that carries the PhysicsArticulationRootAPI.
+
+    The URDF importer typically applies this API to the first rigid-body
+    link (e.g. ``base_link``), not to the top-level Xform container.
+    """
+    from pxr import UsdPhysics
+
+    from pxr import Usd
+
+    root_prim = stage.GetPrimAtPath(search_root)
+    if not root_prim.IsValid():
+        return None
+
+    # Check direct children first (fast path — base_link is usually here)
+    for prim in root_prim.GetChildren():
+        if prim.HasAPI(UsdPhysics.ArticulationRootAPI):
+            return str(prim.GetPath())
+
+    # Full subtree search as fallback
+    for prim in Usd.PrimRange(root_prim):
+        if prim.HasAPI(UsdPhysics.ArticulationRootAPI):
+            return str(prim.GetPath())
+
+    return None
 
 
 def import_urdf(urdf_path):
@@ -136,27 +168,55 @@ def import_urdf(urdf_path):
     # ignoring dest_path for in-memory stages.
     # The URDF robot name is "dual_arm_description".
     import omni.usd
-    from pxr import UsdGeom, Gf
+    from pxr import UsdGeom, UsdPhysics, Gf
     stage = omni.usd.get_context().get_stage()
 
     # Use the path from import_robot, or find it by known name
-    actual_path = prim_path
-    if not actual_path or not stage.GetPrimAtPath(actual_path).IsValid():
-        actual_path = "/dual_arm_description"
-    if not stage.GetPrimAtPath(actual_path).IsValid():
-        actual_path = dest_path
+    robot_root = prim_path
+    if not robot_root or not stage.GetPrimAtPath(robot_root).IsValid():
+        robot_root = "/dual_arm_description"
+    if not stage.GetPrimAtPath(robot_root).IsValid():
+        robot_root = dest_path
 
-    print(f"[INFO] Robot at: {actual_path}")
+    print(f"[INFO] Robot root Xform: {robot_root}")
 
     # Raise the robot above the ground plane (z=1.0, same as Gazebo)
-    robot_prim = stage.GetPrimAtPath(actual_path)
+    robot_prim = stage.GetPrimAtPath(robot_root)
     if robot_prim.IsValid():
         xform = UsdGeom.Xformable(robot_prim)
-        xform.ClearXformOpOrder()
-        xform.AddTranslateOp().Set(Gf.Vec3d(0.0, 0.0, 1.0))
+        # Preserve any existing xform ops — just add a translate
+        existing_ops = xform.GetOrderedXformOps()
+        if existing_ops:
+            # Check if there's already a translate op we can modify
+            for op in existing_ops:
+                if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+                    op.Set(Gf.Vec3d(0.0, 0.0, 1.0))
+                    break
+            else:
+                xform.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble).Set(
+                    Gf.Vec3d(0.0, 0.0, 1.0))
+        else:
+            xform.AddTranslateOp().Set(Gf.Vec3d(0.0, 0.0, 1.0))
         print("[INFO] Robot raised to z=1.0")
 
-    return actual_path
+    # Find the actual articulation root (usually on base_link, not the Xform)
+    artic_path = _find_articulation_root(stage, robot_root)
+    if artic_path:
+        print(f"[INFO] Articulation root found: {artic_path}")
+    else:
+        # Fallback: apply ArticulationRootAPI on the robot root
+        print(f"[WARN] No ArticulationRootAPI found, applying to {robot_root}")
+        UsdPhysics.ArticulationRootAPI.Apply(robot_prim)
+        artic_path = robot_root
+
+    # Print the prim hierarchy for diagnostics
+    print("[INFO] Robot prim hierarchy (top-level children):")
+    for child in robot_prim.GetChildren():
+        has_artic = child.HasAPI(UsdPhysics.ArticulationRootAPI)
+        tag = " [ARTICULATION_ROOT]" if has_artic else ""
+        print(f"  {child.GetPath()}{tag}")
+
+    return artic_path
 
 
 def setup_scene():
@@ -235,10 +295,17 @@ def main():
         import omni.usd
         omni.usd.get_context().open_stage(args.load_usd)
         simulation_app.update()
-        robot_prim_path = "/World/dual_arm"
         print(f"[INFO] Loaded USD scene: {args.load_usd}")
         from isaacsim.core.api import World
         world = World(stage_units_in_meters=1.0)
+        # Find the articulation root in the loaded USD
+        stage = omni.usd.get_context().get_stage()
+        robot_prim_path = (
+            _find_articulation_root(stage, "/dual_arm_description")
+            or _find_articulation_root(stage, "/World/dual_arm")
+            or "/dual_arm_description"
+        )
+        print(f"[INFO] Articulation root: {robot_prim_path}")
     else:
         world = setup_scene()
         simulation_app.update()
