@@ -50,6 +50,7 @@ private:
 
   // Configuration
   std::vector<std::string> joint_names_;
+  std::vector<double> gear_ratios_;
   int master_index_{0};
   int cycle_time_us_{1000};
   double publish_rate_hz_{100.0};

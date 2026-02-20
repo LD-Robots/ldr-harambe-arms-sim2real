@@ -39,7 +39,7 @@
             <joint name="left_shoulder_yaw_joint_X4">
                 <param name="slave_position">2</param>
                 <param name="motor_type">X4</param>
-                <param name="direction">1</param>
+                <param name="direction">-1</param>
                 <param name="offset_raw">0</param>
                 <command_interface name="position"/>
                 <state_interface name="position"/>
@@ -61,7 +61,7 @@
             <joint name="left_wrist_yaw_joint_X4">
                 <param name="slave_position">4</param>
                 <param name="motor_type">X4</param>
-                <param name="direction">1</param>
+                <param name="direction">-1</param>
                 <param name="offset_raw">0</param>
                 <command_interface name="position"/>
                 <state_interface name="position"/>
@@ -72,7 +72,7 @@
             <joint name="left_wrist_roll_joint_X4">
                 <param name="slave_position">5</param>
                 <param name="motor_type">X4</param>
-                <param name="direction">1</param>
+                <param name="direction">-1</param>
                 <param name="offset_raw">0</param>
                 <command_interface name="position"/>
                 <state_interface name="position"/>

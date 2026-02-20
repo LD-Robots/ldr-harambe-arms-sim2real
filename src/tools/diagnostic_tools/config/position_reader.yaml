@@ -21,7 +21,11 @@ position_reader_node:
 
     slave_positions: [0, 1, 2, 3, 4, 5]
     motor_types: ["X6", "X6", "X4", "X6", "X4", "X4"]
-    directions: [1, 1, 1, 1, 1, 1]
+    directions: [1, 1, -1, 1, -1, -1]
+
+    # Gear ratios — X4 encoder reports 2x raw counts per output revolution
+    # Divide position/velocity by this value to get output-shaft angle
+    gear_ratios: [1.0, 1.0, 2.0, 1.0, 2.0, 2.0]
 
     # Encoder offsets — set these after calibration
     # Move each joint to zero position, read raw value, enter here

@@ -41,11 +41,14 @@ PositionReaderNode::PositionReaderNode(const rclcpp::NodeOptions & options)
     "directions", {1, 1, 1, 1, 1, 1});
   auto offsets = declare_parameter<std::vector<int64_t>>(
     "offsets_raw", {0, 0, 0, 0, 0, 0});
+  gear_ratios_ = declare_parameter<std::vector<double>>(
+    "gear_ratios", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
 
   // Validate parameter array sizes
   const size_t n = joint_names_.size();
   if (slave_positions.size() != n || motor_type_strs.size() != n ||
-      directions.size() != n || offsets.size() != n)
+      directions.size() != n || offsets.size() != n ||
+      gear_ratios_.size() != n)
   {
     RCLCPP_FATAL(get_logger(),
       "All joint parameter arrays must have the same size (%zu)", n);
@@ -177,11 +180,12 @@ void PositionReaderNode::publish_callback()
     int32_t raw_pos = slaves_[i].get_actual_position_raw();
     raw_msg.data[i] = raw_pos;
 
-    js_msg.position[i] = UnitConversion::raw_to_rad(raw_pos);
+    double gr = gear_ratios_[i];
+    js_msg.position[i] = UnitConversion::raw_to_rad(raw_pos) / gr;
     js_msg.velocity[i] = UnitConversion::raw_to_rad_per_sec(
-      slaves_[i].get_actual_velocity_raw());
+      slaves_[i].get_actual_velocity_raw()) / gr;
     js_msg.effort[i] = UnitConversion::raw_to_torque_pct(
-      slaves_[i].get_actual_torque_raw());
+      slaves_[i].get_actual_torque_raw()) * gr;
   }
 
   joint_state_pub_->publish(js_msg);
@@ -202,7 +206,7 @@ void PositionReaderNode::status_log_callback()
   for (size_t i = 0; i < slaves_.size(); ++i) {
     DriveState state = slaves_[i].get_drive_state();
     int32_t raw_pos = slaves_[i].get_actual_position_raw();
-    double rad = UnitConversion::raw_to_rad(raw_pos);
+    double rad = UnitConversion::raw_to_rad(raw_pos) / gear_ratios_[i];
 
     const char * state_str = "UNKNOWN";
     switch (state) {
