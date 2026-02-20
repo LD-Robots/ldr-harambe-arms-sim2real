@@ -135,6 +135,186 @@ def _find_articulation_root(stage, search_root):
     return None
 
 
+def _zero_hand_joints(stage, robot_root):
+    """Set all hand/finger joint drive targets to 0 in the USD stage.
+
+    This sets the drive target attributes so that even after world.reset()
+    the joints will be driven to 0.
+    """
+    from pxr import Usd
+
+    HAND_KEYWORDS = ("thumb", "index", "middle", "ring", "pinky")
+
+    root_prim = stage.GetPrimAtPath(robot_root)
+    if not root_prim.IsValid():
+        return
+
+    # Find joints by checking for drive:angular:physics:targetPosition attribute
+    # (more reliable than prim.IsA(RevoluteJoint) across Isaac Sim versions)
+    count = 0
+    for prim in Usd.PrimRange(root_prim):
+        target_attr = prim.GetAttribute("drive:angular:physics:targetPosition")
+        if not target_attr or not target_attr.IsValid():
+            continue
+
+        path_str = str(prim.GetPath())
+        path_lower = path_str.lower()
+        is_hand = any(kw in path_lower for kw in HAND_KEYWORDS)
+        old_val = target_attr.Get()
+
+        if is_hand:
+            target_attr.Set(0.0)
+            # Also zero the state if present
+            state_attr = prim.GetAttribute("state:angular:physics:position")
+            if state_attr and state_attr.IsValid():
+                state_attr.Set(0.0)
+            # Boost stiffness & damping for acceleration-mode drives.
+            # With the URDF inertia bump (1e-4 kg·m²):
+            #   torque = inertia × stiffness × error = 1e-4 × 1e4 × error
+            #         = 1.0 × error  (N·m/rad) — enough to hold against gravity
+            stiff_attr = prim.GetAttribute("drive:angular:physics:stiffness")
+            if stiff_attr and stiff_attr.IsValid():
+                stiff_attr.Set(1e4)
+            damp_attr = prim.GetAttribute("drive:angular:physics:damping")
+            if damp_attr and damp_attr.IsValid():
+                damp_attr.Set(1e3)
+            max_force_attr = prim.GetAttribute("drive:angular:physics:maxForce")
+            if max_force_attr and max_force_attr.IsValid():
+                max_force_attr.Set(1e4)
+            # Read back the actual drive type for diagnostics
+            type_attr = prim.GetAttribute("drive:angular:physics:type")
+            drive_type = type_attr.Get() if (type_attr and type_attr.IsValid()) else "N/A"
+            count += 1
+            print(f"  [HAND JOINT] {path_str}: target=0, stiffness=1e4, damping=1e3, drive_type={drive_type}")
+        else:
+            print(f"  [ARM  JOINT] {path_str}: {old_val}")
+
+    print(f"[INFO] Zeroed {count} hand joint drive targets")
+
+    # Diagnostic: check inertia on hand links
+    for prim in Usd.PrimRange(root_prim):
+        path_lower = str(prim.GetPath()).lower()
+        if not any(kw in path_lower for kw in HAND_KEYWORDS):
+            continue
+        mass_attr = prim.GetAttribute("physics:mass")
+        inertia_attr = prim.GetAttribute("physics:diagonalInertia")
+        if mass_attr and mass_attr.IsValid():
+            m = mass_attr.Get()
+            I = inertia_attr.Get() if (inertia_attr and inertia_attr.IsValid()) else None
+            if m is not None and m > 0:
+                print(f"  [LINK INERTIA] {prim.GetPath()}: mass={m:.6f}, inertia={I}")
+
+
+def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
+    """Zero all hand joint positions using the runtime physics API.
+
+    Must be called AFTER world.reset() so the physics backend is initialized.
+    Tries multiple APIs in order of preference for Isaac Sim 6.0 compatibility.
+    """
+    import numpy as np
+
+    HAND_KEYWORDS = ("thumb", "index", "middle", "ring", "pinky")
+
+    # --- Try 1: High-level Articulation API (try several class names) ---
+    ArticulationClass = None
+    for import_path in [
+        ("isaacsim.core.api.articulations", "Articulation"),
+        ("isaacsim.core.api.articulations", "SingleArticulation"),
+        ("isaacsim.core.prims", "SingleArticulation"),
+        ("omni.isaac.core.articulations", "Articulation"),
+    ]:
+        try:
+            mod = __import__(import_path[0], fromlist=[import_path[1]])
+            ArticulationClass = getattr(mod, import_path[1])
+            print(f"[INFO] Using {import_path[0]}.{import_path[1]}")
+            break
+        except (ImportError, AttributeError):
+            continue
+
+    if ArticulationClass is not None:
+        try:
+            artic = ArticulationClass(prim_path=robot_root)
+            artic.initialize()
+            joint_names = artic.dof_names
+            positions = artic.get_joint_positions()
+
+            if joint_names is not None and positions is not None:
+                print(f"[INFO] Articulation has {len(joint_names)} DOFs")
+                count = 0
+                for i, name in enumerate(joint_names):
+                    is_hand = any(kw in name.lower() for kw in HAND_KEYWORDS)
+                    if is_hand:
+                        print(f"  [HAND] {name}: {np.degrees(positions[i]):.1f}° → 0°")
+                        positions[i] = 0.0
+                        count += 1
+                    else:
+                        print(f"  [ARM ] {name}: {np.degrees(positions[i]):.1f}°")
+                if count:
+                    artic.set_joint_positions(positions)
+
+                    # Set drive targets + gains via ArticulationController
+                    try:
+                        controller = artic.get_articulation_controller()
+                        n_dof = len(joint_names)
+                        # Build per-DOF stiffness/damping arrays
+                        kps = np.zeros(n_dof)
+                        kds = np.zeros(n_dof)
+                        for i, name in enumerate(joint_names):
+                            if any(kw in name.lower() for kw in HAND_KEYWORDS):
+                                kps[i] = 1e5
+                                kds[i] = 1e3
+                            else:
+                                kps[i] = 1e4   # keep arm defaults
+                                kds[i] = 1e3
+                        controller.set_gains(kps, kds)
+                        # Apply position action to set drive targets
+                        from isaacsim.core.utils.types import ArticulationAction
+                        controller.apply_action(
+                            ArticulationAction(joint_positions=positions)
+                        )
+                        print(f"[INFO] Zeroed {count} hand joints (positions + drive targets + gains)")
+                        return controller, ArticulationAction(joint_positions=positions)
+                    except Exception as e2:
+                        print(f"[WARN] ArticulationController failed: {e2}")
+                        print(f"[INFO] Zeroed {count} hand joint positions only")
+                return None, None
+        except Exception as e:
+            print(f"[WARN] Articulation API failed: {e}")
+
+    # --- Try 2: PhysX tensor API ---
+    try:
+        from omni.physics.tensors import create_simulation_view
+        sim_view = create_simulation_view("numpy")
+        artic_view = sim_view.create_articulation_view(robot_root)
+        dof_names = artic_view.dof_names
+        positions = artic_view.get_dof_positions().flatten()
+
+        print(f"[INFO] Tensor API: {len(dof_names)} DOFs")
+        count = 0
+        for i, name in enumerate(dof_names):
+            if any(kw in name.lower() for kw in HAND_KEYWORDS):
+                print(f"  [HAND] {name}: {np.degrees(positions[i]):.1f}° → 0°")
+                positions[i] = 0.0
+                count += 1
+        if count:
+            new_pos = positions.reshape(1, -1)
+            artic_view.set_dof_positions(new_pos)
+            print(f"[INFO] Zeroed {count} hand joints via tensor API")
+        return None, None
+    except Exception as e:
+        print(f"[WARN] Tensor API failed: {e}")
+
+    # --- Try 3: List available articulation API names for debugging ---
+    try:
+        import isaacsim.core.api.articulations as artic_mod
+        available = [x for x in dir(artic_mod) if not x.startswith("_")]
+        print(f"[DEBUG] Available in isaacsim.core.api.articulations: {available}")
+    except ImportError:
+        pass
+    print("[ERROR] Could not zero hand joints — no working API found")
+    return None, None
+
+
 def import_urdf(urdf_path):
     """Import the URDF into the current stage and return the prim path."""
     from isaacsim.asset.importer.urdf import _urdf
@@ -208,6 +388,9 @@ def import_urdf(urdf_path):
         print(f"[WARN] No ArticulationRootAPI found, applying to {robot_root}")
         UsdPhysics.ArticulationRootAPI.Apply(robot_prim)
         artic_path = robot_root
+
+    # Set all hand joints to 0° drive targets
+    _zero_hand_joints(stage, robot_root)
 
     # Print the prim hierarchy for diagnostics
     print("[INFO] Robot prim hierarchy (top-level children):")
@@ -317,15 +500,42 @@ def main():
         # Clean up temp URDF
         os.unlink(urdf_path)
 
-    # --- Create ROS2 bridge ---
-    setup_ros2_bridge(robot_prim_path)
-    simulation_app.update()
-
     # --- Save USD if requested ---
     if args.save_usd:
         import omni.usd
         omni.usd.get_context().save_as_stage(args.save_usd, None)
         print(f"[INFO] Scene saved to: {args.save_usd}")
+
+    # --- Initialize physics and settle joints BEFORE creating ROS2 bridge ---
+    # The OmniGraph ArticulationController can override drive settings when
+    # receiving empty commands, so we let joints settle first.
+
+    import omni.usd
+
+    world.reset()
+
+    # Re-apply hand joint drive settings after world.reset() — it resets
+    # USD drive attributes to import defaults.
+    stage = omni.usd.get_context().get_stage()
+    _zero_hand_joints(stage, "/dual_arm_description")
+
+    simulation_app.update()
+
+    # Zero hand joint positions using the runtime Articulation API.
+    hold_controller, hold_action = _zero_hand_joints_runtime()
+
+    # Settle: run physics steps while continuously applying the hold action.
+    SETTLE_STEPS = 50
+    print(f"[INFO] Settling joints for {SETTLE_STEPS} steps...")
+    for _ in range(SETTLE_STEPS):
+        if hold_controller and hold_action:
+            hold_controller.apply_action(hold_action)
+        world.step(render=True)
+    print("[INFO] Joint settling complete")
+
+    # --- NOW create ROS2 bridge (after joints are stable) ---
+    setup_ros2_bridge(robot_prim_path)
+    simulation_app.update()
 
     # --- Run simulation ---
     print("[INFO] Simulation running. Press Ctrl+C to stop.")
@@ -334,10 +544,12 @@ def main():
     print("       Then MoveIt:")
     print("         ros2 launch dual_arm_moveit_config move_group.launch.py")
 
-    world.reset()
-
     try:
         while simulation_app.is_running():
+            # No apply_action here — the OmniGraph ROS2 bridge now owns
+            # all joint commands.  Hand drives hold at 0° via their USD
+            # stiffness + boosted inertia; arm drives respond to MoveIt
+            # commands arriving on /isaac_joint_commands.
             world.step(render=True)
     except KeyboardInterrupt:
         print("\n[INFO] Shutting down...")
