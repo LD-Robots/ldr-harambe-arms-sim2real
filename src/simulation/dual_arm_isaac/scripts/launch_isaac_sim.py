@@ -162,32 +162,39 @@ def _zero_hand_joints(stage, robot_root):
         is_hand = any(kw in path_lower for kw in HAND_KEYWORDS)
         old_val = target_attr.Get()
 
+        # Configure drive parameters for ALL joints (arm + hand).
+        # Isaac Sim uses acceleration-mode drives: torque = I × kp × error.
+        # URDF effort limits map to maxForce which caps the drive torque.
+        stiff_attr = prim.GetAttribute("drive:angular:physics:stiffness")
+        damp_attr = prim.GetAttribute("drive:angular:physics:damping")
+        max_force_attr = prim.GetAttribute("drive:angular:physics:maxForce")
+        type_attr = prim.GetAttribute("drive:angular:physics:type")
+        drive_type = type_attr.Get() if (type_attr and type_attr.IsValid()) else "N/A"
+
         if is_hand:
             target_attr.Set(0.0)
-            # Also zero the state if present
             state_attr = prim.GetAttribute("state:angular:physics:position")
             if state_attr and state_attr.IsValid():
                 state_attr.Set(0.0)
-            # Boost stiffness & damping for acceleration-mode drives.
-            # With the URDF inertia bump (1e-4 kg·m²):
-            #   torque = inertia × stiffness × error = 1e-4 × 1e4 × error
-            #         = 1.0 × error  (N·m/rad) — enough to hold against gravity
-            stiff_attr = prim.GetAttribute("drive:angular:physics:stiffness")
             if stiff_attr and stiff_attr.IsValid():
                 stiff_attr.Set(1e4)
-            damp_attr = prim.GetAttribute("drive:angular:physics:damping")
             if damp_attr and damp_attr.IsValid():
                 damp_attr.Set(1e3)
-            max_force_attr = prim.GetAttribute("drive:angular:physics:maxForce")
             if max_force_attr and max_force_attr.IsValid():
                 max_force_attr.Set(1e4)
-            # Read back the actual drive type for diagnostics
-            type_attr = prim.GetAttribute("drive:angular:physics:type")
-            drive_type = type_attr.Get() if (type_attr and type_attr.IsValid()) else "N/A"
             count += 1
-            print(f"  [HAND JOINT] {path_str}: target=0, stiffness=1e4, damping=1e3, drive_type={drive_type}")
+            print(f"  [HAND JOINT] {path_str}: target=0, kp=1e4, kd=1e3, maxF=1e4, type={drive_type}")
         else:
-            print(f"  [ARM  JOINT] {path_str}: {old_val}")
+            # Arm joints: boost maxForce so drives aren't clamped by
+            # the low URDF effort limits (real motors are 2-10 Nm,
+            # but acceleration drives need much more headroom).
+            if stiff_attr and stiff_attr.IsValid():
+                stiff_attr.Set(1e4)
+            if damp_attr and damp_attr.IsValid():
+                damp_attr.Set(1e3)
+            if max_force_attr and max_force_attr.IsValid():
+                max_force_attr.Set(1e4)
+            print(f"  [ARM  JOINT] {path_str}: target={old_val}, kp=1e4, kd=1e3, maxF=1e4, type={drive_type}")
 
     print(f"[INFO] Zeroed {count} hand joint drive targets")
 

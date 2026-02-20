@@ -294,21 +294,21 @@ def remove_hand_mimic_tags(urdf_content):
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
 
-def increase_hand_effort_limits(urdf_content):
-    """Increase effort limits on hand/finger joints for Isaac Sim.
+def increase_joint_effort_limits(urdf_content):
+    """Increase effort limits on ALL actuated joints for Isaac Sim.
 
-    The default effort limit (1.0 Nm) is mapped by Isaac Sim's URDF importer
-    to the PhysX drive ``maxForce`` attribute.  Even with very high stiffness,
-    the actual torque is clamped to ``maxForce``, so the drives cannot
-    counteract gravity.  Setting a much higher value removes this bottleneck.
+    The URDF ``<limit effort>`` is mapped by the URDF importer to the PhysX
+    drive ``maxForce``.  The real motor limits (2-10 Nm for arms, 1 Nm for
+    hands) are far too low for acceleration-mode drives where
+    ``torque = inertia × stiffness × error`` — the computed torque is
+    clamped to maxForce before being applied.
     """
-    HAND_KEYWORDS = ("thumb", "index", "middle", "ring", "pinky")
     root = ET.fromstring(urdf_content)
     count = 0
 
     for joint in root.iter("joint"):
-        name = joint.get("name", "").lower()
-        if not any(kw in name for kw in HAND_KEYWORDS):
+        jtype = joint.get("type", "")
+        if jtype not in ("revolute", "prismatic", "continuous"):
             continue
         limit = joint.find("limit")
         if limit is not None:
@@ -316,7 +316,7 @@ def increase_hand_effort_limits(urdf_content):
             count += 1
 
     if count:
-        print(f"[INFO] Increased effort limit to 100 Nm on {count} hand joints")
+        print(f"[INFO] Increased effort limit to 100 Nm on {count} joints (arm + hand)")
 
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
@@ -454,9 +454,9 @@ def generate_urdf(output_path):
     # Increase damping/friction on hand joints for Isaac Sim
     urdf_content = increase_hand_joint_dynamics(urdf_content)
 
-    # Increase effort limits on hand joints (default 1 Nm is too low — Isaac Sim
-    # maps effort to PhysX drive maxForce, which clamps drive torque)
-    urdf_content = increase_hand_effort_limits(urdf_content)
+    # Increase effort limits on ALL joints (URDF effort → PhysX maxForce,
+    # real motor limits are too low for acceleration-mode drives)
+    urdf_content = increase_joint_effort_limits(urdf_content)
 
     # Increase inertia on hand links so acceleration-mode drives produce enough
     # torque to counteract gravity (PhysX: torque = inertia × stiffness × error)
