@@ -1,0 +1,1568 @@
+EtherCAT Control Protocol
+Version: V1.0
+Date: 2024.12
+
+Disclaimer
+Thanks for choosing MYACTUATOR. Please read this statement carefully before
+using. Once used,this statement is deemed to be approved and accepted.Please install
+and use this product strictly in accordance with the manual,product description and
+relevant laws,regulations,policies and guidelines. In the process of using the product,the
+user undertakes to be responsible for his own behavior and all consequences arising
+therefrom. MYACTUATOR will not be liable for any loss caused by improper
+use,installation and modification of the user.
+MYACTUATOR is the trademark of Suzhou Micro Actuator Technology Co.,Ltd.
+and its affiliates. Product names,brands,etc. appearing in this document are trademarks
+or registered trademarks of their respective companies.
+This product and manual are copyrighted by MYACTUATOR. Reproduction in
+any form is not permitted without permission. The final interpretation right of the
+disclaimer belongs to MYACTUATOR.
+
+Catalog
+1. Composition of the EtherCAT System .................................................................. 1
+2. Basic Configuration .............................................................................................. 2
+2.1. Interface definition ..................................................................................... 2
+2.2. Communication Connections ..................................................................... 3
+2.3. ESI File Import ...........................................................................................3
+3. Servo Status Control ............................................................................................. 3
+3.1. Control Word (0x6040) Description .......................................................... 3
+3.2. Status Word (0x6041) Description .............................................................4
+4. Operating Mode Control ....................................................................................... 5
+4.1. Operating Mode Settings ............................................................................5
+4.2. Operating Mode Display ............................................................................ 5
+5. Mode of operation ................................................................................................. 6
+5.1. Cyclic Synchronous Position Mode ........................................................... 6
+5.1.1. Control Block Diagram ................................................................... 6
+5.1.2. Control Commands ......................................................................... 6
+5.1.3. Control steps ....................................................................................7
+5.2. Cyclic Synchronous Velocity Mode ...........................................................8
+5.2.1. Control Block Diagram ................................................................... 8
+5.2.2. Control Commands ......................................................................... 8
+5.2.3. Control steps ....................................................................................9
+5.3. Cyclic Synchronous Torque Mode ...........................................................10
+5.3.1. Control Block Diagram ................................................................. 10
+5.3.2. Control Commands ....................................................................... 11
+5.3.3. Control steps ..................................................................................12
+6. Object dictionary .................................................................................................12
+6.1. 0x6040 Control Word ...............................................................................12
+6.2. 0x6041 Status Word ................................................................................. 13
+6.3. 0x6060 Operating Mode Settings .............................................................13
+
+6.4. 0x6061 Operating Mode Display ............................................................. 14
+6.5. 0x6064 Position Actual Value .................................................................. 14
+6.6. 0x6077 Torque Actual Value .................................................................... 15
+6.7. 0x607A Target Position ............................................................................ 15
+6.8. 0x60B0 Position Offset ............................................................................ 15
+6.9. 0x60B1 Velocity Offset ............................................................................15
+6.10. 0x60B2 Torque Offset ............................................................................ 16
+6.11. 0x606C Velocity Actual Value ............................................................... 16
+7. Operation Guide .................................................................................................. 16
+7.1. Connect .................................................................................................... 16
+7.2. Position loop mode ...................................................................................20
+7.3. Speed loop mode ...................................................................................... 23
+7.4. Current loop mode ....................................................................................26
+
+1. Composition of the EtherCAT System
+EtherCAT is a fieldbus protocol for real-time Ethernet communication that
+facilitates real-time data transmission and processing through data frames, achieving
+low latency and high bandwidth while maintaining low costs and a simple network
+structure.
+EtherCAT adopts a master-slave architecture., consisting of one master device and
+multiple slave devices. The master sends control commands and data, while the slaves
+receive and execute these commands, transmitting output data such as sensor data,
+actuator status, and control commands in real-time. Any computer with a network
+interface and embedded devices with Ethernet control can serve as the master. For
+PC-based computers, the master controller often utilizes TwinCAT software developed
+by Beckhoff. Servo drives act as slaves, equipped with dedicated slave controllers. The
+communication cable between the master and slave must be Category 5 or higher, with a
+communication rate of 100Mbit/s, and the maximum communication distance between
+two stations is 100 meters.
+The operational principle of the EtherCAT system is illustrated in Figure 1-1.
+
+Figure 1-1 Schematic Diagram of the EtherCAT System
+
+As shown in Figure 1-1, within one communication cycle, the master controller
+sends data frames to each slave station. Each slave station extracts corresponding data
+based on addressing and writes feedback information back into the data frame. After
+being sent to the last slave station, the data frame is returned and passes through each
+slave station back to the master station, thus completing data communication within one
+1 / 29
+
+cycle.
+Where,the master controller configures the functions and related object attributes
+of the slave controllers using the EtherCAT Slave Information (ESI) file. The ESI is an
+XML-formatted file that includes manufacturer information and slave controllers
+description information, as illustrated in Figure 1-2. One ESI file can contain data for
+multiple slave controllers. By importing the ESI file into the master controller's
+controller software, the master controller can identify and control each slave controller
+based on the configuration information in the ESI file.
+
+Figure 1-2 System Schematic diagram of ESI content
+
+2. Basic Configuration
+2.1. Interface definition
+Figure 2-1 shows the definition of the EtherCAT interface.
+
+Figure 2-1 Schematic diagram of the EtherCAT interface
+2 / 29
+
+As shown in Figure 2-1, RX- is the negative end of data reception, RX+ is the
+positive end of data reception, TX- is the negative end of data transmission, and TX+ is
+the positive end of data transmission.
+
+2.2. Communication Connections
+EtherCAT communication uses twisted pair cables, which are individually shielded,
+and the hardware connection mode is shown in Figure 2-2.
+
+Figure 2-2 Schematic diagram of EtherCAT communication connections
+
+2.3. ESI File Import
+The ESI documents have been uploaded to our website,please download it
+yourself,the download link is below:https://www.myactuator.com.
+
+3. Servo Status Control
+During the EtherCAT communication, the master controller controls the servo
+drive according to the current actual state.The state can be changed through the control
+word 0x6040, and the status can be displayed through the status word 0x6041, note that
+in the process of state transition, you must confirm that the state has been changed
+through the 0x6041 before you can continue to send the command of the next state.
+
+3.1. Control Word (0x6040) Description
+The control word is uint16, and the running state of the servo drive is switched
+through the control word, and the control function table of each bit is shown in Table
+3-1.
+3 / 29
+
+Table 3-1 Control word(0x6040)function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Switch on
+
+1-valid，0-invalid
+
+1
+
+Enable Voltage
+
+1-valid，0-invalid
+
+2
+
+Quick Stop
+
+0-valid，quick stop；1-invalid
+
+3
+
+Enable Operation
+
+1-valid，0-invalid
+
+4~6
+
+Operation Mode Specific
+
+Related to Each Servo Operation Mode
+
+7~8
+
+Reserve
+
+No Define
+
+9
+
+Operation Mode Specific
+
+Related to Each Servo Operation Mode
+
+10 ~ 15
+
+Reserve
+
+No Define
+
+3.2. Status Word (0x6041) Description
+The status word is uint16, which provides information about the running status,
+and the function table of each bit is shown in Table 3-2.
+Table 3-2 Status word (0x6041) function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Ready to Switch on
+
+1-valid，0-invalid
+
+1
+
+Switched on
+
+1-valid，0-invalid
+
+2
+
+Operation Enabled
+
+1-valid，0-invalid
+
+3
+
+Fault
+
+1-valid，0-invalid
+
+4
+
+Voltage Enabled
+
+1-valid，0-invalid
+
+5
+
+Quick Stop
+
+1-valid，0-invalid
+
+6
+
+Switch on Disabled
+
+1-valid，0-invalid
+
+7
+
+Warning
+
+1-valid，0-invalid
+
+Reserve
+
+No Define
+
+9
+
+Remote
+
+1-valid，0-invalid
+
+10
+
+Target Reach
+
+1-valid，0-invalid
+
+11
+
+Internal Limit Active
+
+1-valid，0-invalid
+
+Operation Mode Specific
+
+Related to Each Servo Operation Mode
+
+8
+
+12~ 13
+
+4 / 29
+
+14~ 15
+
+Reserve
+
+No Define
+
+4. Operating Mode Control
+At present, there are three modes: periodic synchronization position mode, periodic
+synchronization speed mode, and periodic synchronization torque mode, and the desired
+mode is set 0x6060 the operating mode object, and the object is displayed using the
+operating mode 0x6061 read the current operating mode.
+
+4.1. Operating Mode Settings
+The operating mode object 0x6060 used to set the operating mode, as shown in
+Table 4-1, and is activated immediately when the setting is changed.
+Table 4-1 Operating Mode Settings（0x6060）
+
+Value
+
+Mode of operation
+
+0x08
+
+Periodic Synchronization Position Mode
+
+0x09
+
+Periodic Synchronization Speed Mode
+
+0x0A
+
+Periodic Synchronization Torque Mode
+
+4.2. Operating Mode Display
+Use the 0x6061 to read the current running mode, as shown in Table 4-2.
+Table 4-2 Operating mode display（0x6061）
+
+Value
+
+Operating Mode Display
+
+0x08
+
+Periodic Synchronization Position Mode
+
+0x09
+
+Periodic Synchronization Speed Mode
+
+0x0A
+
+Periodic Synchronization Torque Mode
+
+5 / 29
+
+5. Mode of operation
+5.1. Cyclic Synchronous Position Mode
+5.1.1. Control Block Diagram
+When the status word 0x6060=8, the module works in periodic synchronization
+position mode. The master controller carries out trajectory planning and sends the target
+position, velocity offset, and torque offset to the module in each communication cycle.
+The driver control loop of the module is closed and acts as a follower for position
+commands, as shown in Figure 5-1.
+
+Figure 5-1 Block diagram of periodic synchronous position mode
+
+5.1.2. Control Commands
+For the periodic synchronous position mode, table 5-1 describes the definitions of
+each bit of the control word 0x6040.
+Table 5-1 Control word(0x6040)function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Switch on
+
+1-valid，0-invalid
+
+1
+
+Enable Voltage
+
+1-valid，0-invalid
+
+2
+
+Quick Stop
+
+0-valid，quick stop；1-invalid
+
+3
+
+Enable Operation
+
+1-valid，0-invalid
+
+4~6
+
+CSP mode reservation
+
+No Define
+6 / 29
+
+7~8
+
+Reserve
+
+No Define
+
+9
+
+CSP mode reservation
+
+No Define
+
+10 ~ 15
+
+Reserve
+
+No Define
+
+Table 5-2 describes the definitions of each bit 0x6041 status word.
+Table 5-2 Status word (0x6041) function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Ready to Switch on
+
+1-valid，0-invalid
+
+1
+
+Switched on
+
+1-valid，0-invalid
+
+2
+
+Operation Enabled
+
+1-valid，0-invalid
+
+3
+
+Fault
+
+1-valid，0-invalid
+
+4
+
+Voltage Enabled
+
+1-valid，0-invalid
+
+5
+
+Quick Stop
+
+1-valid，0-invalid
+
+6
+
+Switch on Disabled
+
+1-valid，0-invalid
+
+7
+
+Warning
+
+1-valid，0-invalid
+
+Reserve
+
+No Define
+
+9
+
+Remote
+
+1-valid，0-invalid
+
+10
+
+Target Reach
+
+1-valid，0-invalid
+
+11
+
+Internal Limit Active
+
+1-valid，0-invalid
+
+Follow the target location
+
+1-already followed,0-not followed
+
+Follow the position error alarm
+
+1-position deviation alarm,0-no
+position deviation alarms
+
+Reserve
+
+No Define
+
+8
+
+12
+13
+14~ 15
+
+5.1.3. Control steps
+The steps are as follows:
+1) Set 0x6060=8 to make the module work in periodic synchronous position mode;
+2) Read the position actual value 0x6064, and set the target location 0x607A to the
+current position actual value;
+3) Set the control word 0x6040 and set the module to the enabled state by the
+following methods:
+7 / 29
+
+3-1: Set the control word 0x6040=6 to keep the module disabled;
+3-2: Set the control word 0x6040=7, and the module is ready to be enabled;
+3-3: Set the control word 0x6040=15 and enable the module.
+4) Control word 0x607A periodically send the target position planned by the
+master controller to the module.
+
+5.2. Cyclic Synchronous Velocity Mode
+5.2.1. Control Block Diagram
+When the status word 0x6060=9, the module works in periodic synchronous speed
+mode. The master controller plans the trajectory and sends the target speed, speed offset,
+and torque offset to the module in each communication cycle. The module performs
+velocity control and torque control, as shown in Figure 5-2.
+
+Figure 5-2 Block diagram of the control of the cyclic synchronous velocity mode
+
+5.2.2. Control Commands
+For the periodic synchronous velocity mode, table 5-3 describes the definitions of
+each bit of the control word 0x6040.
+Table 5-3 Control word(0x6040)function table
+
+Bit
+
+Name
+
+Description
+8 / 29
+
+0
+
+Switch on
+
+1-valid，0-invalid
+
+1
+
+Enable Voltage
+
+1-valid，0-invalid
+
+2
+
+Quick Stop
+
+0-valid，quick stop；1-invalid
+
+3
+
+Enable Operation
+
+1-valid，0-invalid
+
+4~6
+
+CSV mode reservation
+
+No Define
+
+7~8
+
+Reserve
+
+No Define
+
+9
+
+CSV mode reservation
+
+No Define
+
+10 ~ 15
+
+Reserve
+
+No Define
+
+Table 5-4 describes the definitions of each bit 0x6041 status word.
+Table 5-4 Status word (0x6041) function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Ready to Switch on
+
+1-valid，0-invalid
+
+1
+
+Switched on
+
+1-valid，0-invalid
+
+2
+
+Operation Enabled
+
+1-valid，0-invalid
+
+3
+
+Fault
+
+1-valid，0-invalid
+
+4
+
+Voltage Enabled
+
+1-valid，0-invalid
+
+5
+
+Quick Stop
+
+1-valid，0-invalid
+
+6
+
+Switch on Disabled
+
+1-valid，0-invalid
+
+7
+
+Warning
+
+1-valid，0-invalid
+
+Reserve
+
+No Define
+
+Remote
+
+1-valid，0-invalid
+
+CSV mode reservation
+
+No Define
+
+Internal Limit Active
+
+1-valid，0-invalid
+
+Follow the target velocity
+
+1-already followed,0-not followed
+
+CSV mode reservation
+
+No Define
+
+Reserve
+
+No Define
+
+8
+9
+10
+11
+12
+13
+14~ 15
+
+5.2.3. Control steps
+The steps are as follows:
+9 / 29
+
+1) Set 0x6060=9 to make the module work in periodic synchronous velocity mode;
+2) Set the target speed 0x60FF=0plus/s, because the module will run at the target
+speed immediately after switching the enabled state, set it to 0 first to ensure safety;
+3) Set the control word 0x6040 and set the module to the enabled state by the
+following methods:
+3-1: Set the control word 0x6040=6 to keep the module disabled;
+3-2: Set the control word 0x6040=7, and the module is ready to be enabled;
+3-3: Set the control word 0x6040=15 and enable the module.
+4) Set the target speed 0x60FF.
+
+5.3. Cyclic Synchronous Torque Mode
+5.3.1. Control Block Diagram
+When the status word 0x6060=10, the module works in periodic synchronous
+torque mode. The master controller plans the torque, and transmit the target torque and
+torque offset to the module within each communication cycle. The module performs
+torque control, as shown in Figure 5-3.
+
+Figure 5-3 Block diagram of the periodic synchronous torque mode
+
+10 / 29
+
+5.3.2. Control Commands
+For the periodic synchronous torque mode, table 5-5 describes the definitions of
+each bit of the control word 0x6040.
+Table 5-5 Control word(0x6040)function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Switch on
+
+1-valid，0-invalid
+
+1
+
+Enable Voltage
+
+1-valid，0-invalid
+
+2
+
+Quick Stop
+
+0-valid，quick stop；1-invalid
+
+3
+
+Enable Operation
+
+1-valid，0-invalid
+
+4~6
+
+CST mode reservation
+
+No Define
+
+7~8
+
+Reserve
+
+No Define
+
+9
+
+CST mode reservation
+
+No Define
+
+10 ~ 15
+
+Reserve
+
+No Define
+
+Table 5-6 describes the definitions of each bit 0x6041 status word.
+Table 5-6 Status word (0x6041) function table
+
+Bit
+
+Name
+
+Description
+
+0
+
+Ready to Switch on
+
+1-valid，0-invalid
+
+1
+
+Switched on
+
+1-valid，0-invalid
+
+2
+
+Operation Enabled
+
+1-valid，0-invalid
+
+3
+
+Fault
+
+1-valid，0-invalid
+
+4
+
+Voltage Enabled
+
+1-valid，0-invalid
+
+5
+
+Quick Stop
+
+1-valid，0-invalid
+
+6
+
+Switch on Disabled
+
+1-valid，0-invalid
+
+7
+
+Warning
+
+1-valid，0-invalid
+
+Reserve
+
+No Define
+
+Remote
+
+1-valid，0-invalid
+
+CST mode reservation
+
+No Define
+
+Internal Limit Active
+
+1-valid，0-invalid
+
+Follow the target velocity
+
+1-already followed,0-not followed
+
+8
+9
+10
+11
+12
+
+11 / 29
+
+13
+
+CST mode reservation
+
+No Define
+
+Reserve
+
+No Define
+
+14~ 15
+
+5.3.3. Control steps
+The steps are as follows:
+1) Set 0x6060=10 to make the module work in periodic synchronous torque mode;
+2) Set the target torque 0x6071=0, because the module will run at the target torque
+immediately after switching the enabled state, set it to 0 first to ensure safety;
+3) Set the control word 0x6040 and set the module to the enabled state by the
+following methods:
+3-1: Set the control word 0x6040=6 to keep the module disabled;
+3-2: Set the control word 0x6040=7, and the module is ready to be enabled;
+3-3: Set the control word 0x6040=15 and enable the module.
+4) Set the target speed 0x607.
+
+6. Object dictionary
+6.1. 0x6040 Control Word
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+UINT
+
+0x0000
+
+0xFFFF
+
+0x0000
+
+Access
+
+Backup
+
+Update
+
+PDO Mapping
+
+RW
+
+YES
+
+Immediately
+
+RxPDO
+
+Bit
+
+Meaning
+
+0
+
+Switch on
+
+1
+
+Enable voltage
+
+2
+
+Quick stop
+
+3
+
+Operation enable
+
+4~6
+
+Mode specific
+
+7~8
+
+Reserved
+12 / 29
+
+9
+
+Mode specific
+
+10 ~ 15
+
+Reserved
+
+6.2. 0x6041 Status Word
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+UINT
+
+0x0000
+
+0xFFFF
+
+0x0000
+
+Access
+
+Backup
+
+Update
+
+PDO Mapping
+
+RO
+
+NO
+
+\
+
+TxPDO
+
+Bit
+
+Meaning
+
+0
+
+Ready to switch on
+
+1
+
+Switch on
+
+2
+
+Operation enable
+
+3
+
+Fault
+
+4
+
+Enable voltage
+
+5
+
+Quick stop
+
+6
+
+Switch on disabled
+
+7
+
+Warning
+
+8
+
+Reserved
+
+9
+
+Remote
+
+10
+
+Target reached
+
+11
+
+Internal limit active
+
+12~13
+
+Operation mode specific
+
+14~ 15
+
+Reserved
+
+6.3. 0x6060 Operating Mode Settings
+Data Type
+
+Default Data
+
+Max Data
+13 / 29
+
+Min Data
+
+SINT
+
+0x08
+
+0x0A
+
+0x00
+
+Access
+
+Backup
+
+Update
+
+PDO Mapping
+
+RW
+
+YES
+
+Immediately
+
+RxPDO
+
+Value
+
+Operating mode
+
+0x08
+
+Cyclic synchronous position mode
+
+0x09
+
+Cyclic synchronous velocity mode
+
+0x0A
+
+Cyclic synchronous torque mode
+
+6.4. 0x6061 Operating Mode Display
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+SINT
+
+0x08
+
+0x0A
+
+0x00
+
+Access
+
+Backup
+
+Update
+
+PDO Mapping
+
+RO
+
+NO
+
+\
+
+TxPDO
+
+Value
+
+Operating mode
+
+0x08
+
+Cyclic synchronous position mode
+
+0x09
+
+Cyclic synchronous velocity mode
+
+0x0A
+
+Cyclic synchronous torque mode
+
+6.5. 0x6064 Position Actual Value
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+DINT
+
+0x00000000
+
+0x7FFFFFFF
+
+0x80000000
+
+Access
+
+Backup
+
+Unit
+
+Update
+
+PDO Mapping
+
+RO
+
+NO
+
+plus
+
+\
+
+TxPDO
+
+Description: Indicates the actual location of the encoder feedback at
+the output.
+
+14 / 29
+
+6.6. 0x6077 Torque Actual Value
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+INT
+
+0x0000
+
+0x7FFF
+
+0x8000
+
+Access
+
+Backup
+
+Unit
+
+PDO Mapping
+
+RO
+
+NO
+
+0.1%
+
+TxPDO
+
+Note: Indicates the instantaneous torque of the motor, measured in
+thousandths of the rated current.
+
+6.7. 0x607A Target Position
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+DINT
+
+0x00000000
+
+0x7FFFFFFF
+
+0x80000000
+
+Access
+
+Update
+
+Unit
+
+Backup
+
+PDO Mapping
+
+RW
+
+Immediately
+
+plus
+
+YES
+
+RxPDO
+
+Description: The target location is the set position to which the drive
+should be moved in periodic synchronous position mode.
+
+6.8. 0x60B0 Position Offset
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+DINT
+
+0x00000000
+
+0x7FFFFFFF
+
+0x80000000
+
+Access
+
+Update
+
+Unit
+
+Backup
+
+PDO Mapping
+
+RW
+
+Immediately
+
+plus
+
+YES
+
+RxPDO
+
+Description: Indicates the position offset value between the target
+position and the actual position when the motor is stopped.
+
+6.9. 0x60B1 Velocity Offset
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+DINT
+
+0x00000000
+
+0x7FFFFFFF
+
+0x80000000
+
+15 / 29
+
+Access
+
+Update
+
+Unit
+
+Backup
+
+PDO Mapping
+
+RW
+
+Immediately
+
+plus/s
+
+YES
+
+RxPDO
+
+Description: Takes the speed command value from the master
+controller and then adds it to the command of the speed ring,
+including the input amount of speed feedforward in CSP mode;
+Contains the offset of the drive device speed instruction in CSV
+mode.
+
+6.10. 0x60B2 Torque Offset
+Data Type
+
+Default Data
+
+Unit
+
+Access
+
+INT
+
+0x0000
+
+per thousand of rated current
+
+RW
+
+Max Data
+
+Min Data
+
+Update
+
+Backup
+
+PDO Mapping
+
+0x7FFF
+
+0x8000
+
+Immediately
+
+YES
+
+RxPDO
+
+Explanation: Takes the torque command value from the master
+controller and then adds it to the command of the current loop,
+including the input amount of torque feed forward in CSP mode;
+Include the additional torque of the drive instruction in CST mode
+and add it to the target torque.
+
+6.11. 0x606C Velocity Actual Value
+Data Type
+
+Default Data
+
+Max Data
+
+Min Data
+
+DINT
+
+0x00000000
+
+0x7FFFFFFF
+
+0x80000000
+
+Access
+
+Unit
+
+Update
+
+Backup
+
+PDO Mapping
+
+RO
+
+plus/s
+
+\
+
+NO
+
+TxPDO
+
+Description: Velocity coupling with the input of the speed controller.
+
+7. Operation Guide
+7.1. Connect
+When you open the file, right-click Devieces in the TwinCAT Project6, select Scan,
+16 / 29
+
+and after starting the scan, select OK, Yes, or OK for each dialog box.
+
+Figure 7-1 Scanning for communication connections
+
+Figure 7-2 Pop-up window
+
+Figure 7-3 Configure I/O Ports
+17 / 29
+
+Figure 7-4 Pop-up window
+
+Figure 7-5 Connect Virtual Axes
+
+Figure 7-6 Activate Free Run
+
+After the scan, the Solution Explorer ‘TwinCAT Project6’ appears the found
+device.
+
+18 / 29
+
+Figure 7-7 Solution Explorer Interface
+
+Choose Drive 1 (ET1100-uC16)，enter the DC interface and change the Operation
+Mode to DC-Synchron.
+
+Figure 7-8 Enter the DC Interface
+19 / 29
+
+Click the blue button as shown, restart TwinCAT。
+
+Figure 7-9 Restart TwinCAT
+
+7.2. Position loop mode
+Select ModeOfOperation in Module 1 and then select the Online interface. The
+Value written to ModeOfOperation is the setting of the operation mode of the motor, 8
+representing the position mode, 9 the speed mode and 10 the current mode.
+
+Figure 7-10 Position Mode Selection Interface
+20 / 29
+
+Click Write, enter 8, and click ok to set the running mode to position mode.
+
+Figure 7-11 Set Position Mode
+
+Click Max Torque, the maximum current in the operation process can be set in the
+Online interface of Max Torque. When the motor runs, the unit is: one thousandth of the
+rated current, and the default value of the rated current is 10A.
+
+Figure 7-12 Set Maximum Phase Current
+
+Click TartgetPosition to set the target position in the Online interface, the value
+range is-65535~65535,0 representing 0°, 65535-180° and -65535 is -180°.
+21 / 29
+
+Figure 7-13 Set Target Position
+
+Click ControlWord to write 15 for the start motor in the Online interface and write
+0 for the stop motor.
+
+Figure 7-14 Start/Stop Motor
+
+After starting the motor, check whether the motor has reached the specified
+22 / 29
+
+position in the Online interface of ActualPosition.
+
+Figure 7-15 Check if the Motor Has Reached the Specified Position
+
+7.3. Speed loop mode
+Select ModeOfOperation in Module 1 and then select the Online interface. The
+Value written to ModeOfOperation is the setting of the operation mode of the motor, 8
+representing the position mode, 9 the speed mode and 10 the current mode.
+
+Figure 7-16 Interface for Setting Motor Operation Mode
+23 / 29
+
+Click Write, enter 9, and click ok to set the running mode to speed mode.
+
+Figure 7-17 Set Speed Mode
+
+Click Max Torque, the maximum current in the operation process can be set in the
+Online interface of Max Torque. When the motor runs, the unit is: one thousandth of the
+rated current, and the default value of the rated current is 10A.
+
+Figure 7-18 Set Maximum Phase Current
+
+Click TartgetVelocity to set the output target speed in the Online interface in pulse /
+24 / 29
+
+second. If the input value is X, the RPM is (X * 60 / 131072) RPM.
+
+Figure 7-19 Set Target Speed for Output
+
+Click ControlWord to write 15 for the start motor in the Online interface and write
+0 for the stop motor.
+
+Figure 7-20 Start/Stop Motor
+25 / 29
+
+After starting the motor, the motor can reached the specified speed in the Online
+interface of ActualVelocity.
+
+Figure 7-21 Check if the Motor Has Reached the Specified Speed
+
+7.4. Current loop mode
+Select ModeOfOperation in Module 1 and then select the Online interface. The
+Value written to ModeOfOperation is the setting of the operation mode of the motor, 8
+representing the position mode, 9 the speed mode and 10 the current mode.
+
+26 / 29
+
+Figure 7-22 Interface for Setting Motor Operation Mode
+
+Click Write, enter 10, and click ok to set the operation mode to the current mode.
+
+Figure 7-23 Set Current Mode
+
+Click Max Torque, the maximum current in the operation process can be set in the
+Online interface of Max Torque. When the motor runs, the unit is: one thousandth of the
+27 / 29
+
+rated current, and the default value of the rated current is 10A.
+
+Figure 7-24 Set Maximum Phase Current
+
+Click Tartget Torque, the target current can be set in the Online interface, the unit is:
+one thousandth of the rated current, the default value of the rated current is 10A, the
+motor will run with this current, but it will not exceed the maximum current set in 4.3.
+
+Figure 7-25 Set Target Current
+28 / 29
+
+Click ControlWord to write 15 for the start motor in the Online interface and write
+0 for the stop motor.
+
+Figure 7-26 Start/Stop Motor
+
+29 / 29
+
+

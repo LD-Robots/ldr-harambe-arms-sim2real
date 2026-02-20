@@ -1,0 +1,80 @@
+# MyActuator RMD X V4 Series — EtherCAT Device Constants
+# Reference: docs/myActuator/EtherCAT_control_protocol_V1.0-250430.md
+# ESI file: esi/MT-Device-250702.xml
+
+device:
+  vendor_id: 0x00202008
+  product_code: 0x00000000
+  revision: 0x00010000
+  profile: 402  # CiA 402 drive profile
+
+# PDO assignments (from ESI)
+pdo:
+  rx_pdo_index: 0x1600    # RCV PDO Mapping0 (standard)
+  rx_pdo_alt_index: 0x1601  # RCV PDO Mapping1 (with PID gains)
+  tx_pdo_index: 0x1A00    # SND PDO Mapping0
+
+# Sync Manager configuration
+sync_managers:
+  sm0_mbox_out:
+    start: 0x1000
+    size: 0x80
+  sm1_mbox_in:
+    start: 0x1080
+    size: 0x80
+  sm2_outputs:
+    start: 0x1100
+    size: 16      # RxPDO 0x1600 = 16 bytes
+  sm3_inputs:
+    start: 0x1400
+    size: 16      # TxPDO 0x1A00 = 16 bytes
+
+# Distributed Clocks
+dc:
+  assign_activate: 0x0300   # DC-Synchron mode
+  cycle_time_factor: 1
+  min_cycle_time_ns: 250000  # 250 µs (ESI: 0x03D090)
+
+# Control modes supported
+modes:
+  csp: 8    # Cyclic Synchronous Position
+  csv: 9    # Cyclic Synchronous Velocity
+  cst: 10   # Cyclic Synchronous Torque
+
+# Unit conversion factors
+units:
+  position:
+    # raw ±65535 = ±180° = ±π rad
+    raw_per_rad: 20860.84      # 65535 / π
+    raw_per_degree: 364.08     # 65535 / 180
+  velocity:
+    # RPM = (raw × 60) / 131072
+    raw_per_rpm: 2184.53       # 131072 / 60
+    raw_per_rad_s: 20860.84    # 131072 / (2π)
+  torque:
+    # raw = thousandths of rated current
+    # value 1000 = 100% of rated current (default 10A)
+    rated_current_ma: 10000    # 0x6075 default = 10A
+    max_raw: 1000
+
+# Motor variants
+motor_types:
+  X4:
+    description: "RMD X4 V4 — smaller actuator"
+    # Fill in actual specs from datasheet
+    gear_ratio: 1.0
+    rated_torque_nm: 0.0
+    max_speed_rpm: 0.0
+  X6:
+    description: "RMD X6 V4 — larger actuator"
+    gear_ratio: 1.0
+    rated_torque_nm: 0.0
+    max_speed_rpm: 0.0
+
+# CiA 402 state machine timeouts
+state_machine:
+  preop_timeout_ms: 2000
+  safeop_op_timeout_ms: 9000
+  back_to_init_timeout_ms: 5000
+  back_to_safeop_timeout_ms: 200
+  enable_sequence_timeout_ms: 5000

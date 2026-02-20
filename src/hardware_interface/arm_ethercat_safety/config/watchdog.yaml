@@ -1,0 +1,16 @@
+# Watchdog configuration for EtherCAT arm safety monitor
+
+watchdog:
+  # Maximum time without a valid joint state update before triggering
+  command_timeout_ms: 50
+
+  # Number of consecutive EtherCAT frame losses before triggering
+  ethercat_frame_loss_limit: 3
+
+  # Action when watchdog times out:
+  #   "hold_position" — CSP: keep last known target position
+  #   "disable"       — immediately disable all drives
+  action_on_timeout: "hold_position"
+
+  # Safety check frequency (how often the monitor runs)
+  check_rate_hz: 100

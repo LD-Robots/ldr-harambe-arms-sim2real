@@ -1,0 +1,11 @@
+<library path="myactuator_hardware">
+  <class name="myactuator_hardware/MyActuatorSystem"
+         type="myactuator_hardware::MyActuatorSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      EtherCAT hardware interface for MyActuator RMD X V4 servo drives.
+      Uses EtherLab IgH master with CiA 402 profile (CSP/CSV/CST modes).
+      Communicates via cyclic PDO exchange at 1 kHz with DC synchronization.
+    </description>
+  </class>
+</library>

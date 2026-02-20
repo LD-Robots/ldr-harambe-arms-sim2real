@@ -1,0 +1,59 @@
+# Left Arm Actuator Configuration
+# MyActuator RMD X V4 series — 6 DOF EtherCAT chain
+#
+# Bus topology (shoulder → wrist):
+#   Position 0: X6 — left_shoulder_pitch_joint_X6
+#   Position 1: X6 — left_shoulder_roll_joint_X6
+#   Position 2: X4 — left_shoulder_yaw_joint_X4
+#   Position 3: X6 — left_elbow_pitch_joint_X6
+#   Position 4: X4 — left_wrist_yaw_joint_X4
+#   Position 5: X4 — left_wrist_roll_joint_X4
+
+ethercat:
+  master_index: 0
+  network_interface: "eth0"
+  cycle_time_us: 1000       # 1 kHz
+  dc_sync: true
+
+slaves:
+  - joint: left_shoulder_pitch_joint_X6
+    slave_position: 0
+    motor_type: X6
+    direction: 1             # 1 = positive direction matches URDF convention
+    offset_raw: 0            # Raw encoder offset (calibrate during commissioning)
+    max_torque_pct: 80       # Limit to 80% of rated current
+
+  - joint: left_shoulder_roll_joint_X6
+    slave_position: 1
+    motor_type: X6
+    direction: 1
+    offset_raw: 0
+    max_torque_pct: 80
+
+  - joint: left_shoulder_yaw_joint_X4
+    slave_position: 2
+    motor_type: X4
+    direction: 1
+    offset_raw: 0
+    max_torque_pct: 80
+
+  - joint: left_elbow_pitch_joint_X6
+    slave_position: 3
+    motor_type: X6
+    direction: 1
+    offset_raw: 0
+    max_torque_pct: 80
+
+  - joint: left_wrist_yaw_joint_X4
+    slave_position: 4
+    motor_type: X4
+    direction: 1
+    offset_raw: 0
+    max_torque_pct: 80
+
+  - joint: left_wrist_roll_joint_X4
+    slave_position: 5
+    motor_type: X4
+    direction: 1
+    offset_raw: 0
+    max_torque_pct: 80

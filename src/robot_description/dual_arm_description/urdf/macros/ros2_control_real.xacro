@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <!-- ros2_control interface for real EtherCAT hardware -->
+    <!-- Mirrors ros2_control.xacro but uses MyActuator EtherCAT plugin -->
+    <xacro:macro name="dual_arm_ros2_control_real">
+
+        <!-- Left arm — 6 DOF EtherCAT actuators (MyActuator RMD X V4) -->
+        <ros2_control name="LeftArmSystem" type="system">
+            <hardware>
+                <plugin>myactuator_hardware/MyActuatorSystem</plugin>
+                <param name="ethercat_master_index">0</param>
+                <param name="network_interface">eth0</param>
+                <param name="cycle_time_us">1000</param>
+                <param name="dc_sync">true</param>
+            </hardware>
+
+            <joint name="left_shoulder_pitch_joint_X6">
+                <param name="slave_position">0</param>
+                <param name="motor_type">X6</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+
+            <joint name="left_shoulder_roll_joint_X6">
+                <param name="slave_position">1</param>
+                <param name="motor_type">X6</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+
+            <joint name="left_shoulder_yaw_joint_X4">
+                <param name="slave_position">2</param>
+                <param name="motor_type">X4</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+
+            <joint name="left_elbow_pitch_joint_X6">
+                <param name="slave_position">3</param>
+                <param name="motor_type">X6</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+
+            <joint name="left_wrist_yaw_joint_X4">
+                <param name="slave_position">4</param>
+                <param name="motor_type">X4</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+
+            <joint name="left_wrist_roll_joint_X4">
+                <param name="slave_position">5</param>
+                <param name="motor_type">X4</param>
+                <param name="direction">1</param>
+                <param name="offset_raw">0</param>
+                <command_interface name="position"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
+        </ros2_control>
+
+        <!-- Right arm — not actuated yet, state-only for visualization -->
+        <!-- Uncomment and add hardware plugin when right arm is connected -->
+        <!--
+        <ros2_control name="RightArmSystem" type="system">
+            <hardware>
+                <plugin>myactuator_hardware/MyActuatorSystem</plugin>
+                <param name="ethercat_master_index">0</param>
+                <param name="network_interface">eth0</param>
+                <param name="cycle_time_us">1000</param>
+                <param name="dc_sync">true</param>
+            </hardware>
+            ... right arm joints (positions 6-11) ...
+        </ros2_control>
+        -->
+
+    </xacro:macro>
+</robot>

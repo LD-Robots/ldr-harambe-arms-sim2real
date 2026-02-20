@@ -1,0 +1,46 @@
+# Joint safety limits for left arm EtherCAT actuators
+# These are SAFETY limits — more restrictive than URDF/MoveIt planning limits.
+# If any limit is exceeded, the safety monitor triggers protective action.
+
+joints:
+  left_shoulder_pitch_joint_X6:
+    position_min: -3.14       # rad
+    position_max: 3.14        # rad
+    velocity_max: 2.0         # rad/s
+    torque_max_pct: 80        # % of rated current
+    position_margin: 0.1      # rad — warning zone before hard limit
+
+  left_shoulder_roll_joint_X6:
+    position_min: -3.14
+    position_max: 3.14
+    velocity_max: 2.0
+    torque_max_pct: 80
+    position_margin: 0.1
+
+  left_shoulder_yaw_joint_X4:
+    position_min: -3.14
+    position_max: 3.14
+    velocity_max: 2.5
+    torque_max_pct: 80
+    position_margin: 0.1
+
+  left_elbow_pitch_joint_X6:
+    position_min: -3.14
+    position_max: 3.14
+    velocity_max: 2.0
+    torque_max_pct: 80
+    position_margin: 0.1
+
+  left_wrist_yaw_joint_X4:
+    position_min: -3.14
+    position_max: 3.14
+    velocity_max: 3.0
+    torque_max_pct: 80
+    position_margin: 0.1
+
+  left_wrist_roll_joint_X4:
+    position_min: -3.14
+    position_max: 3.14
+    velocity_max: 3.0
+    torque_max_pct: 80
+    position_margin: 0.1

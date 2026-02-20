@@ -1,0 +1,14 @@
+# Emergency stop configuration
+
+estop:
+  # Hardware GPIO pin for physical e-stop button
+  # Set to -1 if no hardware e-stop is connected (software-only mode)
+  gpio_pin: -1
+
+  # Debounce time for GPIO input (ms)
+  debounce_ms: 10
+
+  # Reaction when e-stop is triggered:
+  #   "quickstop"         — CiA 402 quick stop (controlled deceleration via 0x605A)
+  #   "immediate_disable" — set control word to 0x0000 (drives coast to stop)
+  reaction: "quickstop"

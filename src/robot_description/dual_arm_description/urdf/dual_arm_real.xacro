@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <!-- Public args so launches can change them -->
+    <xacro:arg name="robot_name" default="dual_arm_description"/>
+
+    <!-- Bring in base structure (links, joints, hands) -->
+    <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />
+
+    <!-- Fix robot base to the world (same as Gazebo variant) -->
+    <link name="world"/>
+    <joint name="world_joint" type="fixed">
+        <parent link="world"/>
+        <child link="urdf_base"/>
+    </joint>
+
+    <!-- ros2_control interfaces for real EtherCAT hardware -->
+    <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real.xacro"/>
+    <xacro:dual_arm_ros2_control_real/>
+
+    <!-- Depth Camera (if connected to real robot) -->
+    <xacro:include filename="$(find arm_description)/urdf/macros/depth_camera.xacro"/>
+    <xacro:depth_camera parent_link="urdf_base" xyz="-0.3 0.0 0.8" rpy="0 ${pi/6} 0" name="camera"/>
+
+    <!-- No Gazebo plugins for real hardware -->
+
+</robot>

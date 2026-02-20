@@ -1,26 +1,25 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>diagnostic_tools</name>
+  <name>myactuator_hardware</name>
   <version>0.1.0</version>
-  <description>Diagnostic and testing tools for the arm system</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <description>ros2_control SystemInterface plugin for MyActuator RMD X V4 EtherCAT drives via EtherLab</description>
+  <maintainer email="andrei@ldr-robotics.com">Andrei Dragomir</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
   <depend>rclcpp</depend>
-  <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>
+  <depend>rclcpp_lifecycle</depend>
   <depend>myactuator_ethercat</depend>
-
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>diagnostic_msgs</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
+    <hardware_interface plugin="${prefix}/myactuator_hardware_plugin.xml"/>
   </export>
 </package>

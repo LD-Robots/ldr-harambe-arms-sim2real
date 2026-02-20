@@ -1,0 +1,28 @@
+# Position Reader Node Configuration
+# Safe, read-only EtherCAT position reader for 6-DOF left arm.
+#
+# SAFETY: This node NEVER enables the CiA 402 power stage.
+# control_word = 0x0000 (DISABLE_VOLTAGE) every cycle.
+# Drives stay in SWITCH_ON_DISABLED — no movement possible.
+
+position_reader_node:
+  ros__parameters:
+    master_index: 0
+    cycle_time_us: 1000        # 1 kHz EtherCAT exchange
+    publish_rate_hz: 100.0     # 100 Hz JointState publish rate
+
+    joint_names:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+
+    slave_positions: [0, 1, 2, 3, 4, 5]
+    motor_types: ["X6", "X6", "X4", "X6", "X4", "X4"]
+    directions: [1, 1, 1, 1, 1, 1]
+
+    # Encoder offsets — set these after calibration
+    # Move each joint to zero position, read raw value, enter here
+    offsets_raw: [0, 0, 0, 0, 0, 0]
