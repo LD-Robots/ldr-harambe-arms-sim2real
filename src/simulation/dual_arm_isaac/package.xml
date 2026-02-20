@@ -1,23 +1,29 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>dual_arm_description</name>
+  <name>dual_arm_isaac</name>
   <version>0.1.0</version>
-  <description>URDF description for dual arm configuration</description>
+  <description>Isaac Sim simulation for the dual arm system</description>
   <maintainer email="your.email@example.com">Your Name</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>arm_description</exec_depend>
-  <exec_depend>hand_description</exec_depend>
-  <exec_depend>gripper_description</exec_depend>
-  <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>joint_state_publisher</exec_depend>
-  <exec_depend>rviz2</exec_depend>
-  <exec_depend>urdf</exec_depend>
-  <exec_depend>xacro</exec_depend>
+  <!-- Isaac Sim / topic_based_ros2_control -->
   <exec_depend>topic_based_ros2_control</exec_depend>
+
+  <!-- ROS 2 control -->
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>joint_trajectory_controller</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+
+  <!-- ROS 2 dependencies -->
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <!-- Package dependencies -->
+  <exec_depend>dual_arm_description</exec_depend>
+  <exec_depend>hand_description</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -1,14 +1,20 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="dual_arm_description">
 
-    <!-- Select robot variant: simulation (Gazebo) or real (EtherCAT) -->
+    <!-- Select robot variant: simulation (Gazebo/Isaac) or real (EtherCAT) -->
     <xacro:arg name="use_sim" default="false" />
+    <xacro:arg name="use_isaac" default="false" />
 
-    <xacro:if value="$(arg use_sim)">
-        <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_gazebo.xacro" />
+    <xacro:if value="$(arg use_isaac)">
+        <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_isaac.xacro" />
     </xacro:if>
-    <xacro:unless value="$(arg use_sim)">
-        <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_real.xacro" />
+    <xacro:unless value="$(arg use_isaac)">
+        <xacro:if value="$(arg use_sim)">
+            <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_gazebo.xacro" />
+        </xacro:if>
+        <xacro:unless value="$(arg use_sim)">
+            <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_real.xacro" />
+        </xacro:unless>
     </xacro:unless>
 
 </robot>
