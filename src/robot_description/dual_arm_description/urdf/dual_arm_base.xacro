@@ -9,21 +9,23 @@
   <xacro:inspire_hand_left
     parent="urdf_l_wrist_assembly"
     prefix="left_"
-    mount_x="-0.0"
-    mount_y="-0.07"
-    mount_z="0.03"
-    mount_roll="0"
-    mount_pitch="3.14159265"
-    mount_yaw="0"/>
+    mount_x="-0.0303429"
+    mount_y="4.52464e-07 "
+    mount_z="-0.06"
+    mount_roll="1.5708"
+    mount_pitch="0"
+    mount_yaw="1.5708"/>
+
+     <origin xyz="-0.0303429 -4.52461e-07 -0.135203" rpy="0 0 3.14159"/>
 
   <xacro:inspire_hand_right
     parent="urdf_r_wrist_assembly"
     prefix="right_"
-    mount_x="-0.0"
-    mount_y="-0.07"
-    mount_z="0.03"
-    mount_roll="0"
+    mount_x="-0.0303429"
+    mount_y="4.52464e-07 "
+    mount_z="-0.06"
+    mount_roll="1.5708"
     mount_pitch="0"
-    mount_yaw="0"/>
+    mount_yaw="-1.5708"/>
 
 </robot>
