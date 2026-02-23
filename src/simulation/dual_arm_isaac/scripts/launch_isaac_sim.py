@@ -432,14 +432,14 @@ def import_urdf(urdf_path):
             # Check if there's already a translate op we can modify
             for op in existing_ops:
                 if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
-                    op.Set(Gf.Vec3d(0.0, 0.0, 1.0))
+                    op.Set(Gf.Vec3d(0.0, 0.0, 1.26))
                     break
             else:
                 xform.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble).Set(
-                    Gf.Vec3d(0.0, 0.0, 1.0))
+                    Gf.Vec3d(0.0, 0.0, 1.26))
         else:
-            xform.AddTranslateOp().Set(Gf.Vec3d(0.0, 0.0, 1.0))
-        print("[INFO] Robot raised to z=1.0")
+            xform.AddTranslateOp().Set(Gf.Vec3d(0.0, 0.0, 1.26))
+        print("[INFO] Robot raised to z=1.26")
 
     # Find the actual articulation root (usually on base_link, not the Xform)
     artic_path = _find_articulation_root(stage, robot_root)
