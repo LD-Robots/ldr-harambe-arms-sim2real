@@ -14,9 +14,7 @@
     mount_z="-0.06"
     mount_roll="1.5708"
     mount_pitch="0"
-    mount_yaw="1.5708"/>
-
-     <origin xyz="-0.0303429 -4.52461e-07 -0.135203" rpy="0 0 3.14159"/>
+    mount_yaw="1.5708"/>s
 
   <xacro:inspire_hand_right
     parent="urdf_r_wrist_assembly"
