@@ -2,13 +2,12 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- ================================================================== -->
-  <!-- Legs — set fixed_legs:=false for revolute leg joints               -->
+  <!-- Legs — set fixed_legs:=false for revolute leg joints              -->
   <!-- ================================================================== -->
   <xacro:property name="leg_joint_type" value="${'fixed' if '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
 
-
   <!-- ================================================================== -->
-  <!-- Waist (revolute — connects base to torso)                          -->
+  <!-- Waist                                                             -->
   <!-- ================================================================== -->
   <joint name="waist_yaw_joint" type="${leg_joint_type}">
     <origin xyz="0.0333466 -0.000699067 -0.29826" rpy="0 0 0"/>
@@ -20,7 +19,7 @@
   </joint>
 
   <!-- ================================================================== -->
-  <!-- Left Arm                                                           -->
+  <!-- Left Arm                                                          -->
   <!-- ================================================================== -->
   <joint name="left_shoulder_pitch_joint_X6" type="revolute">
     <origin xyz="3.95689e-06 0.162498 0.421" rpy="0 0 0"/>
@@ -77,7 +76,7 @@
   </joint>
 
   <!-- ================================================================== -->
-  <!-- Right Arm                                                          -->
+  <!-- Right Arm                                                         -->
   <!-- ================================================================== -->
   <joint name="right_shoulder_pitch_joint_X6" type="revolute">
     <origin xyz="3.95689e-06 -0.162502 0.421" rpy="0 0 0"/>
@@ -133,7 +132,9 @@
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
-  <!-- Left Leg -->
+  <!-- ================================================================== -->
+  <!-- Left Leg                                                          -->
+  <!-- ================================================================== -->
   <joint name="left_hip_pitch_joint" type="${leg_joint_type}">
     <origin xyz="0.0333466 0.111301 -0.46826" rpy="0 0 0"/>
     <parent link="urdf_base"/>
@@ -166,7 +167,7 @@
     <parent link="urdf_lower_femur_assembly"/>
     <child link="urdf_l_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="100" velocity="100" lower="-2.33882" upper="0.191906"/>
+    <limit effort="100" velocity="100" lower="0.191906" upper="-2.33882"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
@@ -180,7 +181,7 @@
   </joint>
 
   <!-- ================================================================== -->
-  <!-- Right Leg                                                          -->
+  <!-- Right Leg                                                         -->
   <!-- ================================================================== -->
   <joint name="right_hip_pitch_joint" type="${leg_joint_type}">
     <origin xyz="0.0333466 -0.107699 -0.46826" rpy="0 0 0"/>
