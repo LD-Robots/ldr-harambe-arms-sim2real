@@ -242,8 +242,9 @@ def increase_hand_joint_dynamics(urdf_content):
     """Increase damping and friction on hand/finger joints for Isaac Sim.
 
     The default values (damping=0.3, friction=0.05) are too low for Isaac Sim's
-    PhysX solver — joints drift away from their drive targets.  Higher values
-    help the joints hold their commanded positions.
+    PhysX solver — joints drift away from their drive targets.  Moderate values
+    help the joints hold their commanded positions without overwhelming the
+    acceleration-mode drives (friction must be < drive torque ≈ 10 N·m).
     """
     HAND_KEYWORDS = ("thumb", "index", "middle", "ring", "pinky")
     root = ET.fromstring(urdf_content)
@@ -257,11 +258,11 @@ def increase_hand_joint_dynamics(urdf_content):
         if dyn is None:
             dyn = ET.SubElement(joint, "dynamics")
         dyn.set("damping", "5.0")
-        dyn.set("friction", "1.0")
+        dyn.set("friction", "0.5")
         count += 1
 
     if count:
-        print(f"[INFO] Increased dynamics on {count} hand joints (damping=5.0, friction=1.0)")
+        print(f"[INFO] Increased dynamics on {count} hand joints (damping=5.0, friction=0.5)")
 
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
@@ -334,12 +335,12 @@ def increase_hand_link_inertia(urdf_content):
     reliable fix is to give finger links a minimum diagonal inertia so the
     acceleration drives produce sufficient torque.
 
-    A value of 1e-4 kg·m² with the default drive stiffness 1e4 gives
-    ``torque = 1e-4 × 1e4 × error = 1.0 × error`` (N·m/rad), which is far
-    more than the ~0.001 N·m gravitational torque on a finger link.
+    A value of 1e-3 kg·m² with the default drive stiffness 1e4 gives
+    ``torque = 1e-3 × 1e4 × error = 10.0 × error`` (N·m/rad), which easily
+    overcomes joint friction (0.5 N·m) and gravitational torque (~0.001 N·m).
     """
     HAND_KEYWORDS = ("thumb", "index", "middle", "ring", "pinky")
-    MIN_INERTIA = 1e-4   # kg·m²
+    MIN_INERTIA = 1e-3   # kg·m²
 
     root = ET.fromstring(urdf_content)
     count = 0

@@ -41,6 +41,54 @@ import sys
 
 
 # ---------------------------------------------------------------------------
+# Mimic joint definitions (from Inspire Hand xacro).
+# Isaac Sim does NOT support URDF mimic joints natively, so we replicate the
+# behaviour each physics step: target = parent_position * multiplier + offset.
+# ---------------------------------------------------------------------------
+MIMIC_JOINTS = {
+    # mimic_joint: (parent_joint, multiplier, offset)
+    # Left hand
+    "left_thumb_intermediate_joint":  ("left_thumb_proximal_pitch_joint", 1.334,   0.0),
+    "left_thumb_distal_joint":        ("left_thumb_proximal_pitch_joint", 0.667,   0.0),
+    "left_index_intermediate_joint":  ("left_index_proximal_joint",      1.06399, -0.04545),
+    "left_middle_intermediate_joint": ("left_middle_proximal_joint",     1.06399, -0.04545),
+    "left_ring_intermediate_joint":   ("left_ring_proximal_joint",       1.06399, -0.04545),
+    "left_pinky_intermediate_joint":  ("left_pinky_proximal_joint",      1.06399, -0.04545),
+    # Right hand
+    "right_thumb_intermediate_joint":  ("right_thumb_proximal_pitch_joint", 1.334,   0.0),
+    "right_thumb_distal_joint":        ("right_thumb_proximal_pitch_joint", 0.667,   0.0),
+    "right_index_intermediate_joint":  ("right_index_proximal_joint",      1.06399, -0.04545),
+    "right_middle_intermediate_joint": ("right_middle_proximal_joint",     1.06399, -0.04545),
+    "right_ring_intermediate_joint":   ("right_ring_proximal_joint",       1.06399, -0.04545),
+    "right_pinky_intermediate_joint":  ("right_pinky_proximal_joint",      1.06399, -0.04545),
+}
+
+
+def _build_mimic_index_map(joint_names):
+    """Build a DOF-index-based mimic map from the articulation's joint names.
+
+    Returns:
+        dict mapping parent_dof_index -> list of (mimic_dof_index, multiplier, offset)
+    """
+    name_to_idx = {name: i for i, name in enumerate(joint_names)}
+    mimic_map = {}  # parent_idx -> [(mimic_idx, mult, offset), ...]
+
+    for mimic_name, (parent_name, mult, offset) in MIMIC_JOINTS.items():
+        mimic_idx = name_to_idx.get(mimic_name)
+        parent_idx = name_to_idx.get(parent_name)
+        if mimic_idx is not None and parent_idx is not None:
+            mimic_map.setdefault(parent_idx, []).append((mimic_idx, mult, offset))
+        elif mimic_idx is None and parent_idx is not None:
+            print(f"[WARN] Mimic joint not found in articulation: {mimic_name}")
+        # If parent not found either, the hand may not be present — skip silently
+
+    total = sum(len(v) for v in mimic_map.values())
+    print(f"[INFO] Mimic joint map: {total} mimic joints tracking "
+          f"{len(mimic_map)} parent joints")
+    return mimic_map
+
+
+# ---------------------------------------------------------------------------
 # Isaac Sim launcher (imports only available after SimulationApp)
 # ---------------------------------------------------------------------------
 
@@ -176,6 +224,10 @@ def _zero_hand_joints(stage, robot_root):
             state_attr = prim.GetAttribute("state:angular:physics:position")
             if state_attr and state_attr.IsValid():
                 state_attr.Set(0.0)
+            # Use acceleration-mode drives (same as arm joints).
+            # With boosted inertia (1e-3 kg·m² from generate_urdf.py) and
+            # reduced friction (0.5), these drives produce sufficient torque:
+            # torque = inertia × kp × error = 1e-3 × 1e4 × error = 10 × error
             if stiff_attr and stiff_attr.IsValid():
                 stiff_attr.Set(1e4)
             if damp_attr and damp_attr.IsValid():
@@ -217,6 +269,10 @@ def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
 
     Must be called AFTER world.reset() so the physics backend is initialized.
     Tries multiple APIs in order of preference for Isaac Sim 6.0 compatibility.
+
+    Returns:
+        (controller, hold_action, articulation) — articulation is the
+        Articulation object for reading/writing joint state each frame.
     """
     import numpy as np
 
@@ -267,12 +323,11 @@ def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
                         kps = np.zeros(n_dof)
                         kds = np.zeros(n_dof)
                         for i, name in enumerate(joint_names):
-                            if any(kw in name.lower() for kw in HAND_KEYWORDS):
-                                kps[i] = 1e5
-                                kds[i] = 1e3
-                            else:
-                                kps[i] = 1e4   # keep arm defaults
-                                kds[i] = 1e3
+                            # All joints use acceleration-mode drives with same gains.
+                            # Hand joints have boosted inertia (1e-3) so this produces
+                            # enough torque to overcome friction and gravity.
+                            kps[i] = 1e4
+                            kds[i] = 1e3
                         controller.set_gains(kps, kds)
                         # Apply position action to set drive targets
                         from isaacsim.core.utils.types import ArticulationAction
@@ -280,11 +335,11 @@ def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
                             ArticulationAction(joint_positions=positions)
                         )
                         print(f"[INFO] Zeroed {count} hand joints (positions + drive targets + gains)")
-                        return controller, ArticulationAction(joint_positions=positions)
+                        return controller, ArticulationAction(joint_positions=positions), artic
                     except Exception as e2:
                         print(f"[WARN] ArticulationController failed: {e2}")
                         print(f"[INFO] Zeroed {count} hand joint positions only")
-                return None, None
+                return None, None, artic
         except Exception as e:
             print(f"[WARN] Articulation API failed: {e}")
 
@@ -307,7 +362,7 @@ def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
             new_pos = positions.reshape(1, -1)
             artic_view.set_dof_positions(new_pos)
             print(f"[INFO] Zeroed {count} hand joints via tensor API")
-        return None, None
+        return None, None, None
     except Exception as e:
         print(f"[WARN] Tensor API failed: {e}")
 
@@ -319,7 +374,7 @@ def _zero_hand_joints_runtime(robot_root="/dual_arm_description"):
     except ImportError:
         pass
     print("[ERROR] Could not zero hand joints — no working API found")
-    return None, None
+    return None, None, None
 
 
 def import_urdf(urdf_path):
@@ -529,7 +584,47 @@ def main():
     simulation_app.update()
 
     # Zero hand joint positions using the runtime Articulation API.
-    hold_controller, hold_action = _zero_hand_joints_runtime()
+    hold_controller, hold_action, articulation = _zero_hand_joints_runtime()
+
+    # Build mimic joint index map for runtime replication
+    import numpy as np
+    mimic_map = {}
+    if articulation is not None:
+        joint_names = articulation.dof_names
+        if joint_names is not None:
+            mimic_map = _build_mimic_index_map(joint_names)
+
+    # Cache controller and action type for the mimic loop
+    _mimic_controller = None
+    _ArticulationAction = None
+    if mimic_map and articulation is not None:
+        try:
+            _mimic_controller = articulation.get_articulation_controller()
+            from isaacsim.core.utils.types import ArticulationAction as _AA
+            _ArticulationAction = _AA
+        except Exception as e:
+            print(f"[WARN] Could not get controller for mimic joints: {e}")
+
+    def _apply_mimic_targets():
+        """Read proximal positions, compute mimic targets, apply them."""
+        if not mimic_map or _mimic_controller is None:
+            return
+        positions = articulation.get_joint_positions()
+        if positions is None:
+            return
+        mimic_indices = []
+        mimic_targets = []
+        for parent_idx, mimics in mimic_map.items():
+            parent_pos = positions[parent_idx]
+            for mimic_idx, mult, offset in mimics:
+                mimic_indices.append(mimic_idx)
+                mimic_targets.append(parent_pos * mult + offset)
+        _mimic_controller.apply_action(
+            _ArticulationAction(
+                joint_positions=np.array(mimic_targets),
+                joint_indices=np.array(mimic_indices),
+            )
+        )
 
     # Settle: run physics steps while continuously applying the hold action.
     SETTLE_STEPS = 50
@@ -537,6 +632,7 @@ def main():
     for _ in range(SETTLE_STEPS):
         if hold_controller and hold_action:
             hold_controller.apply_action(hold_action)
+        _apply_mimic_targets()
         world.step(render=True)
     print("[INFO] Joint settling complete")
 
@@ -553,10 +649,10 @@ def main():
 
     try:
         while simulation_app.is_running():
-            # No apply_action here — the OmniGraph ROS2 bridge now owns
-            # all joint commands.  Hand drives hold at 0° via their USD
-            # stiffness + boosted inertia; arm drives respond to MoveIt
-            # commands arriving on /isaac_joint_commands.
+            # The OmniGraph ROS2 bridge owns arm + hand proximal commands.
+            # We replicate mimic joints (intermediate/distal) each frame
+            # since Isaac Sim doesn't support URDF mimic tags natively.
+            _apply_mimic_targets()
             world.step(render=True)
     except KeyboardInterrupt:
         print("\n[INFO] Shutting down...")
