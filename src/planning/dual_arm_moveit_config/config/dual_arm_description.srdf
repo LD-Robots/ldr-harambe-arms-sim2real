@@ -54,12 +54,12 @@
         <joint name="left_pinky_proximal_joint" value="0.0"/>
     </group_state>
     <group_state name="close" group="left_hand">
-        <joint name="left_thumb_proximal_yaw_joint" value="1.0"/>
-        <joint name="left_thumb_proximal_pitch_joint" value="0.6"/>
-        <joint name="left_index_proximal_joint" value="1.2"/>
-        <joint name="left_middle_proximal_joint" value="1.2"/>
-        <joint name="left_ring_proximal_joint" value="1.2"/>
-        <joint name="left_pinky_proximal_joint" value="1.2"/>
+        <joint name="left_thumb_proximal_yaw_joint" value="1.2"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.2"/>
+        <joint name="left_index_proximal_joint" value="1.4"/>
+        <joint name="left_middle_proximal_joint" value="1.4"/>
+        <joint name="left_ring_proximal_joint" value="1.4"/>
+        <joint name="left_pinky_proximal_joint" value="1.4"/>
     </group_state>
     <group_state name="open" group="right_hand">
         <joint name="right_thumb_proximal_yaw_joint" value="0.0"/>
@@ -70,12 +70,12 @@
         <joint name="right_pinky_proximal_joint" value="0.0"/>
     </group_state>
     <group_state name="close" group="right_hand">
-        <joint name="right_thumb_proximal_yaw_joint" value="1.0"/>
-        <joint name="right_thumb_proximal_pitch_joint" value="0.6"/>
-        <joint name="right_index_proximal_joint" value="1.2"/>
-        <joint name="right_middle_proximal_joint" value="1.2"/>
-        <joint name="right_ring_proximal_joint" value="1.2"/>
-        <joint name="right_pinky_proximal_joint" value="1.2"/>
+        <joint name="right_thumb_proximal_yaw_joint" value="1.2"/>
+        <joint name="right_thumb_proximal_pitch_joint" value="0.2"/>
+        <joint name="right_index_proximal_joint" value="1.4"/>
+        <joint name="right_middle_proximal_joint" value="1.4"/>
+        <joint name="right_ring_proximal_joint" value="1.4"/>
+        <joint name="right_pinky_proximal_joint" value="1.4"/>
     </group_state>
 
     <!--END EFFECTORS-->
