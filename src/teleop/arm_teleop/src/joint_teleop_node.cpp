@@ -24,18 +24,18 @@ public:
   {
     command_topic_ = declare_parameter<std::string>("command_topic", "teleop/joint_commands");
     controller_topic_ = declare_parameter<std::string>(
-        "controller_topic", "/arm_controller/joint_trajectory");
+        "controller_topic", "/left_arm_controller/joint_trajectory");
     action_name_ = declare_parameter<std::string>(
-        "action_name", "/arm_controller/follow_joint_trajectory");
+        "action_name", "/left_arm_controller/follow_joint_trajectory");
     execution_time_sec_ = declare_parameter<double>("execution_time_sec", 1.0);
     joint_order_ = declare_parameter<std::vector<std::string>>(
         "controller_joint_names",
-        {"shoulder_pitch_joint",
-         "shoulder_roll_joint",
-         "shoulder_yaw_joint",
-         "elbow_pitch_joint",
-         "elbow_yaw_joint",
-         "wrist_roll_joint"});
+        {"left_shoulder_pitch_joint_X6",
+         "left_shoulder_roll_joint_X6",
+         "left_shoulder_yaw_joint_X4",
+         "left_elbow_pitch_joint_X6",
+         "left_wrist_yaw_joint_X4",
+         "left_wrist_roll_joint_X4"});
 
     if (joint_order_.empty())
     {

@@ -13,11 +13,6 @@ install(DIRECTORY urdf/
   DESTINATION share/${PROJECT_NAME}/urdf
 )
 
-# Install mesh files
-install(DIRECTORY meshes/
-  DESTINATION share/${PROJECT_NAME}/meshes
-)
-
 # Install config files
 install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config

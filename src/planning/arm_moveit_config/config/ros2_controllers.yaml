@@ -3,24 +3,24 @@ controller_manager:
   ros__parameters:
     update_rate: 100  # Hz
 
-    arm_controller:
+    left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-    hand_controller:
+    left_hand_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-arm_controller:
+left_arm_controller:
   ros__parameters:
     joints:
-      - shoulder_pitch_joint
-      - shoulder_roll_joint
-      - shoulder_yaw_joint
-      - elbow_pitch_joint
-      - elbow_yaw_joint
-      - wrist_roll_joint
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
     command_interfaces:
       - position
     state_interfaces:
@@ -28,7 +28,7 @@ arm_controller:
       - velocity
     allow_nonzero_velocity_at_trajectory_end: true
 
-hand_controller:
+left_hand_controller:
   ros__parameters:
     joints:
       - left_thumb_proximal_yaw_joint

@@ -2,8 +2,8 @@
 Launch MoveIt Servo with joystick teleoperation.
 
 Sequence:
-1. Move arm to ready position (via arm_controller action)
-2. Unload arm_controller (release command interfaces)
+1. Move arm to ready position (via left_arm_controller action)
+2. Unload left_arm_controller (release command interfaces)
 3. Spawn servo_controller (forward_command)
 4. Start MoveIt Servo + teleop
 
@@ -77,25 +77,25 @@ def generate_launch_description():
         "moveit_servo.use_smoothing": False,
     }
 
-    # Step 1: Move arm to ready position via arm_controller action
+    # Step 1: Move arm to ready position via left_arm_controller action
     move_to_ready = LogInfo(msg="Step 1: Moving arm to ready position...")
     move_to_ready_cmd = ExecuteProcess(
         cmd=[
             "ros2", "action", "send_goal",
-            "/arm_controller/follow_joint_trajectory",
+            "/left_arm_controller/follow_joint_trajectory",
             "control_msgs/action/FollowJointTrajectory",
-            "{trajectory: {joint_names: [shoulder_pitch_joint, shoulder_roll_joint, shoulder_yaw_joint, elbow_pitch_joint, elbow_yaw_joint, wrist_roll_joint], points: [{positions: [0.1, 0.1, 0.1, -0.1, 0.1, 0.1], time_from_start: {sec: 2, nanosec: 0}}]}}",
+            "{trajectory: {joint_names: [left_shoulder_pitch_joint_X6, left_shoulder_roll_joint_X6, left_shoulder_yaw_joint_X4, left_elbow_pitch_joint_X6, left_wrist_yaw_joint_X4, left_wrist_roll_joint_X4], points: [{positions: [0.1, 0.1, 0.1, -0.1, 0.1, 0.1], time_from_start: {sec: 2, nanosec: 0}}]}}",
         ],
         output="screen",
     )
 
-    # Step 2: Unload arm_controller (fully release command interfaces)
+    # Step 2: Unload left_arm_controller (fully release command interfaces)
     unload_arm = TimerAction(
         period=4.0,
         actions=[
-            LogInfo(msg="Step 2: Unloading arm_controller..."),
+            LogInfo(msg="Step 2: Unloading left_arm_controller..."),
             ExecuteProcess(
-                cmd=["ros2", "control", "set_controller_state", "arm_controller", "inactive"],
+                cmd=["ros2", "control", "set_controller_state", "left_arm_controller", "inactive"],
                 output="screen",
             ),
         ],
@@ -104,7 +104,7 @@ def generate_launch_description():
         period=5.0,
         actions=[
             ExecuteProcess(
-                cmd=["ros2", "control", "unload_controller", "arm_controller"],
+                cmd=["ros2", "control", "unload_controller", "left_arm_controller"],
                 output="screen",
             ),
         ],

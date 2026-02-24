@@ -11,32 +11,32 @@ default_acceleration_scaling_factor: 1.0  # 100% - Full acceleration
 #
 # Joint limits based on source robot URDF specifications
 joint_limits:
-  shoulder_pitch_joint:
+  left_shoulder_pitch_joint_X6:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true
     max_acceleration: 10.0  # rad/s² (shoulder pitch - moves entire arm)
-  shoulder_roll_joint:
+  left_shoulder_roll_joint_X6:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true
     max_acceleration: 10.0  # rad/s² (shoulder roll)
-  shoulder_yaw_joint:
+  left_shoulder_yaw_joint_X4:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true
     max_acceleration: 15.0  # rad/s² (shoulder yaw)
-  elbow_pitch_joint:
+  left_elbow_pitch_joint_X6:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true
     max_acceleration: 15.0  # rad/s² (elbow pitch)
-  elbow_yaw_joint:
+  left_wrist_yaw_joint_X4:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 20.0  # rad/s² (elbow yaw - lighter load)
-  wrist_roll_joint:
+    max_acceleration: 20.0  # rad/s² (wrist yaw - lighter load)
+  left_wrist_roll_joint_X4:
     has_velocity_limits: true
     max_velocity: 16.0  # rad/s (from URDF)
     has_acceleration_limits: true

@@ -44,12 +44,12 @@ class ServoJoystickTeleop(Node):
     """Joystick teleop using MoveIt Servo."""
 
     JOINT_NAMES = [
-        "shoulder_pitch_joint",
-        "shoulder_roll_joint",
-        "shoulder_yaw_joint",
-        "elbow_pitch_joint",
-        "elbow_yaw_joint",
-        "wrist_roll_joint",
+        "left_shoulder_pitch_joint_X6",
+        "left_shoulder_roll_joint_X6",
+        "left_shoulder_yaw_joint_X4",
+        "left_elbow_pitch_joint_X6",
+        "left_wrist_yaw_joint_X4",
+        "left_wrist_roll_joint_X4",
     ]
 
     HOME_JOINTS = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -169,10 +169,10 @@ class ServoJoystickTeleop(Node):
             "/servo_controller/commands",
             10
         )
-        # Gripper trajectory commands to hand_controller
+        # Gripper trajectory commands to left_hand_controller
         self._gripper_pub = self.create_publisher(
             JointTrajectory,
-            "/hand_controller/joint_trajectory",
+            "/left_hand_controller/joint_trajectory",
             10
         )
 
@@ -267,7 +267,7 @@ class ServoJoystickTeleop(Node):
         self._position_pub.publish(msg)
 
     def _send_gripper(self, positions: List[float], name: str) -> None:
-        """Send gripper command to hand_controller."""
+        """Send gripper command to left_hand_controller."""
         msg = JointTrajectory()
         msg.joint_names = list(self._gripper_joint_names)
         point = JointTrajectoryPoint()

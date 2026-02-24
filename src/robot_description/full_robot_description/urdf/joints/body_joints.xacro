@@ -8,9 +8,15 @@
   <xacro:property name="leg_joint_type" value="${'fixed' if '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
 
   <!-- ================================================================== -->
+  <!-- only_left — when true, also lock waist yaw joint                  -->
+  <!-- ================================================================== -->
+  <xacro:arg name="only_left" default="true" />
+  <xacro:property name="waist_joint_type" value="${'fixed' if '$(arg only_left)' == 'true' or '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
+
+  <!-- ================================================================== -->
   <!-- Waist                                                             -->
   <!-- ================================================================== -->
-  <joint name="waist_yaw_joint" type="${leg_joint_type}">
+  <joint name="waist_yaw_joint" type="${waist_joint_type}">
     <origin xyz="0.0333466 -0.000699067 -0.29826" rpy="0 0 0"/>
     <parent link="urdf_base"/>
     <child link="urdf_simplified_torso_sub_assembly"/>

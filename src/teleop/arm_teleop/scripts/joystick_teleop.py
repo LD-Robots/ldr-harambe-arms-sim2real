@@ -30,12 +30,12 @@ class JoystickTeleop(Node):
 
     DEFAULT_PROFILE = "dualsense"
     JOINT_NAMES = [
-        "shoulder_pitch_joint",
-        "shoulder_roll_joint",
-        "shoulder_yaw_joint",
-        "elbow_pitch_joint",
-        "elbow_yaw_joint",
-        "wrist_roll_joint",
+        "left_shoulder_pitch_joint_X6",
+        "left_shoulder_roll_joint_X6",
+        "left_shoulder_yaw_joint_X4",
+        "left_elbow_pitch_joint_X6",
+        "left_wrist_yaw_joint_X4",
+        "left_wrist_roll_joint_X4",
     ]
     JOINT_INDEX = {name: idx for idx, name in enumerate(JOINT_NAMES)}
     CONTROLLER_PROFILES: Dict[str, Dict[str, List[float]]] = {

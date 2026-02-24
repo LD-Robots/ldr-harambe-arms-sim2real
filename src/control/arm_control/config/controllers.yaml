@@ -6,22 +6,22 @@ controller_manager:
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
       publish_rate: 50.0
-    arm_controller:
+    left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-    hand_controller:
+    left_hand_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
 
 # Arm Trajectory Controller - main interface for motion control
-arm_controller:
+left_arm_controller:
   ros__parameters:
     joints:
-      - shoulder_pitch_joint
-      - shoulder_roll_joint
-      - shoulder_yaw_joint
-      - elbow_pitch_joint
-      - elbow_yaw_joint
-      - wrist_roll_joint
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
 
     command_interfaces:
       - position
@@ -40,8 +40,8 @@ arm_controller:
     allow_partial_joints_goal: false
     allow_integration_in_goal_trajectories: true
 
-# Hand Trajectory Controller - gripper control
-hand_controller:
+# Hand Trajectory Controller - hand control
+left_hand_controller:
   ros__parameters:
     joints:
       - left_thumb_proximal_yaw_joint

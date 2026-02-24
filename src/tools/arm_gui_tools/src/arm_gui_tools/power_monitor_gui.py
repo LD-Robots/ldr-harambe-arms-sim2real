@@ -262,19 +262,19 @@ class PowerMonitorGUI(QMainWindow):
         self.joint_value_labels = {}
 
         joints = [
-            'shoulder_pitch_joint',
-            'shoulder_roll_joint',
-            'shoulder_yaw_joint',
-            'elbow_pitch_joint',
-            'elbow_yaw_joint'
+            'left_shoulder_pitch_joint_X6',
+            'left_shoulder_roll_joint_X6',
+            'left_shoulder_yaw_joint_X4',
+            'left_elbow_pitch_joint_X6',
+            'left_wrist_yaw_joint_X4'
         ]
 
         joint_display_names = {
-            'shoulder_pitch_joint': 'Shoulder Pitch',
-            'shoulder_roll_joint': 'Shoulder Roll',
-            'shoulder_yaw_joint': 'Shoulder Yaw',
-            'elbow_pitch_joint': 'Elbow Pitch',
-            'elbow_yaw_joint': 'Elbow Yaw'
+            'left_shoulder_pitch_joint_X6': 'Shoulder Pitch',
+            'left_shoulder_roll_joint_X6': 'Shoulder Roll',
+            'left_shoulder_yaw_joint_X4': 'Shoulder Yaw',
+            'left_elbow_pitch_joint_X6': 'Elbow Pitch',
+            'left_wrist_yaw_joint_X4': 'Wrist Yaw'
         }
 
         for i, joint in enumerate(joints):

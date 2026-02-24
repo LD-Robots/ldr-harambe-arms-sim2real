@@ -6,7 +6,7 @@ Launches MoveIt planning server and RViz for the arm robot.
 
 Prerequisites:
 - Gazebo simulation running: ros2 launch arm_control sim.launch.py
-- Controllers active: joint_state_broadcaster + arm_controller
+- Controllers active: joint_state_broadcaster + left_arm_controller
 
 Usage:
     ros2 launch arm_moveit_config demo.launch.py
@@ -70,7 +70,7 @@ def generate_launch_description():
             moveit_config.to_dict(),
             {"use_sim_time": use_sim_time},
             {
-                "octomap_frame": "base_link",
+                "octomap_frame": "urdf_base",
                 "octomap_resolution": 0.05,
                 "max_range": 5.0
             },

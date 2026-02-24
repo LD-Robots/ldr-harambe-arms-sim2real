@@ -4,28 +4,48 @@
     <!-- Include macros -->
     <xacro:include filename="$(find arm_description)/urdf/macros/materials.xacro" />
 
-    <!-- Base link -->
-    <!-- <xacro:include filename="$(find arm_description)/urdf/links/base_link.xacro" /> -->
+     <!-- Body (base + torso) -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
+     <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
 
-    <!-- Arm Links -->
-    <xacro:include filename="$(find arm_description)/urdf/links/arm_links.xacro" />
+    <!-- Left Arm -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/left_arm_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/left_arm_joints.xacro" />
+    
+    <!-- Right Arm -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/right_arm_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/right_arm_joints.xacro" />
 
-    <!-- Arm Joints -->
-    <xacro:include filename="$(find arm_description)/urdf/joints/arm_joints.xacro" />
+    <!-- Left Foot -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/left_foot_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/left_foot_joints.xacro" />
 
-    <!-- Hand/Gripper macros -->
-    <xacro:include filename="$(find arm_description)/urdf/hands/simple_gripper.xacro" />
+    <!-- Right Foot -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/right_foot_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
+
+    <!-- Hands -->
     <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
+    <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
 
-    <!-- Resolve hand_type arg into a property for conditional evaluation -->
-    <xacro:property name="hand_type" value="$(arg hand_type)"/>
+    <xacro:inspire_hand_left
+        parent="urdf_l_wrist_assembly"
+        prefix="left_"
+        mount_x="-0.0303429"
+        mount_y="4.52464e-07 "
+        mount_z="-0.06"
+        mount_roll="1.5708"
+        mount_pitch="0"
+        mount_yaw="1.5708"/>
 
-    <!-- Conditionally instantiate hand based on hand_type arg -->
-    <xacro:if value="${hand_type == 'simple_gripper'}">
-        <xacro:simple_gripper parent="end_effector_link"/>
-    </xacro:if>
-    <xacro:if value="${hand_type == 'inspire_hand'}">
-        <xacro:inspire_hand_left parent="end_effector_link"/>
-    </xacro:if>
+    <xacro:inspire_hand_right
+        parent="urdf_r_wrist_assembly"
+        prefix="right_"
+        mount_x="-0.0303429"
+        mount_y="4.52464e-07 "
+        mount_z="-0.06"
+        mount_roll="1.5708"
+        mount_pitch="0"
+        mount_yaw="-1.5708"/>
 
 </robot>

@@ -6,13 +6,13 @@ mtc_node:
 
     # Controller parameters (must match moveit_controllers.yaml)
     controller_names:
-      - "arm_controller"
-      - "hand_controller"
+      - "left_arm_controller"
+      - "left_hand_controller"
 
     # Robot configuration (must match SRDF)
     arm_group_name: "arm"
     gripper_group_name: "hand"
-    gripper_frame: "end_effector_link"  # End effector link (parent_link in SRDF)
+    gripper_frame: "urdf_l_wrist_assembly"  # End effector link (parent_link in SRDF)
     gripper_open_pose: "open"   # Named pose in SRDF
     gripper_close_pose: "close" # Named pose in SRDF
     arm_home_pose: "home"       # Named pose in SRDF

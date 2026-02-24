@@ -5,17 +5,17 @@ controller_manager:
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-    arm_controller:
+    left_arm_controller:
       type: position_controllers/JointTrajectoryController
       joints:
-        - shoulder_pitch_joint
-        - shoulder_roll_joint
-        - shoulder_yaw_joint
-        - elbow_pitch_joint
-        - elbow_yaw_joint
+        - left_shoulder_pitch_joint_X6
+        - left_shoulder_roll_joint_X6
+        - left_shoulder_yaw_joint_X4
+        - left_elbow_pitch_joint_X6
+        - left_wrist_yaw_joint_X4
       gains:
-        shoulder_pitch_joint: {p: 100.0, d: 1.0}
-        shoulder_roll_joint: {p: 100.0, d: 1.0}
-        shoulder_yaw_joint: {p: 100.0, d: 1.0}
-        elbow_pitch_joint: {p: 50.0, d: 1.0}
-        elbow_yaw_joint: {p: 50.0, d: 1.0}
+        left_shoulder_pitch_joint_X6: {p: 100.0, d: 1.0}
+        left_shoulder_roll_joint_X6: {p: 100.0, d: 1.0}
+        left_shoulder_yaw_joint_X4: {p: 100.0, d: 1.0}
+        left_elbow_pitch_joint_X6: {p: 50.0, d: 1.0}
+        left_wrist_yaw_joint_X4: {p: 50.0, d: 1.0}

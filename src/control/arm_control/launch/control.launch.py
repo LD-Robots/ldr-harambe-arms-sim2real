@@ -53,7 +53,7 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         arguments=[
-            "arm_controller",
+            "left_arm_controller",
             "--controller-manager", "/controller_manager",
             "--controller-manager-timeout", "20",
             "--switch-timeout", "20",
@@ -65,7 +65,7 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         arguments=[
-            "hand_controller",
+            "left_hand_controller",
             "--controller-manager", "/controller_manager",
             "--controller-manager-timeout", "20",
             "--switch-timeout", "20",

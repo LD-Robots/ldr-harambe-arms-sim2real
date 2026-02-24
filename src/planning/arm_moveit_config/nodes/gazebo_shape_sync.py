@@ -45,7 +45,7 @@ class GazeboShapeSync(Node):
         roscpp_initialize([])
 
         self.frame_id = (
-            self.declare_parameter("frame_id", "base_link")
+            self.declare_parameter("frame_id", "urdf_base")
             .get_parameter_value()
             .string_value
         )
