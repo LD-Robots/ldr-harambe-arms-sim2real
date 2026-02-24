@@ -36,7 +36,7 @@
     <parent link="urdf_lower_femur_assembly"/>
     <child link="urdf_l_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="100" velocity="100" lower="0.191906" upper="-2.33882"/>
+    <limit effort="100" velocity="100" lower="-0.191906" upper="2.33882"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
