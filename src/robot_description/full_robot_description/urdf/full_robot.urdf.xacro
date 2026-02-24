@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="full_robot_description">
+
+    <!-- Body (base + torso) -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
+
+    <!-- Left Arm -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/left_arm_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/left_arm_joints.xacro" />
+
+    <!-- Right Arm -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/right_arm_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/right_arm_joints.xacro" />
+
+    <!-- Left Foot -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/left_foot_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/left_foot_joints.xacro" />
+
+    <!-- Right Foot -->
+    <xacro:include filename="$(find full_robot_description)/urdf/links/right_foot_links.xacro" />
+    <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
+
+    <!-- Hands -->
+    <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
+    <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
+
+    <xacro:inspire_hand_left
+        parent="urdf_l_wrist_assembly"
+        prefix="left_"
+        mount_x="-0.0303429"
+        mount_y="4.52464e-07 "
+        mount_z="-0.06"
+        mount_roll="1.5708"
+        mount_pitch="0"
+        mount_yaw="1.5708"/>
+
+    <xacro:inspire_hand_right
+        parent="urdf_r_wrist_assembly"
+        prefix="right_"
+        mount_x="-0.0303429"
+        mount_y="4.52464e-07 "
+        mount_z="-0.06"
+        mount_roll="1.5708"
+        mount_pitch="0"
+        mount_yaw="-1.5708"/>
+
+    <!-- Fix robot base to world frame -->
+    <link name="world"/>
+    <joint name="world_joint" type="fixed">
+        <parent link="world"/>
+        <child link="urdf_base"/>
+    </joint>
+
+</robot>

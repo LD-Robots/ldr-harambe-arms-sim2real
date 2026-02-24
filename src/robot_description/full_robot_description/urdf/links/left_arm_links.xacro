@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================== -->
+  <!-- Left Arm                                                          -->
+  <!-- ================================================================== -->
+  <link name="urdf_l_shoulder_assembly">
+    <inertial>
+      <origin xyz="-0.00509657 0.0671786 -9.80653e-07" rpy="0 0 0"/>
+      <mass value="2.97837"/>
+      <inertia ixx="0.00348255" ixy="-2.44885e-05" ixz="-3.85399e-08" iyy="0.00281696" iyz="6.6958e-08" izz="0.00306396"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.00130076 0.0502746 -6.96176e-06" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_shoulder.stl"/>
+      </geometry>
+      <material name="l_shoulder_material">
+        <color rgba="0.615686 0.811765 0.929412 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00130076 0.0502746 -6.96176e-06" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_shoulder.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="urdf_l_upper_arm_assembly">
+    <inertial>
+      <origin xyz="-0.0400405 0.0194704 -0.110423" rpy="0 0 0"/>
+      <mass value="1.54329"/>
+      <inertia ixx="0.00234132" ixy="9.32993e-05" ixz="-0.000529539" iyy="0.00250504" iyz="0.000205842" izz="0.00137396"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.0256703 0.015852 -0.0899016" rpy="0 0.174533 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_upper_arm.stl"/>
+      </geometry>
+      <material name="l_upper_arm_material">
+        <color rgba="0.615686 0.811765 0.929412 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0256703 0.015852 -0.0899016" rpy="0 0.174533 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_upper_arm.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="urdf_l_elbow_assembly">
+    <inertial>
+      <origin xyz="1.33522e-06 -0.0103789 -0.0634648" rpy="0 0 0"/>
+      <mass value="2.87437"/>
+      <inertia ixx="0.00280783" ixy="-3.83564e-08" ixz="1.61602e-08" iyy="0.00300002" iyz="-7.45868e-05" izz="0.00247115"/>
+    </inertial>
+    <visual>
+      <origin xyz="1.15439e-05 0.000331628 -0.0512953" rpy="0 0 -1.57079"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_elbow.stl"/>
+      </geometry>
+      <material name="l_elbow_material">
+        <color rgba="0.615686 0.811765 0.929412 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="1.15439e-05 0.000331628 -0.0512953" rpy="0 0 -1.57079"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_elbow.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="urdf_l_upper_forearm_assembly">
+    <inertial>
+      <origin xyz="0.00126375 -0.0365224 -0.111037" rpy="0 0 0"/>
+      <mass value="1.44829"/>
+      <inertia ixx="0.00214741" ixy="6.26018e-06" ixz="-9.94562e-07" iyy="0.00190798" iyz="-0.000395055" izz="0.000998643"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.00466961 -0.0254855 -0.0842108" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_upper_forearm.stl"/>
+      </geometry>
+      <material name="l_upper_forearm_material">
+        <color rgba="0.615686 0.811765 0.929412 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00466961 -0.0254855 -0.0842108" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_upper_forearm.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="urdf_l_lower_forearm_assembly">
+    <inertial>
+      <origin xyz="-0.00708592 -1.50452e-08 -0.0536199" rpy="0 0 0"/>
+      <mass value="1.27429"/>
+      <inertia ixx="0.000756431" ixy="-8.31991e-10" ixz="-4.1177e-05" iyy="0.000843576" iyz="-7.13151e-08" izz="0.000705223"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.00198299 4.28405e-08 -0.0340631" rpy="0 0 -1.57079"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_lower_forearm.stl"/>
+      </geometry>
+      <material name="l_lower_forearm_material">
+        <color rgba="0.537255 0.854902 0.827451 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00198299 4.28405e-08 -0.0340631" rpy="0 0 -1.57079"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_lower_forearm.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="urdf_l_wrist_assembly">
+    <inertial>
+      <origin xyz="-0.0282716 1.4578e-06 -0.112614" rpy="0 0 0"/>
+      <mass value="0.398"/>
+      <inertia ixx="0.00146537" ixy="-6.85112e-09" ixz="-5.58167e-05" iyy="0.00160501" iyz="-1.87386e-08" izz="0.000274862"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.0219314 4.45962e-06 -0.0434653" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_wrist.stl"/>
+      </geometry>
+      <material name="l_wrist_material">
+        <color rgba="0.615686 0.811765 0.929412 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0219314 4.45962e-06 -0.0434653" rpy="0 0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_wrist.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+</robot>

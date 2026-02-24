@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================== -->
+  <!-- Right Leg                                                         -->
+  <!-- ================================================================== -->
+  <joint name="right_hip_pitch_joint" type="${leg_joint_type}">
+    <origin xyz="0.0333466 -0.107699 -0.46826" rpy="0 0 0"/>
+    <parent link="urdf_base"/>
+    <child link="urdf_hip_assembly_2"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="100" lower="-2.51486" upper="1.58667"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="right_hip_roll_joint" type="${leg_joint_type}">
+    <origin xyz="0.0549931 -0.078 0.000872784" rpy="0 -0.0158773 0"/>
+    <parent link="urdf_hip_assembly_2"/>
+    <child link="urdf_r_upper_femur_assemby"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="100" velocity="100" lower="-3.14005" upper="0.35061"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="right_hip_yaw_joint" type="${leg_joint_type}">
+    <origin xyz="-0.053 -0.00033635 -0.217" rpy="-0.00155 0 0"/>
+    <parent link="urdf_r_upper_femur_assemby"/>
+    <child link="urdf_lower_femur_assembly_2"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100" velocity="100" lower="-1.57082" upper="1.57077"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="right_knee_joint" type="${leg_joint_type}">
+    <origin xyz="2.22935e-07 -0.055 -0.113" rpy="0 0.0158737 0"/>
+    <parent link="urdf_lower_femur_assembly_2"/>
+    <child link="urdf_r_tibia_assembly"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="100" lower="-0.191906" upper="2.33882"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="right_ankle_pitch_joint" type="${leg_joint_type}">
+    <origin xyz="0.0243657 0.056 -0.423037" rpy="0.00155386 0.00149689 0"/>
+    <parent link="urdf_r_tibia_assembly"/>
+    <child link="ankle_assembly_3"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="100" velocity="100" lower="-0.785398" upper="0.785398"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+</robot>

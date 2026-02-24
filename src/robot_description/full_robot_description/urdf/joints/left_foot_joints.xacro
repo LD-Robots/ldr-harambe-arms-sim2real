@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================== -->
+  <!-- Left Leg                                                          -->
+  <!-- ================================================================== -->
+  <joint name="left_hip_pitch_joint" type="${leg_joint_type}">
+    <origin xyz="0.0333466 0.111301 -0.46826" rpy="0 0 0"/>
+    <parent link="urdf_base"/>
+    <child link="urdf_hip_assembly"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="100" lower="-2.53073" upper="1.5708"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="left_hip_roll_joint" type="${leg_joint_type}">
+    <origin xyz="0.055 0.073 0" rpy="0 0 0"/>
+    <parent link="urdf_hip_assembly"/>
+    <child link="urdf_l_upper_femur_assembly"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="100" velocity="100" lower="-0.349066" upper="3.14159"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="left_hip_yaw_joint" type="${leg_joint_type}">
+    <origin xyz="-0.0551145 7.97086e-07 -0.217" rpy="0 0 0"/>
+    <parent link="urdf_l_upper_femur_assembly"/>
+    <child link="urdf_lower_femur_assembly"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100" velocity="100" lower="-1.5708" upper="1.5708"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="left_knee_joint" type="${leg_joint_type}">
+    <origin xyz="0 0.055 -0.113" rpy="0 0 0"/>
+    <parent link="urdf_lower_femur_assembly"/>
+    <child link="urdf_l_tibia_assembly"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="100" lower="0.191906" upper="-2.33882"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+  <joint name="left_ankle_pitch_joint" type="${leg_joint_type}">
+    <origin xyz="-1.45092e-06 -0.03 -0.395" rpy="0 0 0"/>
+    <parent link="urdf_l_tibia_assembly"/>
+    <child link="ankle_assembly"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="100" lower="-0.785398" upper="0.785398"/>
+    <dynamics damping="0.5" friction="0.1"/>
+  </joint>
+
+</robot>
