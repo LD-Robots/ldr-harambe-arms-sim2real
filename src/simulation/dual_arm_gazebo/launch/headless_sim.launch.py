@@ -23,13 +23,15 @@ def generate_launch_description():
     install_dir = get_package_prefix('dual_arm_description')
     install_gazebo_dir = get_package_prefix('dual_arm_gazebo')
     install_dir_hand = get_package_prefix('hand_description')
-
+    install_full_robot_dir = get_package_prefix('full_robot_description')
+    
     # Set GZ_SIM_RESOURCE_PATH to ROS workspace for package:// URI resolution
     gz_resource_path = SetEnvironmentVariable(
         name='GZ_SIM_RESOURCE_PATH',
         value=os.pathsep.join([
             os.path.join(install_dir, 'share'),
             os.path.join(install_dir_hand, 'share'),
+            os.path.join(install_full_robot_dir, 'share'),
             os.path.join(install_gazebo_dir, 'share', 'dual_arm_gazebo', 'worlds', 'models')
         ])
     )

@@ -1,8 +1,27 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="dual_arm_base">
 
-  <xacro:include filename="$(find dual_arm_description)/urdf/links/dual_arm_links.xacro" />
-  <xacro:include filename="$(find dual_arm_description)/urdf/joints/dual_arm_joints.xacro" />
+  <!-- Body (base + torso) -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
+
+  <!-- Left Arm -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/left_arm_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/left_arm_joints.xacro" />
+
+  <!-- Right Arm -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/right_arm_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/right_arm_joints.xacro" />
+
+  <!-- Left Foot -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/left_foot_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/left_foot_joints.xacro" />
+
+  <!-- Right Foot -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/right_foot_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
+
+  <!-- Hands -->
   <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
   <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
 
