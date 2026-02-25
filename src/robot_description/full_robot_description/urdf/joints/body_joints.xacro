@@ -4,24 +4,24 @@
   <!-- ================================================================== -->
   <!-- Leg joint type — set fixed_legs:=true to lock leg joints          -->
   <!-- ================================================================== -->
-  <xacro:arg name="fixed_legs" default="false" />
+  <xacro:arg name="fixed_legs" default="false"/>
   <xacro:property name="leg_joint_type" value="${'fixed' if '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
-
+  
   <!-- ================================================================== -->
   <!-- only_left — when true, also lock waist yaw joint                  -->
   <!-- ================================================================== -->
-  <xacro:arg name="only_left" default="true" />
+  <xacro:arg name="only_left" default="true"/>
   <xacro:property name="waist_joint_type" value="${'fixed' if '$(arg only_left)' == 'true' or '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
 
   <!-- ================================================================== -->
-  <!-- Waist                                                             -->
+  <!-- Body                                                              -->
   <!-- ================================================================== -->
   <joint name="waist_yaw_joint" type="${waist_joint_type}">
-    <origin xyz="0.0333466 -0.000699067 -0.29826" rpy="0 0 0"/>
+    <origin xyz="0.0333787 -0.000698852 -0.300748" rpy="0 0 0"/>
     <parent link="urdf_base"/>
     <child link="urdf_simplified_torso_sub_assembly"/>
     <axis xyz="0 0 1"/>
-    <limit effort="100" velocity="100" lower="-1.5708" upper="1.5708"/>
+    <limit effort="10" velocity="10" lower="-1.5708" upper="1.5708"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
