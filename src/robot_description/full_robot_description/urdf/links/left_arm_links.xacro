@@ -275,21 +275,6 @@
         <mesh filename="package://full_robot_description/meshes/l_wrist.stl"/>
       </geometry>
     </collision>
-    <visual>
-      <origin xyz="-0.0303429 2.67e-09 -0.135203" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/l_hand.stl"/>
-      </geometry>
-      <material name="l_hand_material">
-        <color rgba="1 1 1 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="-0.0303429 2.67e-09 -0.135203" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/l_hand.stl"/>
-      </geometry>
-    </collision>
   </link>
 
 </robot>
