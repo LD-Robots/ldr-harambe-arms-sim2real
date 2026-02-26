@@ -177,7 +177,7 @@
     </visual>
   </link>
 
-  <link name="udrf_ankle_assembly_2">
+  <link name="urdf_ankle_assembly_2">
     <inertial>
       <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 0"/>
       <mass value="0.0818219"/>
@@ -186,16 +186,16 @@
     <visual>
       <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/visual/udrf_ankle_assembly.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/urdf_ankle_assembly.stl"/>
       </geometry>
-      <material name="udrf_ankle_assembly_2_material">
+      <material name="urdf_ankle_assembly_2_material">
         <color rgba="0.615686 0.811765 0.929412 1"/>
       </material>
     </visual>
     <collision>
       <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/collision/udrf_ankle_assembly.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/urdf_ankle_assembly.stl"/>
       </geometry>
     </collision>
   </link>
