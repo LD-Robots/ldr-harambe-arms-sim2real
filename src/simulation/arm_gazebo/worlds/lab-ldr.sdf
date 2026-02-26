@@ -1,13 +1,14 @@
 <sdf version='1.10'>
   <world name='lab'>
-    <physics name='1ms' type='ode'>
-      <max_step_size>0.001</max_step_size>
+    <!-- Larger step size for the heavier dual arm model (64 links, 208 collision bodies) -->
+    <physics name='5ms' type='ode'>
+      <max_step_size>0.01</max_step_size>
       <real_time_factor>1</real_time_factor>
       <real_time_update_rate>1000</real_time_update_rate>
       <ode>
         <solver>
           <type>quick</type>
-          <iters>50</iters>
+          <iters>25</iters>
           <sor>1.3</sor>
         </solver>
         <constraints>
