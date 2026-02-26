@@ -9,7 +9,7 @@
     <parent link="urdf_base"/>
     <child link="urdf_hip_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="10" velocity="10" lower="-2.53073" upper="1.5708"/>
+    <limit effort="100" velocity="100" lower="-2.53" upper="1.57"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
@@ -18,16 +18,16 @@
     <parent link="urdf_hip_assembly"/>
     <child link="urdf_l_upper_femur_assembly"/>
     <axis xyz="1 0 0"/>
-    <limit effort="10" velocity="10" lower="-0.349066" upper="3.14159"/>
+    <limit effort="100" velocity="100" lower="-0.35" upper="3.14"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
   <joint name="left_hip_yaw_joint" type="${leg_joint_type}">
-    <origin xyz="-0.053 7.97086e-07 -0.217" rpy="0 0 0"/>
+    <origin xyz="-0.053 -7.97086e-07 -0.217" rpy="0 0 0"/>
     <parent link="urdf_l_upper_femur_assembly"/>
     <child link="urdf_lower_femur_assembly"/>
     <axis xyz="0 0 1"/>
-    <limit effort="10" velocity="10" lower="-1.5708" upper="1.5708"/>
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
@@ -36,23 +36,25 @@
     <parent link="urdf_lower_femur_assembly"/>
     <child link="urdf_l_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="10" velocity="10" lower="-1.5708" upper="-0"/>
+    <limit effort="100" velocity="100" lower="-0.17" upper="1.57"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
   <joint name="left_ankle_pitch_joint" type="${leg_joint_type}">
-    <origin xyz="-1.45092e-06 -0.03 -0.395" rpy="0 0 0"/>
+    <origin xyz="-1.45092e-06 -0.051 -0.395" rpy="0 0 0"/>
     <parent link="urdf_l_tibia_assembly"/>
-    <child link="ankle_assembly"/>
+    <child link="udrf_ankle_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398"/>
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
-  <joint name="left_ankle_pitch_joint_2" type="${leg_joint_type}">
-    <origin xyz="-1.45092e-06 -0.03 -0.395" rpy="0 0 0"/>
-    <parent link="urdf_l_tibia_assembly"/>
-    <child link="ankle_assembly_2"/>
+  <joint name="left_ankle_roll_joint" type="${leg_joint_type}">
+    <origin xyz="-0.0120001 -0.004 -0.028" rpy="0 0 0"/>
+    <parent link="udrf_ankle_assembly"/>
+    <child link="urdf_foot_assembly"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 

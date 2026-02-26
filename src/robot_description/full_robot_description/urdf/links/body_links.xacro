@@ -13,22 +13,16 @@
     <visual>
       <origin xyz="0.0333787 0.0103011 -0.467748" rpy="-1.5708 0.785398 0"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
       <material name="stator_x8_p20_120_unified_material">
         <color rgba="0.882353 0.572549 0.478431 1"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0.0333787 0.0103011 -0.467748" rpy="-1.5708 0.785398 0"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="-0.00271429 -0.000697952 -0.432504" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/b_base.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/b_base.stl"/>
       </geometry>
       <material name="b_base_material">
         <color rgba="0.368627 0.25098 0.643137 1"/>
@@ -37,43 +31,31 @@
     <collision>
       <origin xyz="-0.00271429 -0.000697952 -0.432504" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/b_base.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/b_base.stl"/>
       </geometry>
     </collision>
     <visual>
       <origin xyz="0.0333787 -0.0116989 -0.467748" rpy="1.5708 -0.785398 0"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
       <material name="stator_x8_p20_120_unified_2_material">
         <color rgba="0.882353 0.572549 0.478431 1"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0.0333787 -0.0116989 -0.467748" rpy="1.5708 -0.785398 0"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.0333787 -0.000698852 -0.396748" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
       <material name="stator_x8_p20_120_unified_3_material">
         <color rgba="0.882353 0.572549 0.478431 1"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0.0333787 -0.000698852 -0.396748" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x8_p20_120_unified.stl"/>
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.070373 -0.000705351 -0.431099" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/f_base.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/f_base.stl"/>
       </geometry>
       <material name="f_base_material">
         <color rgba="0.909804 0.572549 0.164706 1"/>
@@ -82,137 +64,56 @@
     <collision>
       <origin xyz="0.070373 -0.000705351 -0.431099" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/f_base.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/f_base.stl"/>
       </geometry>
     </collision>
   </link>
 
-  <link name="urdf_simplified_torso_sub_assembly">
+  <link name="urdf_simplified_torso">
     <inertial>
-      <origin xyz="0.00084485 -0.00587549 0.417851" rpy="0 0 0"/>
-      <mass value="9.22071"/>
-      <inertia ixx="0.324451" ixy="2.3692e-08" ixz="-0.00208618" iyy="0.220452" iyz="-0.000110066" izz="0.138166"/>
+      <origin xyz="0.00199118 -4.1776e-05 0.327574" rpy="0 0 0"/>
+      <mass value="5.9"/>
+      <inertia ixx="0.320832" ixy="5.08517e-07" ixz="-0.00443482" iyy="0.294153" iyz="9.68158e-05" izz="0.076931"/>
     </inertial>
     <visual>
-      <origin xyz="4.00834e-06 -0.168755 0.427883" rpy="0 0 -1.5708"/>
+      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_r_plate_shoulder_with_limiter_pla.stl"/>
-      </geometry>
-      <material name="urdf_r_plate_shoulder_with_limiter_pla_material">
-        <color rgba="0.647059 0.647059 0.647059 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="4.00834e-06 -0.168755 0.427883" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_r_plate_shoulder_with_limiter_pla.stl"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="4.00839e-06 0.156752 0.427883" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_l_plate_shoulder_with_limiter_pla.stl"/>
-      </geometry>
-      <material name="urdf_l_plate_shoulder_with_limiter_pla_material">
-        <color rgba="0.615686 0.811765 0.929412 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="4.00839e-06 0.156752 0.427883" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_l_plate_shoulder_with_limiter_pla.stl"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="4.00839e-06 -0.0990017 0.427" rpy="-3.14159 1.57079 1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x6_p20_60_unified.stl"/>
-      </geometry>
-      <material name="stator_x6_p20_60_unified_material">
-        <color rgba="0.960784 0.835294 0.470588 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="4.00839e-06 -0.0990017 0.427" rpy="-3.14159 1.57079 1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x6_p20_60_unified.stl"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="4.00839e-06 0.0869983 0.427" rpy="0 1.57079 1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x6_p20_60_unified.stl"/>
-      </geometry>
-      <material name="stator_x6_p20_60_unified_2_material">
-        <color rgba="0.960784 0.835294 0.470588 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="4.00839e-06 0.0869983 0.427" rpy="0 1.57079 1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/stator_x6_p20_60_unified.stl"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="4.00844e-06 -0.00600172 0.2625" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_simplified_torso.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/urdf_simplified_torso.stl"/>
       </geometry>
       <material name="urdf_simplified_torso_material">
         <color rgba="0.647059 0.647059 0.647059 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="4.00844e-06 -0.00600172 0.2625" rpy="0 0 -1.5708"/>
+      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_simplified_torso.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/urdf_simplified_torso.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0 0.005" rpy="0 0 -1.5708"/>
+      <origin xyz="4.03711e-05 -0.000382221 0.67095" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_torso_pelvis_plate_pla.stl"/>
-      </geometry>
-      <material name="urdf_torso_pelvis_plate_pla_material">
-        <color rgba="0.231373 0.380392 0.705882 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0.005" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/urdf_torso_pelvis_plate_pla.stl"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="4.18304e-05 -0.00635981 0.6725" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/head.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/head.stl"/>
       </geometry>
       <material name="head_material">
         <color rgba="0.737255 0.937255 0.917647 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="4.18304e-05 -0.00635981 0.6725" rpy="0 0 -1.5708"/>
+      <origin xyz="4.03711e-05 -0.000382221 0.67095" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/head.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/head.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="4.18304e-05 -0.00635981 0.674429" rpy="0 0 -1.5708"/>
+      <origin xyz="4.03711e-05 -0.000382221 0.672878" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/back_access.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/back_access.stl"/>
       </geometry>
       <material name="back_access_material">
         <color rgba="0.231373 0.380392 0.705882 1"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="4.18304e-05 -0.00635981 0.674429" rpy="0 0 -1.5708"/>
-      <geometry>
-        <mesh filename="package://full_robot_description/meshes/back_access.stl"/>
-      </geometry>
-    </collision>
   </link>
 
 </robot>

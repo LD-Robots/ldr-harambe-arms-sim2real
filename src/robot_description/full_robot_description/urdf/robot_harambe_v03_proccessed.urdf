@@ -1,0 +1,1068 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="robot_harambe_v0.3">
+  <link name="urdf_base">
+    <inertial>
+      <origin xyz="0.0334604 -0.000699269 -0.431702" rpy="0 0 0" />
+      <mass value="5.132" />
+      <inertia ixx="0.0288848" ixy="2.35276e-07" ixz="-2.88595e-05" iyy="0.0213139" iyz="-6.5838e-06" izz="0.0155352" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0333787 0.0103011 -0.467748" rpy="-1.5708 0.785398 0" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.00271429 -0.000697952 -0.432504" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/b_base.stl" />
+      </geometry>
+      <material name="b_base_material">
+        <color rgba="0.368627 0.25098 0.643137 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00271429 -0.000697952 -0.432504" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/b_base.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.0333787 -0.0116989 -0.467748" rpy="1.5708 -0.785398 0" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_2_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0333787 -0.000698852 -0.396748" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_3_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.070373 -0.000705351 -0.431099" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/f_base.stl" />
+      </geometry>
+      <material name="f_base_material">
+        <color rgba="0.909804 0.572549 0.164706 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.070373 -0.000705351 -0.431099" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/f_base.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_simplified_torso">
+    <inertial>
+      <origin xyz="0.00199118 -4.1776e-05 0.327574" rpy="0 0 0" />
+      <mass value="5.9" />
+      <inertia ixx="0.320832" ixy="5.08517e-07" ixz="-0.00443482" iyy="0.294153" iyz="9.68158e-05" izz="0.076931" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_simplified_torso.stl" />
+      </geometry>
+      <material name="urdf_simplified_torso_material">
+        <color rgba="0.647059 0.647059 0.647059 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_simplified_torso.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="4.03711e-05 -0.000382221 0.67095" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/head.stl" />
+      </geometry>
+      <material name="head_material">
+        <color rgba="0.737255 0.937255 0.917647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="4.03711e-05 -0.000382221 0.67095" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/head.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="4.03711e-05 -0.000382221 0.672878" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/back_access.stl" />
+      </geometry>
+      <material name="back_access_material">
+        <color rgba="0.231373 0.380392 0.705882 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_shoulder_assembly">
+    <inertial>
+      <origin xyz="-0.00409836 0.0631966 -0.000544496" rpy="0 0 0" />
+      <mass value="1.246" />
+      <inertia ixx="0.00205876" ixy="-3.48871e-05" ixz="4.11941e-05" iyy="0.00152408" iyz="-7.63836e-06" izz="0.00171602" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.00129022 0.0502746 -0.000165436" rpy="0.122174 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/l_shoulder.stl" />
+      </geometry>
+      <material name="l_shoulder_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00129022 0.0502746 -0.000165436" rpy="0.122174 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/l_shoulder.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.038213 0.07 -0.00469197" rpy="-1.44862 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x6_p20_60_unified.stl" />
+      </geometry>
+      <material name="stator_x6_p20_60_unified_material">
+        <color rgba="0.960784 0.835294 0.470588 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_upper_arm_assembly">
+    <inertial>
+      <origin xyz="-0.0354438 0.0213179 -0.103332" rpy="0 0 0" />
+      <mass value="0.802" />
+      <inertia ixx="0.00190836" ixy="8.88394e-05" ixz="-0.000467525" iyy="0.00203106" iyz="0.000183108" izz="0.00107639" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0268697 0.0182146 -0.0914677" rpy="0.149185 0.147548 -0.774352" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_l_upper_arm_simplified.stl" />
+      </geometry>
+      <material name="urdf_l_upper_arm_simplified_material">
+        <color rgba="0.917647 0.917647 0.917647 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0268697 0.0182146 -0.0914677" rpy="0.149185 0.147548 -0.774352" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_l_upper_arm_simplified.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.046 0.0189197 -0.0890115" rpy="2.99241 0.147548 -2.36724" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_elbow_assembly">
+    <inertial>
+      <origin xyz="-0.00454375 -0.00631726 -0.0710681" rpy="0 0 0" />
+      <mass value="1.109" />
+      <inertia ixx="0.00144951" ixy="5.63858e-05" ixz="-2.92807e-05" iyy="0.00147477" iyz="-7.46143e-05" izz="0.00113761" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0243093 -0.036675 -0.075" rpy="-1.57079 1.57079 -0.585342" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x6_p20_60_unified.stl" />
+      </geometry>
+      <material name="stator_x6_p20_60_unified_2_material">
+        <color rgba="0.960784 0.835294 0.470588 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.00676793 -0.0102107 -0.075" rpy="1.57079 1.57079 -0.585342" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_l_elbow_simplified.stl" />
+      </geometry>
+      <material name="urdf_l_elbow_simplified_material">
+        <color rgba="0.231373 0.380392 0.705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00676793 -0.0102107 -0.075" rpy="1.57079 1.57079 -0.585342" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_l_elbow_simplified.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_l_upper_forearm_assembly">
+    <inertial>
+      <origin xyz="0.0267134 -0.0286559 -0.0999185" rpy="0 0 0" />
+      <mass value="0.707" />
+      <inertia ixx="0.00162524" ixy="9.29314e-05" ixz="0.000226907" iyy="0.00146156" iyz="-0.000353662" izz="0.000776912" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0285993 -0.035 -0.115512" rpy="0.242706 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_l_upper_forearm_simplified.stl" />
+      </geometry>
+      <material name="urdf_l_upper_forearm_simplified_material">
+        <color rgba="0.498039 0.498039 0.498039 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0285993 -0.035 -0.115512" rpy="0.242706 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_l_upper_forearm_simplified.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.0216297 -0.035 -0.0873622" rpy="-2.89888 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_2_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_lower_forearm_assembly">
+    <inertial>
+      <origin xyz="-0.00311766 0.00307025 -0.0515634" rpy="0 0 0" />
+      <mass value="0.618" />
+      <inertia ixx="0.000628386" ixy="-1.68352e-06" ixz="-2.8195e-05" iyy="0.000617293" iyz="-3.24976e-07" izz="0.000448744" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.00732538 0.00522865 -0.0615" rpy="-1.5708 0 0.95089" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_l_lower_forearm_simplified.stl" />
+      </geometry>
+      <material name="urdf_l_lower_forearm_simplified_material">
+        <color rgba="0.980392 0.713725 0.00392157 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00732538 0.00522865 -0.0615" rpy="-1.5708 0 0.95089" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_l_lower_forearm_simplified.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.0305224 0.021786 -0.0615" rpy="1.5708 0 0.95089" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_3_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_wrist_assembly">
+    <inertial>
+      <origin xyz="-0.0219307 0.0106848 -0.0421315" rpy="0 0 0" />
+      <mass value="0.098" />
+      <inertia ixx="0.000100785" ixy="8.2018e-06" ixz="-3.23731e-05" iyy="0.000121426" iyz="6.79903e-06" izz="9.63529e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0219314 0.0106848 -0.0421315" rpy="0 0.248271 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/l_wrist.stl" />
+      </geometry>
+      <material name="l_wrist_material">
+        <color rgba="0.8 0.74902 0.913725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0219314 0.0106848 -0.0421315" rpy="0 0.248271 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/l_wrist.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_wrist_roll_joint_X4" type="revolute">
+    <origin xyz="0.0219762 -0.0156859 -0.0615" rpy="-0.248271 0 -0.619909" />
+    <parent link="urdf_l_lower_forearm_assembly" />
+    <child link="urdf_l_wrist_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+  </joint>
+  <joint name="left_wrist_yaw_joint_X4" type="revolute">
+    <origin xyz="0.0391738 -0.035 -0.158223" rpy="-0.142861 -0.19688 0.634041" />
+    <parent link="urdf_l_upper_forearm_assembly" />
+    <child link="urdf_l_lower_forearm_assembly" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-2.36" upper="2.36" />
+  </joint>
+  <joint name="left_elbow_pitch_joint_X6" type="revolute">
+    <origin xyz="0.019337 0.0291733 -0.075" rpy="0 -0.0190902 -0.585348" />
+    <parent link="urdf_l_elbow_assembly" />
+    <child link="urdf_l_upper_forearm_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-1.31" upper="1.83" />
+  </joint>
+  <joint name="left_shoulder_yaw_joint_X4" type="revolute">
+    <origin xyz="-0.046 0.0343048 -0.161394" rpy="0.209376 0.00530409 -0.0249664" />
+    <parent link="urdf_l_upper_arm_assembly" />
+    <child link="urdf_l_elbow_assembly" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-1.75" upper="2.97" />
+  </joint>
+  <joint name="left_shoulder_roll_joint_X6" type="revolute">
+    <origin xyz="0.0456571 0.07 0.00560599" rpy="0 -0.122173 0" />
+    <parent link="urdf_l_shoulder_assembly" />
+    <child link="urdf_l_upper_arm_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-0.21" upper="2.93" />
+  </joint>
+  <joint name="left_shoulder_pitch_joint_X6" type="revolute">
+    <origin xyz="0 0.1755 0.423977" rpy="0 0 0" />
+    <parent link="urdf_simplified_torso" />
+    <child link="urdf_l_shoulder_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-3.02" upper="1.69" />
+  </joint>
+  <link name="urdf_r_shoulder_assembly">
+    <inertial>
+      <origin xyz="-0.0047018 -0.0660727 -0.000602814" rpy="0 0 0" />
+      <mass value="1.02" />
+      <inertia ixx="0.0013257" ixy="1.37507e-05" ixz="2.16639e-05" iyy="0.00104972" iyz="3.46307e-06" izz="0.0011458" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.038213 -0.07 -0.00469197" rpy="-1.44862 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x6_p20_60_unified.stl" />
+      </geometry>
+      <material name="stator_x6_p20_60_unified_3_material">
+        <color rgba="0.960784 0.835294 0.470588 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.00128021 -0.0501448 -0.000164153" rpy="0.122174 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_shoulder.stl" />
+      </geometry>
+      <material name="r_shoulder_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.00128021 -0.0501448 -0.000164153" rpy="0.122174 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_shoulder.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_r_upper_arm_assembly">
+    <inertial>
+      <origin xyz="-0.0347331 -0.0216406 -0.101809" rpy="0 0 0" />
+      <mass value="0.802" />
+      <inertia ixx="0.00188605" ixy="-9.73961e-05" ixz="-0.00045821" iyy="0.00200295" iyz="-0.000209828" izz="0.00106039" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.046 -0.0189203 -0.0890113" rpy="3.14159 -0.209444 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_4_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.025543 -0.0188228 -0.088553" rpy="0 -0.209444 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_upper_arm.stl" />
+      </geometry>
+      <material name="r_upper_arm_material">
+        <color rgba="0.231373 0.380392 0.705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.025543 -0.0188228 -0.088553" rpy="0 -0.209444 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_upper_arm.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_r_elbow_assembly">
+    <inertial>
+      <origin xyz="-0.00464629 0.00706688 -0.0612736" rpy="0 0 0" />
+      <mass value="1.109" />
+      <inertia ixx="0.00142737" ixy="-5.60372e-05" ixz="-3.53572e-05" iyy="0.00147543" iyz="4.92594e-05" izz="0.00111817" />
+    </inertial>
+    <visual>
+      <origin xyz="0.000192865 -0.000269971 -0.0512953" rpy="0 0 -0.985454" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_elbow.stl" />
+      </geometry>
+      <material name="r_elbow_material">
+        <color rgba="0.796078 0.905882 0.745098 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.000192865 -0.000269971 -0.0512953" rpy="0 0 -0.985454" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_elbow.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.0245856 0.0370918 -0.065" rpy="0.610863 -1.57079 1.54527" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x6_p20_60_unified.stl" />
+      </geometry>
+      <material name="stator_x6_p20_60_unified_4_material">
+        <color rgba="0.960784 0.835294 0.470588 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_r_upper_forearm_assembly">
+    <inertial>
+      <origin xyz="0.026678 0.0327896 -0.0982604" rpy="0 0 0" />
+      <mass value="0.707" />
+      <inertia ixx="0.00160609" ixy="-9.59574e-05" ixz="0.000238817" iyy="0.0014499" iyz="0.00033935" izz="0.000766588" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0216302 0.04 -0.0873621" rpy="-2.89888 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_5_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0247718 0.0254856 -0.0806201" rpy="0.242716 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_upper_forearm.stl" />
+      </geometry>
+      <material name="r_upper_forearm_material">
+        <color rgba="0.890196 0.698039 0.639216 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0247718 0.0254856 -0.0806201" rpy="0.242716 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_upper_forearm.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_r_lower_forearm_assembly">
+    <inertial>
+      <origin xyz="-0.00325453 -0.0023229 -0.046852" rpy="0 0 0" />
+      <mass value="0.618" />
+      <inertia ixx="0.000617744" ixy="-6.12409e-07" ixz="-3.11927e-05" iyy="0.000618165" iyz="-2.22632e-05" izz="0.000437775" />
+    </inertial>
+    <visual>
+      <origin xyz="0.00167509 0.00119555 -0.0333447" rpy="0 0 -0.9509" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_lower_forearm.stl" />
+      </geometry>
+      <material name="r_lower_forearm_material">
+        <color rgba="0.941176 0.87451 0.678431 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00167509 0.00119555 -0.0333447" rpy="0 0 -0.9509" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_lower_forearm.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.0309297 -0.0220761 -0.0565" rpy="1.57079 0 2.19069" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_6_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_r_wrist_assembly">
+    <inertial>
+      <origin xyz="-0.0219123 -0.0106791 -0.0421059" rpy="0 0 0" />
+      <mass value="0.15" />
+      <inertia ixx="0.000154293" ixy="-1.25539e-05" ixz="-4.95469e-05" iyy="0.000185908" iyz="-1.03835e-05" izz="0.00014762" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0219316 -0.0106854 -0.0421314" rpy="0 -0.248281 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_wrist.stl" />
+      </geometry>
+      <material name="r_wrist_material">
+        <color rgba="0.8 0.74902 0.913725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0219316 -0.0106854 -0.0421314" rpy="0 -0.248281 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_wrist.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_wrist_roll_joint_X4" type="revolute">
+    <origin xyz="0.0219763 0.0156857 -0.0565" rpy="0.248281 0 0.619897" />
+    <parent link="urdf_r_lower_forearm_assembly" />
+    <child link="urdf_r_wrist_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+  </joint>
+  <joint name="right_wrist_yaw_joint_X4" type="revolute">
+    <origin xyz="0.0403763 0.04 -0.163076" rpy="0.142857 -0.196885 -0.634033" />
+    <parent link="urdf_r_upper_forearm_assembly" />
+    <child link="urdf_r_lower_forearm_assembly" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-2.36" upper="2.36" />
+  </joint>
+  <joint name="right_elbow_pitch_joint_X6" type="revolute">
+    <origin xyz="0.0220994 -0.0333409 -0.065" rpy="0 -0.019088 0.585341" />
+    <parent link="urdf_r_elbow_assembly" />
+    <child link="urdf_r_upper_forearm_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-1.31" upper="1.83" />
+  </joint>
+  <joint name="right_shoulder_yaw_joint_X4" type="revolute">
+    <origin xyz="-0.046 -0.0353456 -0.166285" rpy="-0.209378 0.00530246 0.0249661" />
+    <parent link="urdf_r_upper_arm_assembly" />
+    <child link="urdf_r_elbow_assembly" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-2.97" upper="1.75" />
+  </joint>
+  <joint name="right_shoulder_roll_joint_X6" type="revolute">
+    <origin xyz="0.0456571 -0.07 0.00560599" rpy="0 -0.122173 0" />
+    <parent link="urdf_r_shoulder_assembly" />
+    <child link="urdf_r_upper_arm_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-2.93" upper="0.21" />
+  </joint>
+  <joint name="right_shoulder_pitch_joint_X6" type="revolute">
+    <origin xyz="0 -0.1755 0.423977" rpy="0 0 0" />
+    <parent link="urdf_simplified_torso" />
+    <child link="urdf_r_shoulder_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-3.02" upper="1.69" />
+  </joint>
+  <joint name="waist_yaw_joint" type="revolute">
+    <origin xyz="0.0333787 -0.000698852 -0.300748" rpy="0 0 0" />
+    <parent link="urdf_base" />
+    <child link="urdf_simplified_torso" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+  </joint>
+  <link name="urdf_hip_assembly">
+    <inertial>
+      <origin xyz="-0.00420762 0.0689982 -6.23945e-06" rpy="0 0 0" />
+      <mass value="1.73" />
+      <inertia ixx="0.00302301" ixy="2.30858e-05" ixz="4.5747e-08" iyy="0.00228746" iyz="-8.49179e-07" izz="0.00263533" />
+    </inertial>
+    <visual>
+      <origin xyz="0.00253653 0.0520203 -3.27638e-05" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/hip.stl" />
+      </geometry>
+      <material name="hip_material">
+        <color rgba="0.0627451 0.266667 0.490196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00253653 0.0520203 -3.27638e-05" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/hip.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.043 0.073 0" rpy="1.5708 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_4_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_upper_femur_assembly">
+    <inertial>
+      <origin xyz="-0.0457109 0.000405477 -0.147969" rpy="0 0 0" />
+      <mass value="1.912" />
+      <inertia ixx="0.00512969" ixy="1.18492e-06" ixz="-0.000930002" iyy="0.00557257" iyz="-5.18841e-05" izz="0.00336728" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0257799 0.00151581 -0.111785" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/l_upper_femur.stl" />
+      </geometry>
+      <material name="l_upper_femur_material">
+        <color rgba="0.141176 0.694118 0.65098 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0257799 0.00151581 -0.111785" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/l_upper_femur.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.053 -4.55477e-07 -0.124" rpy="3.14159 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_5_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_lower_femur_assembly">
+    <inertial>
+      <origin xyz="-1.0389e-08 -0.00357383 -0.103307" rpy="0 0 0" />
+      <mass value="1.817" />
+      <inertia ixx="0.00383469" ixy="-2.5e-11" ixz="-2.1291e-08" iyy="0.00421827" iyz="-0.00019709" izz="0.00258541" />
+    </inertial>
+    <visual>
+      <origin xyz="5.752e-09 0.00389134 -0.070766" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/lower_femur.stl" />
+      </geometry>
+      <material name="lower_femur_material">
+        <color rgba="0.380392 0.0470588 0.435294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="5.752e-09 0.00389134 -0.070766" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/lower_femur.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 -0.043 -0.113" rpy="3.14159 -1.57079 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_6_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_l_tibia_assembly">
+    <inertial>
+      <origin xyz="0.00463897 -0.0449177 -0.190721" rpy="0 0 0" />
+      <mass value="6.45981" />
+      <inertia ixx="0.0785879" ixy="0.000322141" ixz="0.00174711" iyy="0.0762229" iyz="-0.00887502" izz="0.0153456" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0180006 -0.055 -0.16" rpy="-1.5708 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_7_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0180009 -0.055 -0.235" rpy="1.5708 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_8_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0844989 -0.0732971 -0.288554" rpy="0 0.0523563 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/m6_threaded_bar_300mm.stl" />
+      </geometry>
+      <material name="m6_threaded_bar_300mm_material">
+        <color rgba="0.141176 0.0352941 0.396078 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0537491 -0.055 -0.235" rpy="-3.14159 -0.0698163 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_spacer_x4.stl" />
+      </geometry>
+      <material name="urdf_spacer_x4_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.000678037 -0.0431371 -0.186264" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_l_tibia_assembly.stl" />
+      </geometry>
+      <material name="urdf_l_tibia_assembly_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.000678037 -0.0431371 -0.186264" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_l_tibia_assembly.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.0844988 -0.0363334 -0.326445" rpy="0 -0.0698163 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/m6_threaded_bar_225mm.stl" />
+      </geometry>
+      <material name="m6_threaded_bar_225mm_material">
+        <color rgba="0.27451 0.0117647 0.317647 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0537494 -0.055 -0.16" rpy="0 -0.0523563 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_spacer_x4.stl" />
+      </geometry>
+      <material name="urdf_spacer_x4_2_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="udrf_ankle_assembly">
+    <inertial>
+      <origin xyz="-4.60715e-08 -0.004 -0.0125426" rpy="0 0 0" />
+      <mass value="0.0818219" />
+      <inertia ixx="1.69449e-05" ixy="1.31413e-26" ixz="-1.61786e-11" iyy="2.15245e-05" iyz="1.88667e-27" izz="1.25404e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="-4.60715e-08 -0.004 -0.0125426" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/udrf_ankle_assembly.stl" />
+      </geometry>
+      <material name="udrf_ankle_assembly_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-4.60715e-08 -0.004 -0.0125426" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/udrf_ankle_assembly.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_foot_assembly">
+    <inertial>
+      <origin xyz="0.0427639 9.73e-10 -0.0209668" rpy="0 0 0" />
+      <mass value="0.504" />
+      <inertia ixx="0.000361698" ixy="-1.2e-11" ixz="-5.90887e-06" iyy="0.00202397" iyz="-1.6e-11" izz="0.00229243" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0427639 0 -0.0209668" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_foot_assembly.stl" />
+      </geometry>
+      <material name="urdf_foot_assembly_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0427639 0 -0.0209668" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_foot_assembly.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_ankle_roll_joint" type="revolute">
+    <origin xyz="-0.0120001 -0.004 -0.028" rpy="0 0 0" />
+    <parent link="udrf_ankle_assembly" />
+    <child link="urdf_foot_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+  </joint>
+  <joint name="left_ankle_pitch_joint" type="revolute">
+    <origin xyz="-1.45092e-06 -0.051 -0.395" rpy="0 0 0" />
+    <parent link="urdf_l_tibia_assembly" />
+    <child link="udrf_ankle_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+  </joint>
+  <joint name="left_knee_joint" type="revolute">
+    <origin xyz="0 0.055 -0.113" rpy="0 0 0" />
+    <parent link="urdf_lower_femur_assembly" />
+    <child link="urdf_l_tibia_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-0.17" upper="1.57" />
+  </joint>
+  <joint name="left_hip_yaw_joint" type="revolute">
+    <origin xyz="-0.053 -7.97086e-07 -0.217" rpy="0 0 0" />
+    <parent link="urdf_l_upper_femur_assembly" />
+    <child link="urdf_lower_femur_assembly" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+  </joint>
+  <joint name="left_hip_roll_joint" type="revolute">
+    <origin xyz="0.055 0.073 0" rpy="0 0 0" />
+    <parent link="urdf_hip_assembly" />
+    <child link="urdf_l_upper_femur_assembly" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-0.35" upper="3.14" />
+  </joint>
+  <joint name="left_hip_pitch_joint" type="revolute">
+    <origin xyz="0.0333787 0.111301 -0.467748" rpy="0 0 0" />
+    <parent link="urdf_base" />
+    <child link="urdf_hip_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-2.53" upper="1.57" />
+  </joint>
+  <link name="urdf_hip_assembly_2">
+    <inertial>
+      <origin xyz="-0.00420762 -0.0739982 6.23945e-06" rpy="0 0 0" />
+      <mass value="1.73" />
+      <inertia ixx="0.00302301" ixy="-2.30858e-05" ixz="-4.5747e-08" iyy="0.00228746" iyz="-8.49179e-07" izz="0.00263533" />
+    </inertial>
+    <visual>
+      <origin xyz="0.00253653 -0.0570203 3.27638e-05" rpy="-3.14159 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/hip.stl" />
+      </geometry>
+      <material name="hip_2_material">
+        <color rgba="0.0627451 0.266667 0.490196 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.00253653 -0.0570203 3.27638e-05" rpy="-3.14159 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/hip.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.043 -0.078 0" rpy="-1.57079 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_7_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_r_upper_femur_assemby">
+    <inertial>
+      <origin xyz="-0.0457092 -0.000405162 -0.147963" rpy="0 0 0" />
+      <mass value="1.912" />
+      <inertia ixx="0.00513139" ixy="-1.24596e-06" ixz="-0.000930579" iyy="0.00557422" iyz="5.18318e-05" izz="0.00336736" />
+    </inertial>
+    <visual>
+      <origin xyz="-0.0257733 -0.00151464 -0.111761" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/r_upper_femur.stl" />
+      </geometry>
+      <material name="r_upper_femur_material">
+        <color rgba="0.941176 0.87451 0.678431 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0257733 -0.00151464 -0.111761" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/r_upper_femur.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.053 4.55477e-07 -0.124" rpy="3.14159 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_8_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_lower_femur_assembly_2">
+    <inertial>
+      <origin xyz="1.0389e-08 0.00357383 -0.103307" rpy="0 0 0" />
+      <mass value="1.817" />
+      <inertia ixx="0.00383469" ixy="-2.5e-11" ixz="2.1291e-08" iyy="0.00421827" iyz="0.00019709" izz="0.00258541" />
+    </inertial>
+    <visual>
+      <origin xyz="-5.752e-09 -0.00389134 -0.070766" rpy="0 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/lower_femur.stl" />
+      </geometry>
+      <material name="lower_femur_2_material">
+        <color rgba="0.380392 0.0470588 0.435294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-5.752e-09 -0.00389134 -0.070766" rpy="0 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/lower_femur.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0.043 -0.113" rpy="0 -1.57079 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x8_p20_120_unified.stl" />
+      </geometry>
+      <material name="stator_x8_p20_120_unified_9_material">
+        <color rgba="0.882353 0.572549 0.478431 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="urdf_r_tibia_assembly">
+    <inertial>
+      <origin xyz="0.00463902 0.0449175 -0.190727" rpy="0 0 0" />
+      <mass value="6.45984" />
+      <inertia ixx="0.0785959" ixy="-0.000322085" ixz="0.00175009" iyy="0.0762312" iyz="0.0088755" izz="0.0153456" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0537498 0.055 -0.16" rpy="-3.14159 -0.0523563 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_spacer_x4.stl" />
+      </geometry>
+      <material name="urdf_spacer_x4_3_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0844997 0.0363483 -0.326658" rpy="0 0.0698163 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/m6_threaded_bar_225mm.stl" />
+      </geometry>
+      <material name="m6_threaded_bar_225mm_2_material">
+        <color rgba="0.27451 0.0117647 0.317647 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0537498 0.055 -0.235" rpy="0 -0.0698163 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_spacer_x4.stl" />
+      </geometry>
+      <material name="urdf_spacer_x4_4_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.000678616 0.0431372 -0.186264" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_r_tibia_assembly.stl" />
+      </geometry>
+      <material name="urdf_r_tibia_assembly_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.000678616 0.0431372 -0.186264" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_r_tibia_assembly.stl" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.0180002 0.055 -0.16" rpy="-1.5708 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_9_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="0.0844997 0.0732859 -0.288767" rpy="0 -0.0523563 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/m6_threaded_bar_300mm.stl" />
+      </geometry>
+      <material name="m6_threaded_bar_300mm_2_material">
+        <color rgba="0.141176 0.0352941 0.396078 1" />
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="-0.0180002 0.055 -0.235" rpy="1.5708 0 1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/stator_x4_p36_36_unified.stl" />
+      </geometry>
+      <material name="stator_x4_p36_36_unified_10_material">
+        <color rgba="0.764706 0.545098 0.803922 1" />
+      </material>
+    </visual>
+  </link>
+  <link name="udrf_ankle_assembly_2">
+    <inertial>
+      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 0" />
+      <mass value="0.0818219" />
+      <inertia ixx="1.69449e-05" ixy="1.82098e-26" ixz="-4.4909e-12" iyy="2.15245e-05" iyz="8.34767e-27" izz="1.25404e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/udrf_ankle_assembly.stl" />
+      </geometry>
+      <material name="udrf_ankle_assembly_2_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/udrf_ankle_assembly.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="urdf_foot_assembly_2">
+    <inertial>
+      <origin xyz="0.0427639 1.55004e-07 -0.0209668" rpy="0 0 0" />
+      <mass value="0.504" />
+      <inertia ixx="0.000361698" ixy="3.1409e-11" ixz="-5.90887e-06" iyy="0.00202397" iyz="-1.98822e-09" izz="0.00229243" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0427639 1.53975e-07 -0.0209668" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/visual/urdf_foot_assembly.stl" />
+      </geometry>
+      <material name="urdf_foot_assembly_2_material">
+        <color rgba="0.615686 0.811765 0.929412 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0427639 1.53975e-07 -0.0209668" rpy="0 0 -1.5708" />
+      <geometry>
+        <mesh filename="package://meshes/collision/urdf_foot_assembly.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="right_ankle_pitch_joint" type="revolute">
+    <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0" />
+    <parent link="udrf_ankle_assembly_2" />
+    <child link="urdf_foot_assembly_2" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+  </joint>
+  <joint name="right_ankle_roll_joint" type="revolute">
+    <origin xyz="-4.02748e-07 0.059 -0.395" rpy="0 0 0" />
+    <parent link="urdf_r_tibia_assembly" />
+    <child link="udrf_ankle_assembly_2" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+  </joint>
+  <joint name="right_knee_joint" type="revolute">
+    <origin xyz="0 -0.055 -0.113" rpy="0 0 0" />
+    <parent link="urdf_lower_femur_assembly_2" />
+    <child link="urdf_r_tibia_assembly" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-0.17" upper="1.57" />
+  </joint>
+  <joint name="right_hip_yaw_joint" type="revolute">
+    <origin xyz="-0.053 7.97086e-07 -0.217" rpy="0 0 0" />
+    <parent link="urdf_r_upper_femur_assemby" />
+    <child link="urdf_lower_femur_assembly_2" />
+    <axis xyz="0 0 1" />
+    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+  </joint>
+  <joint name="right_hip_roll_joint" type="revolute">
+    <origin xyz="0.055 -0.078 0" rpy="0 0 0" />
+    <parent link="urdf_hip_assembly_2" />
+    <child link="urdf_r_upper_femur_assemby" />
+    <axis xyz="1 0 0" />
+    <limit effort="100" velocity="100" lower="-3.14" upper="0.35" />
+  </joint>
+  <joint name="right_hip_pitch_joint" type="revolute">
+    <origin xyz="0.0333787 -0.107699 -0.467748" rpy="0 0 0" />
+    <parent link="urdf_base" />
+    <child link="urdf_hip_assembly_2" />
+    <axis xyz="0 1 0" />
+    <limit effort="100" velocity="100" lower="-2.53" upper="1.57" />
+  </joint>
+</robot>
