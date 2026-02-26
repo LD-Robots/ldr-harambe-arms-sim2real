@@ -31,21 +31,21 @@
     <xacro:inspire_hand_left
         parent="urdf_l_wrist_assembly"
         prefix="left_"
-        mount_x="-0.0303429"
-        mount_y="4.52464e-07 "
+        mount_x="-0.034"
+        mount_y="0.015"
         mount_z="-0.06"
-        mount_roll="1.5708"
-        mount_pitch="0"
-        mount_yaw="1.5708"/>
+        mount_roll="1.424576"
+        mount_pitch="-0.201364"
+        mount_yaw="2.205507"/>
 
     <xacro:inspire_hand_right
         parent="urdf_r_wrist_assembly"
         prefix="right_"
-        mount_x="-0.0303429"
-        mount_y="4.52464e-07 "
+        mount_x="-0.029"
+        mount_y="-0.011"
         mount_z="-0.06"
-        mount_roll="1.5708"
-        mount_pitch="0"
-        mount_yaw="-1.5708"/>
+        mount_roll="1.717027"
+        mount_pitch="-0.201373"
+        mount_yaw="-2.205496"/>
 
 </robot>
