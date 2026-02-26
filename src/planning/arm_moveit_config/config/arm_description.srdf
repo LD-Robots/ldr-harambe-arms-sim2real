@@ -57,11 +57,11 @@
     <!--DISABLE COLLISIONS-->
 
     <!-- ===== Body: base <-> torso ===== -->
-    <disable_collisions link1="urdf_base" link2="urdf_simplified_torso_sub_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_base" link2="urdf_simplified_torso" reason="Adjacent"/>
 
     <!-- ===== Left arm chain (adjacent) ===== -->
     <!-- torso -> l_shoulder -> l_upper_arm -> l_elbow -> l_upper_forearm -> l_lower_forearm -> l_wrist -->
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_l_shoulder_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_l_shoulder_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_arm_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_elbow_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_upper_forearm_assembly" reason="Adjacent"/>
@@ -70,8 +70,8 @@
     <!-- Left arm non-adjacent -->
     <disable_collisions link1="urdf_base" link2="urdf_l_shoulder_assembly" reason="Never"/>
     <disable_collisions link1="urdf_base" link2="urdf_l_upper_arm_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_l_upper_arm_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_l_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_l_elbow_assembly" reason="Never"/>
     <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_elbow_assembly" reason="Never"/>
     <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
     <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
@@ -83,7 +83,7 @@
 
     <!-- ===== Right arm chain (adjacent) ===== -->
     <!-- torso -> r_shoulder -> r_upper_arm -> r_elbow -> r_upper_forearm -> r_lower_forearm -> r_wrist -->
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_r_shoulder_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_r_shoulder_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_arm_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_elbow_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_upper_forearm_assembly" reason="Adjacent"/>
@@ -92,8 +92,8 @@
     <!-- Right arm non-adjacent -->
     <disable_collisions link1="urdf_base" link2="urdf_r_shoulder_assembly" reason="Never"/>
     <disable_collisions link1="urdf_base" link2="urdf_r_upper_arm_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_r_elbow_assembly" reason="Never"/>
     <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
     <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
     <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
@@ -109,14 +109,15 @@
     <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_femur_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_lower_femur_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_l_tibia_assembly" reason="Adjacent"/>
-    <disable_collisions link1="urdf_l_tibia_assembly" link2="ankle_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="udrf_ankle_assembly" reason="Adjacent"/>
+    <disable_collisions link1="udrf_ankle_assembly" link2="urdf_foot_assembly" reason="Adjacent"/>
     <!-- Left leg non-adjacent -->
     <disable_collisions link1="urdf_base" link2="urdf_l_upper_femur_assembly" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_tibia_assembly" reason="Never"/>
     <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_l_tibia_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="ankle_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_lower_femur_assembly" link2="ankle_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="udrf_ankle_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="udrf_ankle_assembly" reason="Never"/>
 
     <!-- ===== Right leg chain (adjacent) ===== -->
     <!-- base -> hip_2 -> r_upper_femur_assemby -> lower_femur_2 -> r_tibia -> ankle_3 -->
@@ -124,20 +125,21 @@
     <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Adjacent"/>
     <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_lower_femur_assembly_2" reason="Adjacent"/>
     <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_tibia_assembly" reason="Adjacent"/>
-    <disable_collisions link1="urdf_r_tibia_assembly" link2="ankle_assembly_3" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_tibia_assembly" link2="udrf_ankle_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="udrf_ankle_assembly_2" link2="urdf_foot_assembly_2" reason="Adjacent"/>
     <!-- Right leg non-adjacent -->
     <disable_collisions link1="urdf_base" link2="urdf_r_upper_femur_assemby" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_lower_femur_assembly_2" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_tibia_assembly" reason="Never"/>
     <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_r_tibia_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_r_upper_femur_assemby" link2="ankle_assembly_3" reason="Never"/>
-    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="ankle_assembly_3" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_femur_assemby" link2="udrf_ankle_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="udrf_ankle_assembly_2" reason="Never"/>
 
     <!-- ===== Cross-branch: legs vs torso/arms (never collide at default pose) ===== -->
     <disable_collisions link1="urdf_base" link2="urdf_lower_femur_assembly" reason="Never"/>
     <disable_collisions link1="urdf_base" link2="urdf_lower_femur_assembly_2" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_hip_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_simplified_torso_sub_assembly" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_hip_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_simplified_torso" link2="urdf_hip_assembly_2" reason="Never"/>
 
     <!-- ===== Left hand (adjacent + near) ===== -->
     <disable_collisions link1="urdf_l_wrist_assembly" link2="left_hand_base_link" reason="Adjacent"/>
