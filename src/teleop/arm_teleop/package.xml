@@ -24,6 +24,9 @@
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+
+  <!-- pip install pyrealsense2 mediapipe opencv-python numpy -->
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

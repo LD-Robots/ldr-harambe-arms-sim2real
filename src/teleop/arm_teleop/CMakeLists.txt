@@ -35,11 +35,13 @@ install(
     scripts/cartesian_joystick_teleop.py
     scripts/visual_teleop.py
     scripts/servo_joystick_teleop.py
+    scripts/realsense_skeleton_teleop.py
+    scripts/skeleton_calibration.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
-  DIRECTORY launch
+  DIRECTORY launch config models
   DESTINATION share/${PROJECT_NAME}
 )
 

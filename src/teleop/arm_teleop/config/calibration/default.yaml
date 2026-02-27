@@ -1,0 +1,98 @@
+# Skeleton Teleop Calibration Profile — Example/Default
+#
+# This file is an uncalibrated identity profile (no offsets, no ROM scaling).
+# Run calibration (press 'c' during teleop) to generate a real profile.
+# Profiles are saved to ~/.config/arm_teleop/calibration_profiles/
+
+profile_name: default
+timestamp: ""
+mirror_display: true
+frames_averaged: 0
+
+proportions:
+  upper_arm_length_left: 0.0
+  upper_arm_length_right: 0.0
+  forearm_length_left: 0.0
+  forearm_length_right: 0.0
+  hand_span_left: 0.0
+  hand_span_right: 0.0
+  shoulder_width: 0.0
+  torso_length_left: 0.0
+  torso_length_right: 0.0
+
+joints:
+  # Left arm
+  left_shoulder_pitch_joint_X6:
+    neutral_angle: 0.0
+    human_min: -3.02
+    human_max: 1.69
+    robot_min: -3.02
+    robot_max: 1.69
+  left_shoulder_roll_joint_X6:
+    neutral_angle: 0.0
+    human_min: -0.21
+    human_max: 2.93
+    robot_min: -0.21
+    robot_max: 2.93
+  left_shoulder_yaw_joint_X4:
+    neutral_angle: 0.0
+    human_min: -1.75
+    human_max: 2.97
+    robot_min: -1.75
+    robot_max: 2.97
+  left_elbow_pitch_joint_X6:
+    neutral_angle: 0.0
+    human_min: -1.31
+    human_max: 1.83
+    robot_min: -1.31
+    robot_max: 1.83
+  left_wrist_yaw_joint_X4:
+    neutral_angle: 0.0
+    human_min: -2.36
+    human_max: 2.36
+    robot_min: -2.36
+    robot_max: 2.36
+  left_wrist_roll_joint_X4:
+    neutral_angle: 0.0
+    human_min: -1.57
+    human_max: 1.57
+    robot_min: -1.57
+    robot_max: 1.57
+
+  # Right arm
+  right_shoulder_pitch_joint_X6:
+    neutral_angle: 0.0
+    human_min: -3.02
+    human_max: 1.69
+    robot_min: -3.02
+    robot_max: 1.69
+  right_shoulder_roll_joint_X6:
+    neutral_angle: 0.0
+    human_min: -2.93
+    human_max: 0.21
+    robot_min: -2.93
+    robot_max: 0.21
+  right_shoulder_yaw_joint_X4:
+    neutral_angle: 0.0
+    human_min: -2.97
+    human_max: 1.75
+    robot_min: -2.97
+    robot_max: 1.75
+  right_elbow_pitch_joint_X6:
+    neutral_angle: 0.0
+    human_min: -1.31
+    human_max: 1.83
+    robot_min: -1.31
+    robot_max: 1.83
+  right_wrist_yaw_joint_X4:
+    neutral_angle: 0.0
+    human_min: -2.36
+    human_max: 2.36
+    robot_min: -2.36
+    robot_max: 2.36
+  right_wrist_roll_joint_X4:
+    neutral_angle: 0.0
+    human_min: -1.57
+    human_max: 1.57
+    robot_min: -1.57
+    robot_max: 1.57
