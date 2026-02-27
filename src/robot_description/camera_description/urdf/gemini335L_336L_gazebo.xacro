@@ -10,29 +10,31 @@
             <enable_metrics>false</enable_metrics>
             <visualize>false</visualize>
             <gz_frame_id>camera_depth_frame</gz_frame_id>
+            <!-- Gemini 336L depth sensor specs (90° x 65° depth FOV, 1280x800) -->
             <camera name="camera">
-                <horizontal_fov>1.047</horizontal_fov>
+                <horizontal_fov>1.5708</horizontal_fov>  <!-- 90° depth HFOV -->
                 <image>
-                    <width>640</width>
-                    <height>480</height>
+                    <width>1280</width>
+                    <height>800</height>
                     <format>R8G8B8</format>
                 </image>
                 <clip>
-                    <near>0.1</near>
-                    <far>10.0</far>
+                    <near>0.17</near>   <!-- 336L minimum depth range -->
+                    <far>20.0</far>     <!-- 336L maximum depth range -->
                 </clip>
                 <depth_camera>
                     <clip>
-                        <near>0.1</near>
-                        <far>10.0</far>
+                        <near>0.17</near>
+                        <far>20.0</far>
                     </clip>
                 </depth_camera>
                 <lens>
+                    <!-- fx = (width/2) / tan(hfov/2) = 640 / tan(45°) = 640.0 -->
                     <intrinsics>
-                        <fx>554.25469</fx>
-                        <fy>554.25469</fy>
-                        <cx>319.5</cx>
-                        <cy>239.5</cy>
+                        <fx>640.0</fx>
+                        <fy>640.0</fy>
+                        <cx>639.5</cx>
+                        <cy>399.5</cy>
                         <s>0</s>
                     </intrinsics>
                 </lens>
