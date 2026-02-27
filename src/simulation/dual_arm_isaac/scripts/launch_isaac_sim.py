@@ -483,6 +483,133 @@ def setup_scene():
     return world
 
 
+def setup_camera(stage, robot_root):
+    """Create an RGBD camera sensor on camera_depth_frame.
+
+    Matches the Orbbec Gemini 336L specifications:
+      - 90° horizontal FOV
+      - 1280×800 resolution
+      - 0.17 m – 20 m depth range
+
+    Returns the camera prim path, or None if camera_depth_frame not found.
+    """
+    from pxr import UsdGeom, Gf, Usd
+
+    # Find camera_depth_frame in the robot hierarchy
+    root_prim = stage.GetPrimAtPath(robot_root)
+    if not root_prim.IsValid():
+        print(f"[WARN] Robot root not found: {robot_root}, skipping camera setup")
+        return None
+
+    camera_frame_path = None
+    for prim in Usd.PrimRange(root_prim):
+        if prim.GetName() == "camera_depth_frame":
+            camera_frame_path = str(prim.GetPath())
+            break
+
+    if not camera_frame_path:
+        print("[WARN] camera_depth_frame not found in robot, skipping camera setup")
+        return None
+
+    # Create Camera prim as child of the depth frame
+    camera_prim_path = f"{camera_frame_path}/CameraSensor"
+    camera = UsdGeom.Camera.Define(stage, camera_prim_path)
+
+    # Gemini 336L: 90° HFOV at 1280×800 (16:10 aspect ratio)
+    # USD camera model: HFOV = 2 × atan(horizontalAperture / (2 × focalLength))
+    # For 90° HFOV: focalLength = horizontalAperture / 2
+    horizontal_aperture = 20.0  # mm
+    vertical_aperture = horizontal_aperture * 800.0 / 1280.0  # 12.5 mm
+    focal_length = horizontal_aperture / 2.0  # 10 mm → 90° HFOV
+
+    camera.GetHorizontalApertureAttr().Set(horizontal_aperture)
+    camera.GetVerticalApertureAttr().Set(vertical_aperture)
+    camera.GetFocalLengthAttr().Set(focal_length)
+    camera.GetClippingRangeAttr().Set(Gf.Vec2f(0.17, 20.0))
+
+    # Orient camera: URDF depth frame has X-forward, Z-up (body convention).
+    # Isaac Sim Camera looks along local -Z with +Y up.
+    # Rotation (90°, 0°, -90°) XYZ maps: cam -Z → frame +X, cam +Y → frame +Z
+    xformable = UsdGeom.Xformable(camera.GetPrim())
+    xformable.AddRotateXYZOp().Set(Gf.Vec3f(90.0, 0.0, -90.0))
+
+    print(f"[INFO] Camera sensor created: {camera_prim_path}")
+    print(f"  Specs: 90° HFOV, 1280x800, depth range 0.17-20.0m")
+    return camera_prim_path
+
+
+def setup_camera_ros2_bridge(camera_prim_path):
+    """Add RGBD camera publishers to the existing ROS2 OmniGraph.
+
+    Creates a render product and ROS2CameraHelper nodes that publish:
+      - /camera/color/image_raw   (RGB)
+      - /camera/depth/image_raw   (depth)
+      - /camera/color/camera_info (camera intrinsics)
+      - /camera/depth/camera_info (camera intrinsics)
+      - /camera/depth/points      (point cloud)
+    """
+    import omni.graph.core as og
+    import omni.replicator.core as rep
+
+    # Create render product (binds camera to a 1280×800 render output)
+    render_product = rep.create.render_product(camera_prim_path, (1280, 800))
+    rp_path = render_product.path
+
+    keys = og.Controller.Keys
+
+    # Add camera helper nodes to the existing /ROS2Bridge graph.
+    # ROS2CameraHelper types: rgb, depth, depth_pcl (no camera_info — use ROS2CameraInfoHelper)
+    og.Controller.edit(
+        "/ROS2Bridge",
+        {
+            keys.CREATE_NODES: [
+                ("RGBCameraHelper", "isaacsim.ros2.bridge.ROS2CameraHelper"),
+                ("DepthCameraHelper", "isaacsim.ros2.bridge.ROS2CameraHelper"),
+                ("PointCloudHelper", "isaacsim.ros2.bridge.ROS2CameraHelper"),
+                ("CameraInfoHelper", "isaacsim.ros2.bridge.ROS2CameraInfoHelper"),
+            ],
+            keys.SET_VALUES: [
+                ("RGBCameraHelper.inputs:type", "rgb"),
+                ("RGBCameraHelper.inputs:topicName", "/camera/color/image_raw"),
+                ("RGBCameraHelper.inputs:frameId", "camera_color_optical_frame"),
+                ("RGBCameraHelper.inputs:renderProductPath", rp_path),
+
+                ("DepthCameraHelper.inputs:type", "depth"),
+                ("DepthCameraHelper.inputs:topicName", "/camera/depth/image_raw"),
+                ("DepthCameraHelper.inputs:frameId", "camera_depth_frame"),
+                ("DepthCameraHelper.inputs:renderProductPath", rp_path),
+
+                ("PointCloudHelper.inputs:type", "depth_pcl"),
+                ("PointCloudHelper.inputs:topicName", "/camera/depth/points"),
+                ("PointCloudHelper.inputs:frameId", "camera_depth_frame"),
+                ("PointCloudHelper.inputs:renderProductPath", rp_path),
+
+                # CameraInfoHelper is a separate node type (not ROS2CameraHelper)
+                ("CameraInfoHelper.inputs:topicName", "/camera/color/camera_info"),
+                ("CameraInfoHelper.inputs:frameId", "camera_color_optical_frame"),
+                ("CameraInfoHelper.inputs:renderProductPath", rp_path),
+            ],
+            # Use full paths for nodes created in the initial setup_ros2_bridge() call
+            keys.CONNECT: [
+                ("/ROS2Bridge/OnPlaybackTick.outputs:tick", "RGBCameraHelper.inputs:execIn"),
+                ("/ROS2Bridge/OnPlaybackTick.outputs:tick", "DepthCameraHelper.inputs:execIn"),
+                ("/ROS2Bridge/OnPlaybackTick.outputs:tick", "PointCloudHelper.inputs:execIn"),
+                ("/ROS2Bridge/OnPlaybackTick.outputs:tick", "CameraInfoHelper.inputs:execIn"),
+                ("/ROS2Bridge/Context.outputs:context", "RGBCameraHelper.inputs:context"),
+                ("/ROS2Bridge/Context.outputs:context", "DepthCameraHelper.inputs:context"),
+                ("/ROS2Bridge/Context.outputs:context", "PointCloudHelper.inputs:context"),
+                ("/ROS2Bridge/Context.outputs:context", "CameraInfoHelper.inputs:context"),
+            ],
+        },
+    )
+
+    print("[INFO] Camera ROS2 bridge nodes added to /ROS2Bridge")
+    print(f"  RGB:         /camera/color/image_raw")
+    print(f"  Depth:       /camera/depth/image_raw")
+    print(f"  CameraInfo:  /camera/color/camera_info")
+    print(f"  PointCloud:  /camera/depth/points")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Isaac Sim 6.0 launcher for dual arm robot"
@@ -536,6 +663,8 @@ def main():
     simulation_app.update()
 
     # --- Set up scene ---
+    camera_prim_path = None
+
     if args.load_usd:
         import omni.usd
         omni.usd.get_context().open_stage(args.load_usd)
@@ -551,12 +680,26 @@ def main():
             or "/dual_arm_description"
         )
         print(f"[INFO] Articulation root: {robot_prim_path}")
+
+        # Find existing camera sensor in loaded USD (saved from previous run)
+        from pxr import Usd, UsdGeom
+        for prim in Usd.PrimRange(stage.GetPrimAtPath("/dual_arm_description")):
+            if prim.GetName() == "CameraSensor" and prim.IsA(UsdGeom.Camera):
+                camera_prim_path = str(prim.GetPath())
+                print(f"[INFO] Found camera in USD: {camera_prim_path}")
+                break
     else:
         world = setup_scene()
         simulation_app.update()
 
         # Import URDF
         robot_prim_path = import_urdf(urdf_path)
+        simulation_app.update()
+
+        # Create RGBD camera sensor on camera_depth_frame
+        import omni.usd
+        stage = omni.usd.get_context().get_stage()
+        camera_prim_path = setup_camera(stage, "/dual_arm_description")
         simulation_app.update()
 
         # Clean up temp URDF
@@ -639,6 +782,11 @@ def main():
     # --- NOW create ROS2 bridge (after joints are stable) ---
     setup_ros2_bridge(robot_prim_path)
     simulation_app.update()
+
+    # --- Set up camera ROS2 publishers ---
+    if camera_prim_path:
+        setup_camera_ros2_bridge(camera_prim_path)
+        simulation_app.update()
 
     # --- Run simulation ---
     print("[INFO] Simulation running. Press Ctrl+C to stop.")
