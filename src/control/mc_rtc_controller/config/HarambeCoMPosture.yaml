@@ -1,0 +1,81 @@
+# HarambeCoMPosture controller configuration
+com:
+  stiffness: 50.0
+  weight: 1000.0
+  offset: [0.01, 0.0, 0.02]
+
+posture:
+  stiffness: 40.0
+  weight: 100.0
+  weights:
+    # Legs: keep hips/knees free, ankles moderate
+    left_hip_pitch_joint: 0.005
+    left_hip_roll_joint: 0.2
+    left_hip_yaw_joint: 3.0
+    left_knee_joint: 0.04
+    left_ankle_pitch_joint: 0.2
+    left_ankle_roll_joint: 0.2
+    right_hip_pitch_joint: 0.005
+    right_hip_roll_joint: 0.2
+    right_hip_yaw_joint: 3.0
+    right_knee_joint: 0.04
+    right_ankle_roll_joint: 0.2
+    right_ankle_pitch_joint: 0.2
+    waist_yaw_joint: 0.1
+    # Arms: keep fixed so legs take the CoM adjustment
+    left_shoulder_pitch_joint_X6: 6.0
+    left_shoulder_roll_joint_X6: 6.0
+    left_shoulder_yaw_joint_X4: 6.0
+    left_elbow_pitch_joint_X6: 6.0
+    left_wrist_yaw_joint_X4: 4.0
+    left_wrist_roll_joint_X4: 4.0
+    right_shoulder_pitch_joint_X6: 6.0
+    right_shoulder_roll_joint_X6: 6.0
+    right_shoulder_yaw_joint_X4: 6.0
+    right_elbow_pitch_joint_X6: 6.0
+    right_wrist_yaw_joint_X4: 4.0
+    right_wrist_roll_joint_X4: 4.0
+    # Hands: keep fixed
+    left_thumb_proximal_yaw_joint: 8.0
+    left_thumb_proximal_pitch_joint: 8.0
+    left_thumb_intermediate_joint: 8.0
+    left_thumb_distal_joint: 8.0
+    left_index_proximal_joint: 8.0
+    left_index_intermediate_joint: 8.0
+    left_middle_proximal_joint: 8.0
+    left_middle_intermediate_joint: 8.0
+    left_ring_proximal_joint: 8.0
+    left_ring_intermediate_joint: 8.0
+    left_pinky_proximal_joint: 8.0
+    left_pinky_intermediate_joint: 8.0
+    right_thumb_proximal_yaw_joint: 8.0
+    right_thumb_proximal_pitch_joint: 8.0
+    right_thumb_intermediate_joint: 8.0
+    right_thumb_distal_joint: 8.0
+    right_index_proximal_joint: 8.0
+    right_index_intermediate_joint: 8.0
+    right_middle_proximal_joint: 8.0
+    right_middle_intermediate_joint: 8.0
+    right_ring_proximal_joint: 8.0
+    right_ring_intermediate_joint: 8.0
+    right_pinky_proximal_joint: 8.0
+    right_pinky_intermediate_joint: 8.0
+
+torsoOrientation:
+  bodyName: urdf_simplified_torso
+  stiffness: 2.0
+  weight: 80.0
+
+stabilizer:
+  enabled: false
+  contactDof: [0, 0, 1, 1, 1, 0]
+  leftFootSurface: LeftFoot
+  rightFootSurface: RightFoot
+  torsoBodyName: urdf_simplified_torso
+  constrainCoP: false
+  safety_tresholds:
+    MIN_DS_PRESSURE: 0.0
+    MIN_NET_TOTAL_FORCE_ZMP: 0.0
+  contactStiffness: [100, 100, 100, 100, 100, 100]
+  contactDamping:  [30, 30, 30, 30, 30, 30]
+  contactWeight: 500.0

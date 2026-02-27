@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot>
+  <!-- Left foot contact surface -->
+  <planar_surface name="LeftFoot" link="urdf_foot_assembly">
+    <origin rpy="0 0 0" xyz="0.04 0 -0.02" />
+    <points>
+      <point xy="0.08 0.04" />
+      <point xy="0.08 -0.04" />
+      <point xy="-0.06 -0.04" />
+      <point xy="-0.06 0.04" />
+    </points>
+  </planar_surface>
+
+  <!-- Right foot contact surface -->
+  <planar_surface name="RightFoot" link="urdf_foot_assembly_2">
+    <origin rpy="0 0 0" xyz="0.04 0 -0.02" />
+    <points>
+      <point xy="0.08 0.04" />
+      <point xy="0.08 -0.04" />
+      <point xy="-0.06 -0.04" />
+      <point xy="-0.06 0.04" />
+    </points>
+  </planar_surface>
+</robot>

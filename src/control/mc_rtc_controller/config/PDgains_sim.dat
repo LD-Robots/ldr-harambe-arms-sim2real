@@ -1,0 +1,58 @@
+# PD gains for Harambe mc_mujoco simulation (identical to G1 29dof)
+# Format: Kp Kd (one line per joint, same order as ref_joint_order)
+# Left Leg
+200.0 4.0   # left_hip_pitch_joint
+100.0 2.0   # left_hip_roll_joint
+100.0 2.0   # left_hip_yaw_joint
+210.0 6.0   # left_knee_joint
+150.0 4.0   # left_ankle_pitch_joint
+150.0 3.0   # left_ankle_roll_joint
+# Right Leg
+200.0 3.0   # right_hip_pitch_joint
+100.0 2.0   # right_hip_roll_joint
+100.0 2.0   # right_hip_yaw_joint
+210.0 6.0   # right_knee_joint
+150.0 3.0   # right_ankle_roll_joint
+150.0 3.0   # right_ankle_pitch_joint
+# Waist
+300.0 10.0  # waist_yaw_joint
+# Left Arm
+300.0 3.0   # left_shoulder_pitch_joint_X6
+300.0 3.0   # left_shoulder_roll_joint_X6
+100.0 2.0   # left_shoulder_yaw_joint_X4
+100.0 2.0   # left_elbow_pitch_joint_X6
+50.0 2.0    # left_wrist_yaw_joint_X4
+50.0 2.0    # left_wrist_roll_joint_X4
+# Right Arm
+300.0 3.0   # right_shoulder_pitch_joint_X6
+300.0 3.0   # right_shoulder_roll_joint_X6
+100.0 2.0   # right_shoulder_yaw_joint_X4
+100.0 2.0   # right_elbow_pitch_joint_X6
+50.0 2.0    # right_wrist_yaw_joint_X4
+50.0 2.0    # right_wrist_roll_joint_X4
+# Left Hand
+2.0 2.0     # left_thumb_proximal_yaw_joint
+2.0 2.0     # left_thumb_proximal_pitch_joint
+2.0 2.0     # left_thumb_intermediate_joint
+2.0 2.0     # left_thumb_distal_joint
+2.0 2.0     # left_index_proximal_joint
+2.0 2.0     # left_index_intermediate_joint
+2.0 2.0     # left_middle_proximal_joint
+2.0 2.0     # left_middle_intermediate_joint
+2.0 2.0     # left_ring_proximal_joint
+2.0 2.0     # left_ring_intermediate_joint
+2.0 2.0     # left_pinky_proximal_joint
+2.0 2.0     # left_pinky_intermediate_joint
+# Right Hand
+2.0 2.0     # right_thumb_proximal_yaw_joint
+2.0 2.0     # right_thumb_proximal_pitch_joint
+2.0 2.0     # right_thumb_intermediate_joint
+2.0 2.0     # right_thumb_distal_joint
+2.0 2.0     # right_index_proximal_joint
+2.0 2.0     # right_index_intermediate_joint
+2.0 2.0     # right_middle_proximal_joint
+2.0 2.0     # right_middle_intermediate_joint
+2.0 2.0     # right_ring_proximal_joint
+2.0 2.0     # right_ring_intermediate_joint
+2.0 2.0     # right_pinky_proximal_joint
+2.0 2.0     # right_pinky_intermediate_joint
