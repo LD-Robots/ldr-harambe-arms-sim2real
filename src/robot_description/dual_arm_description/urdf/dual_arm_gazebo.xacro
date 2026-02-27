@@ -18,10 +18,16 @@
     <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control.xacro"/>
     <xacro:dual_arm_ros2_control/>
 
-    <!-- Depth Camera -->
-    <xacro:include filename="$(find arm_description)/urdf/macros/depth_camera.xacro"/>
+    <!-- Orbbec Gemini 335L/336L Depth Camera -->
+    <xacro:include filename="$(find camera_description)/urdf/gemini335L_336L.urdf.xacro"/>
+    <xacro:include filename="$(find camera_description)/urdf/gemini335L_336L_gazebo.xacro"/>
+
     <!-- Mount camera on urdf_base, positioned to view the workspace -->
-    <xacro:depth_camera parent_link="urdf_base" xyz="-0.3 0.0 0.8" rpy="0 ${pi/6} 0" name="camera"/>
+    <joint name="camera_mount_joint" type="fixed">
+        <parent link="urdf_base"/>
+        <child link="camera_link"/>
+        <origin xyz="-0.3 0.0 0.8" rpy="0 ${pi/6} 0"/>
+    </joint>
 
     <!-- Gazebo plugins -->
     <gazebo>

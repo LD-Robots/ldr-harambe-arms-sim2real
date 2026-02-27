@@ -87,6 +87,7 @@ def generate_launch_description():
     # Get install prefix to resolve package:// URIs
     install_dir = get_package_prefix("arm_description")
     install_dir_hand = get_package_prefix("hand_description")
+    install_dir_camera = get_package_prefix("camera_description")
 
     # Set GZ_SIM_RESOURCE_PATH to ROS workspace for package:// URI resolution
     gz_resource_path = SetEnvironmentVariable(
@@ -94,6 +95,7 @@ def generate_launch_description():
         value=os.pathsep.join([
             os.path.join(install_dir, "share"),
             os.path.join(install_dir_hand, "share"),
+            os.path.join(install_dir_camera, "share"),
         ])
     )
 
