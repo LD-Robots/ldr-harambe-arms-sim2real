@@ -37,6 +37,7 @@ install(
     scripts/servo_joystick_teleop.py
     scripts/realsense_skeleton_teleop.py
     scripts/skeleton_calibration.py
+    scripts/robot_pose_calibration.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

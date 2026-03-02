@@ -1,7 +1,10 @@
-"""Skeleton tracking teleop + Robot State Publisher + RViz2.
+"""Robot-pose-copy calibration launch file.
 
-Launch the full RealSense skeleton teleop stack:
-    ros2 launch arm_teleop realsense_skeleton_teleop.launch.py
+The robot moves through predefined poses in RViz while the user copies them.
+Produces a calibration profile for the skeleton teleop node.
+
+    ros2 launch arm_teleop robot_pose_calibration.launch.py
+    ros2 launch arm_teleop robot_pose_calibration.launch.py profile_name:=andrei
 """
 
 from launch import LaunchDescription
@@ -17,23 +20,14 @@ def generate_launch_description():
     pkg_teleop = FindPackageShare("arm_teleop")
 
     # Launch arguments
-    smoothing_arg = DeclareLaunchArgument(
-        "smoothing_alpha", default_value="0.3",
-        description="EMA smoothing (0=max smoothing, 1=none)")
-    gain_arg = DeclareLaunchArgument(
-        "gain", default_value="1.0",
-        description="Global gain multiplier")
+    profile_arg = DeclareLaunchArgument(
+        "profile_name", default_value="pose_calibrated",
+        description="Name for the saved calibration profile")
     mirror_arg = DeclareLaunchArgument(
         "mirror_display", default_value="true",
-        description="Mirror the debug display (natural mirror feel)")
-    calibration_arg = DeclareLaunchArgument(
-        "calibration_profile", default_value="",
-        description="Calibration profile name or path (empty = uncalibrated)")
-    auto_calibrate_arg = DeclareLaunchArgument(
-        "auto_calibrate", default_value="false",
-        description="Run calibration routine on startup")
+        description="Mirror the camera display (natural mirror feel)")
 
-    # Robot description (real hardware URDF, no Gazebo plugins)
+    # Robot description
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([pkg_dual_arm, "urdf", "dual_arm_real.xacro"]),
@@ -42,7 +36,7 @@ def generate_launch_description():
         "robot_description": ParameterValue(robot_description_content, value_type=str)
     }
 
-    # Robot State Publisher — /joint_states → TF for RViz
+    # Robot State Publisher
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
@@ -50,8 +44,7 @@ def generate_launch_description():
         parameters=[robot_description, {"use_sim_time": False}],
     )
 
-    # Joint State Publisher — merges skeleton joints with defaults for
-    # uncontrolled joints (hands), publishes to /joint_states
+    # Joint State Publisher — subscribes to calibration node's output
     joint_state_publisher = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
@@ -62,24 +55,16 @@ def generate_launch_description():
         }],
     )
 
-    # Skeleton teleop node
-    skeleton_teleop = Node(
+    # Calibration node
+    calibration_node = Node(
         package="arm_teleop",
-        executable="realsense_skeleton_teleop.py",
-        name="realsense_skeleton_teleop",
+        executable="robot_pose_calibration.py",
+        name="robot_pose_calibration",
         output="screen",
         parameters=[{
-            "smoothing_alpha": LaunchConfiguration("smoothing_alpha"),
-            "gain": LaunchConfiguration("gain"),
+            "profile_name": LaunchConfiguration("profile_name"),
             "mirror_display": LaunchConfiguration("mirror_display"),
-            "publish_rate": 30.0,
-            "enabled": True,
-            "show_debug_window": True,
-            "min_detection_confidence": 0.7,
-            "min_tracking_confidence": 0.5,
             "publish_topic": "/skeleton_joint_states",
-            "calibration_profile": LaunchConfiguration("calibration_profile"),
-            "auto_calibrate": LaunchConfiguration("auto_calibrate"),
         }],
     )
 
@@ -95,13 +80,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        smoothing_arg,
-        gain_arg,
+        profile_arg,
         mirror_arg,
-        calibration_arg,
-        auto_calibrate_arg,
         robot_state_publisher,
         joint_state_publisher,
-        skeleton_teleop,
+        calibration_node,
         rviz,
     ])
