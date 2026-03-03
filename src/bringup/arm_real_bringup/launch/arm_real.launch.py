@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler, IncludeLaunchDescription
+from launch.actions import RegisterEventHandler, TimerAction, IncludeLaunchDescription
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, PathJoinSubstitution
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -74,12 +74,13 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Chain: ros2_control_node starts → JSB → left_arm_controller
-    start_jsb_after_control = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=ros2_control_node,
-            on_exit=[joint_state_broadcaster_spawner],
-        )
+    # Chain: EtherCAT init (~30s) → JSB spawner → left_arm_controller spawner
+    # TimerAction gives EtherCAT time to scan slaves and configure PDOs.
+    # The spawner's --controller-manager-timeout handles any remaining wait.
+    # Once JSB spawner exits (short-lived), left_arm_controller spawner starts.
+    delayed_jsb_spawner = TimerAction(
+        period=10.0,
+        actions=[joint_state_broadcaster_spawner],
     )
 
     start_left_arm_after_jsb = RegisterEventHandler(
@@ -96,6 +97,26 @@ def generate_launch_description():
         )
     )
 
+    # Joint State Publisher — fills in default values for non-EtherCAT joints
+    # (hands, right arm) so robot_state_publisher can compute full TF tree
+    joint_state_publisher = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        name="joint_state_publisher",
+        parameters=[{
+            "source_list": ["/joint_states"],
+            "rate": 30.0,
+        }],
+    )
+
+    # RViz2
+    rviz = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        additional_env={"OGRE_RTT_MODE": "Copy"},
+    )
+
     return LaunchDescription([
         # Robot state publisher
         robot_state_publisher,
@@ -103,10 +124,14 @@ def generate_launch_description():
         # ros2_control with EtherCAT hardware interface
         ros2_control_node,
 
-        # Sequential controller spawning
-        start_jsb_after_control,
+        # Sequential controller spawning (TimerAction → JSB → left_arm_controller)
+        delayed_jsb_spawner,
         start_left_arm_after_jsb,
 
         # Safety system
         safety_launch,
+
+        # Visualization
+        joint_state_publisher,
+        rviz,
     ])

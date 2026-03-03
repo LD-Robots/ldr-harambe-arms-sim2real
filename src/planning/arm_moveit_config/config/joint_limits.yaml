@@ -13,34 +13,34 @@ default_acceleration_scaling_factor: 1.0  # 100% - Full acceleration
 joint_limits:
   left_shoulder_pitch_joint_X6:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 10.0  # rad/s² (shoulder pitch - moves entire arm)
+    max_acceleration: 5.0  # rad/s² (shoulder pitch - moves entire arm)
   left_shoulder_roll_joint_X6:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 10.0  # rad/s² (shoulder roll)
+    max_acceleration: 5.0  # rad/s² (shoulder roll)
   left_shoulder_yaw_joint_X4:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 15.0  # rad/s² (shoulder yaw)
+    max_acceleration: 5.0  # rad/s² (shoulder yaw)
   left_elbow_pitch_joint_X6:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 15.0  # rad/s² (elbow pitch)
+    max_acceleration: 5.0  # rad/s² (elbow pitch)
   left_wrist_yaw_joint_X4:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 20.0  # rad/s² (wrist yaw - lighter load)
+    max_acceleration: 5.0  # rad/s² (wrist yaw)
   left_wrist_roll_joint_X4:
     has_velocity_limits: true
-    max_velocity: 16.0  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (from URDF)
     has_acceleration_limits: true
-    max_acceleration: 20.0  # rad/s² (wrist roll - light load)
+    max_acceleration: 5.0  # rad/s² (wrist roll)
   left_thumb_proximal_yaw_joint:
     has_velocity_limits: true
     max_velocity: 0.5  # rad/s (from URDF)

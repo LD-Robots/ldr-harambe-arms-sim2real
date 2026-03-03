@@ -244,7 +244,7 @@ QPushButton:disabled { color: #6c7086; }
       <!-- MAIN DATA TABLE -->
       <widget class="QTableWidget" name="table_joints">
        <property name="columnCount">
-        <number>9</number>
+        <number>8</number>
        </property>
        <property name="rowCount">
         <number>0</number>
@@ -278,9 +278,6 @@ QPushButton:disabled { color: #6c7086; }
        </column>
        <column>
         <property name="text"><string>Drive State</string></property>
-       </column>
-       <column>
-        <property name="text"><string>Raw</string></property>
        </column>
        <column>
         <property name="text"><string>Status</string></property>
@@ -432,10 +429,10 @@ QPushButton:disabled { color: #6c7086; }
        </layout>
       </widget>
 
-      <!-- Tab 2: Raw Data -->
+      <!-- Tab 2: Diagnostics -->
       <widget class="QWidget" name="tab_raw_data">
        <attribute name="title">
-        <string>Raw Data</string>
+        <string>Diagnostics</string>
        </attribute>
        <layout class="QVBoxLayout" name="layout_raw_data">
         <property name="spacing"><number>8</number></property>

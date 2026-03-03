@@ -4,8 +4,8 @@
 Follows the Catppuccin Mocha design guide (docs/GUI_DESIGN_GUIDE.md).
 Layout: Status Bar -> Main Data Table -> Diagnostic Tabs.
 
-Requires ROS 2 to be running. Use with position_reader_node for read-only
-hardware monitoring, or with the full arm_real bringup for live control.
+Requires ROS 2 to be running. Use with position_viewer.launch.py for read-only
+hardware monitoring, or with arm_real.launch.py for live control.
 
 Zoom: Ctrl+Plus / Ctrl+Minus to scale UI, Ctrl+0 to reset.
 """
@@ -13,6 +13,7 @@ Zoom: Ctrl+Plus / Ctrl+Minus to scale UI, Ctrl+0 to reset.
 import sys
 import os
 import time
+import yaml
 from collections import deque
 from datetime import datetime
 
@@ -22,9 +23,8 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
 
 import rclpy
-from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool, Int32MultiArray
+from std_msgs.msg import Bool
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 from std_srvs.srv import Trigger
 
@@ -51,30 +51,69 @@ C_PEACH = '#fab387'
 
 JOINT_CONFIG = [
     {'name': 'left_shoulder_pitch_joint_X6', 'display': 'L Shoulder Pitch',
-     'motor': 'X6', 'bus_pos': 0,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X6', 'bus_pos': 0},
     {'name': 'left_shoulder_roll_joint_X6', 'display': 'L Shoulder Roll',
-     'motor': 'X6', 'bus_pos': 1,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X6', 'bus_pos': 1},
     {'name': 'left_shoulder_yaw_joint_X4', 'display': 'L Shoulder Yaw',
-     'motor': 'X4', 'bus_pos': 2,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.5,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X4', 'bus_pos': 2},
     {'name': 'left_elbow_pitch_joint_X6', 'display': 'L Elbow Pitch',
-     'motor': 'X6', 'bus_pos': 3,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X6', 'bus_pos': 3},
     {'name': 'left_wrist_yaw_joint_X4', 'display': 'L Wrist Yaw',
-     'motor': 'X4', 'bus_pos': 4,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 3.0,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X4', 'bus_pos': 4},
     {'name': 'left_wrist_roll_joint_X4', 'display': 'L Wrist Roll',
-     'motor': 'X4', 'bus_pos': 5,
-     'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 3.0,
-     'torque_max_pct': 80, 'pos_margin': 0.1},
+     'motor': 'X4', 'bus_pos': 5},
 ]
+
+_SAFETY_DEFAULTS = {
+    'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 3.0,
+    'torque_max_pct': 40, 'pos_margin': 0.1,
+}
+
+
+def _load_safety_limits():
+    """Load per-joint safety limits from arm_ethercat_safety config."""
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        pkg_share = get_package_share_directory('arm_ethercat_safety')
+        config_path = os.path.join(pkg_share, 'config', 'safety_limits.yaml')
+    except Exception:
+        config_path = os.path.join(
+            os.path.dirname(__file__),
+            '../../../../hardware_interface/arm_ethercat_safety/config/'
+            'safety_limits.yaml')
+
+    limits_by_joint = {}
+    try:
+        with open(config_path, 'r') as f:
+            data = yaml.safe_load(f) or {}
+        # Support both flat (joints: ...) and ROS 2 param nesting
+        # (safety_monitor: ros__parameters: joints: ...)
+        joints = data.get('joints')
+        if joints is None:
+            for v in data.values():
+                if isinstance(v, dict):
+                    params = v.get('ros__parameters', v)
+                    joints = params.get('joints')
+                    if joints is not None:
+                        break
+        for jname, jlimits in (joints or {}).items():
+            limits_by_joint[jname] = {
+                'pos_min': jlimits.get('position_min', _SAFETY_DEFAULTS['pos_min']),
+                'pos_max': jlimits.get('position_max', _SAFETY_DEFAULTS['pos_max']),
+                'vel_max': jlimits.get('velocity_max', _SAFETY_DEFAULTS['vel_max']),
+                'torque_max_pct': jlimits.get('torque_max_pct', _SAFETY_DEFAULTS['torque_max_pct']),
+                'pos_margin': jlimits.get('position_margin', _SAFETY_DEFAULTS['pos_margin']),
+            }
+    except FileNotFoundError:
+        pass
+
+    for jcfg in JOINT_CONFIG:
+        limits = limits_by_joint.get(jcfg['name'], _SAFETY_DEFAULTS)
+        for key in _SAFETY_DEFAULTS:
+            jcfg[key] = limits.get(key, _SAFETY_DEFAULTS[key])
+
+
+_load_safety_limits()
 
 CIA402_STATES = {
     'NOT_READY_TO_SWITCH_ON': ('Not Ready', C_SUBTEXT),
@@ -93,30 +132,6 @@ STALE_TIMEOUT = 2.0
 # ===========================================================
 # HELPERS
 # ===========================================================
-
-def _decode_cia402_state(status_word):
-    """Decode CiA 402 drive state from status word (0x6041).
-
-    Mirrors the C++ implementation in cia402_state_machine.cpp.
-    """
-    sw = status_word & 0xFFFF
-    if (sw & 0x004F) == 0x0000:
-        return 'NOT_READY_TO_SWITCH_ON'
-    if (sw & 0x006F) == 0x0040:
-        return 'SWITCH_ON_DISABLED'
-    if (sw & 0x006F) == 0x0021:
-        return 'READY_TO_SWITCH_ON'
-    if (sw & 0x006F) == 0x0023:
-        return 'SWITCHED_ON'
-    if (sw & 0x006F) == 0x0027:
-        return 'OPERATION_ENABLED'
-    if (sw & 0x006F) == 0x0007:
-        return 'QUICK_STOP_ACTIVE'
-    if (sw & 0x004F) == 0x000F:
-        return 'FAULT_REACTION_ACTIVE'
-    if (sw & 0x004F) == 0x0008:
-        return 'FAULT'
-    return 'NOT_READY_TO_SWITCH_ON'
 
 
 def _is_alive(data, topic):
@@ -179,8 +194,6 @@ class EthercatMonitorWindow(QtWidgets.QMainWindow):
         # ROS data accumulator
         self._ros_data = {
             'joint_states': {},
-            'raw_positions': [],
-            'status_words': [],
             'safety_ok': None,
             'diagnostics': None,
             'last_update': {},
@@ -412,8 +425,7 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
             _set_cell(table, row, 4, '--', C_SUBTEXT)
             _set_cell(table, row, 5, '--', C_SUBTEXT)
             _set_cell(table, row, 6, 'N/A', C_SUBTEXT)
-            _set_cell(table, row, 7, '--', C_BLUE)
-            _set_cell(table, row, 8, '--', C_SUBTEXT)
+            _set_cell(table, row, 7, '--', C_SUBTEXT)
 
         table.resizeColumnsToContents()
 
@@ -452,16 +464,6 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
         self._ros_data['msg_counts']['/joint_states'] += 1
         self._refresh()
 
-    def raw_positions_callback(self, msg):
-        self._ros_data['raw_positions'] = list(msg.data)
-        self._ros_data['last_update']['/ethercat/raw_positions'] = time.time()
-        self._refresh()
-
-    def status_words_callback(self, msg):
-        self._ros_data['status_words'] = list(msg.data)
-        self._ros_data['last_update']['/ethercat/status_words'] = time.time()
-        self._refresh()
-
     def safety_status_callback(self, msg):
         self._ros_data['safety_ok'] = msg.data
         self._ros_data['last_update']['/safety/status'] = time.time()
@@ -473,31 +475,15 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
         self._refresh()
 
     def _get_drive_states(self, data):
-        """Extract per-joint CiA 402 drive states.
-
-        Primary source: /ethercat/status_words (decoded from status word).
-        Fallback: /diagnostics key-value pairs with 'drive_state'.
-        """
+        """Extract per-joint CiA 402 drive states from /diagnostics."""
         drive_states = {}
-
-        # Primary: decode from status words
-        sw_list = data.get('status_words', [])
-        if sw_list and _is_alive(data, '/ethercat/status_words'):
-            for i, sw in enumerate(sw_list):
-                if i < len(JOINT_CONFIG):
-                    jname = JOINT_CONFIG[i]['name']
-                    drive_states[jname] = _decode_cia402_state(sw)
-
-        # Fallback: diagnostics topic
-        if not drive_states:
-            diag = data.get('diagnostics')
-            if diag:
-                for status in diag.status:
-                    kv = {item.key: item.value for item in status.values}
-                    if 'drive_state' in kv:
-                        joint = kv.get('joint', status.name)
-                        drive_states[joint] = kv['drive_state']
-
+        diag = data.get('diagnostics')
+        if diag:
+            for status in diag.status:
+                kv = {item.key: item.value for item in status.values}
+                if 'drive_state' in kv:
+                    joint = kv.get('joint', status.name)
+                    drive_states[joint] = kv['drive_state']
         return drive_states
 
     def _refresh(self):
@@ -582,8 +568,6 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
 
     def _update_joint_table(self, data):
         joint_data = data.get('joint_states', {})
-        raw_positions = data.get('raw_positions', [])
-        status_words = data.get('status_words', [])
         js_alive = _is_alive(data, '/joint_states')
         drive_states = self._get_drive_states(data)
 
@@ -599,21 +583,25 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
                 _set_cell(table, row, 5, '--', C_SUBTEXT)
                 _set_cell(table, row, 6, 'N/A', C_SUBTEXT)
                 _set_cell(table, row, 7, '--', C_SUBTEXT)
-                _set_cell(table, row, 8, '--', C_SUBTEXT)
                 continue
 
             pos = jd['position']
             vel = jd['velocity']
             effort = jd['effort']
 
-            # Position proximity
-            pos_range = jcfg['pos_max'] - jcfg['pos_min']
-            if pos_range > 0:
+            # Position proximity — use margin as the warning zone
+            margin = jcfg['pos_margin']
+            if pos < jcfg['pos_min'] or pos > jcfg['pos_max']:
+                pos_ratio = 1.0  # beyond hard limit
+            elif margin > 0:
                 pos_from_limit = min(
                     abs(pos - jcfg['pos_min']),
                     abs(pos - jcfg['pos_max']))
-                half_range = pos_range / 2.0
-                pos_ratio = max(0.0, 1.0 - (pos_from_limit / half_range))
+                if pos_from_limit < margin:
+                    # 0.7→1.0 as position approaches limit
+                    pos_ratio = 0.7 + 0.3 * (1.0 - pos_from_limit / margin)
+                else:
+                    pos_ratio = 0.0
             else:
                 pos_ratio = 0.0
             _set_cell(table, row, 3, f'{pos:+8.3f}',
@@ -632,27 +620,18 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
             _set_cell(table, row, 5, f'{effort:+8.1f}',
                       _status_color(min(torque_ratio, 1.0)))
 
-            # Drive state (from status words or diagnostics)
+            # Drive state (from diagnostics)
             ds = drive_states.get(jname)
             if ds:
                 ds_text, ds_color = CIA402_STATES.get(ds, (ds, C_SUBTEXT))
-                # Append status word hex if available
-                if row < len(status_words):
-                    ds_text = f'{ds_text} (0x{status_words[row] & 0xFFFF:04X})'
                 _set_cell(table, row, 6, ds_text, ds_color)
             else:
                 _set_cell(table, row, 6, 'N/A', C_SUBTEXT)
 
-            # Raw encoder
-            if row < len(raw_positions):
-                _set_cell(table, row, 7, str(raw_positions[row]), C_BLUE)
-            else:
-                _set_cell(table, row, 7, '--', C_SUBTEXT)
-
             # Overall status
             worst = max(pos_ratio, min(vel_ratio, 1.0), min(torque_ratio, 1.0))
             status_txt = _status_text(worst)
-            _set_cell(table, row, 8, status_txt, _status_color(worst))
+            _set_cell(table, row, 7, status_txt, _status_color(worst))
             _set_cell(self.table_safety_limits, row, 5,
                       status_txt, _status_color(worst))
 
@@ -725,40 +704,23 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
     def _update_raw_data(self, data):
         lines = []
         now_str = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-        lines.append(f'--- Raw EtherCAT Data @ {now_str} ---')
+        lines.append(f'--- EtherCAT Diagnostics @ {now_str} ---')
         lines.append('')
 
-        raw = data.get('raw_positions', [])
-        status_words = data.get('status_words', [])
-
-        if raw:
-            lines.append('Raw Encoder Positions:')
-            for i, val in enumerate(raw):
-                if i < len(JOINT_CONFIG):
-                    name = JOINT_CONFIG[i]['display']
-                else:
-                    name = f'Slave {i}'
-                lines.append(f'  [{i}] {name:24s}  raw={val:+8d}  '
-                             f'hex=0x{val & 0xFFFFFFFF:08X}')
+        # Joint states summary
+        joint_data = data.get('joint_states', {})
+        if joint_data:
+            lines.append('Joint States:')
+            for jcfg in JOINT_CONFIG:
+                jd = joint_data.get(jcfg['name'])
+                if jd:
+                    lines.append(
+                        f'  {jcfg["display"]:24s}  '
+                        f'pos={jd["position"]:+8.4f}  '
+                        f'vel={jd["velocity"]:+8.4f}  '
+                        f'eff={jd["effort"]:+8.2f}')
         else:
-            lines.append('Raw Encoder Positions: (no data)')
-
-        lines.append('')
-
-        if status_words:
-            lines.append('CiA 402 Status Words:')
-            for i, sw in enumerate(status_words):
-                if i < len(JOINT_CONFIG):
-                    name = JOINT_CONFIG[i]['display']
-                else:
-                    name = f'Slave {i}'
-                state = _decode_cia402_state(sw)
-                ds_text = CIA402_STATES.get(state, (state, ''))[0]
-                lines.append(
-                    f'  [{i}] {name:24s}  SW=0x{sw & 0xFFFF:04X}  '
-                    f'state={ds_text}')
-        else:
-            lines.append('CiA 402 Status Words: (no data)')
+            lines.append('Joint States: (no data)')
 
         lines.append('')
 
@@ -767,21 +729,12 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
             lines.append('Diagnostic Messages:')
             for status in diag.status:
                 kv = {item.key: item.value for item in status.values}
-                sw = kv.get('status_word')
-                ec = kv.get('error_code')
-                parts = [f'  {status.name}:']
-                if sw:
-                    try:
-                        parts.append(f'SW=0x{int(sw, 0):04X}')
-                    except ValueError:
-                        parts.append(f'SW={sw}')
-                if ec:
-                    try:
-                        parts.append(f'EC=0x{int(ec, 0):04X}')
-                    except ValueError:
-                        parts.append(f'EC={ec}')
-                if sw or ec:
-                    lines.append(' '.join(parts))
+                parts = [f'  {status.name}: {status.message}']
+                for k, v in kv.items():
+                    parts.append(f'    {k}={v}')
+                lines.append('\n'.join(parts))
+        else:
+            lines.append('Diagnostic Messages: (no data)')
 
         self.text_raw_data.setPlainText('\n'.join(lines))
 
@@ -857,12 +810,6 @@ def main():
     ros_node.create_subscription(
         JointState, '/joint_states',
         window.joint_state_callback, 10)
-    ros_node.create_subscription(
-        Int32MultiArray, '/ethercat/raw_positions',
-        window.raw_positions_callback, 10)
-    ros_node.create_subscription(
-        Int32MultiArray, '/ethercat/status_words',
-        window.status_words_callback, 10)
     ros_node.create_subscription(
         Bool, '/safety/status',
         window.safety_status_callback, 10)

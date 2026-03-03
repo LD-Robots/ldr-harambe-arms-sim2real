@@ -8,16 +8,16 @@ auto_state_transitions: true
 mode_of_operation: 8           # CSP (Cyclic Synchronous Position)
 
 sdo:
-  - {index: 0x6072, sub_index: 0, type: uint16, value: 800}   # max_torque 80%
+  - {index: 0x6072, sub_index: 0, type: uint16, value: 400}   # max_torque 40%
 
 rpdo:   # RxPDO 0x1600 — Master to Slave (16 bytes)
   - index: 0x1600
     channels:
       - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: -3892, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: 3892, default: 0}
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20861.0, default: 0}
       - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
-      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 800}
+      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 400}
       - {index: 0x6060, sub_index: 0, type: int8,   command_interface: ~,        default: 8}
       - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}
 

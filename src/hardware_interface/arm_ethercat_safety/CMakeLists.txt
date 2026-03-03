@@ -14,6 +14,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
+find_package(controller_manager_msgs REQUIRED)
 
 # Safety monitor node
 add_executable(safety_monitor_node
@@ -33,6 +34,7 @@ ament_target_dependencies(safety_monitor_node
   std_srvs
   std_msgs
   diagnostic_msgs
+  controller_manager_msgs
 )
 install(TARGETS safety_monitor_node
   DESTINATION lib/${PROJECT_NAME}

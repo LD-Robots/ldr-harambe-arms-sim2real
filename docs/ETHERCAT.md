@@ -36,12 +36,8 @@ A separate **safety monitor node** (`arm_ethercat_safety`) runs independently at
 | Package | Location | Role |
 |---------|----------|------|
 | `ethercat_driver_ros2` | `src/ethercat_driver_ros2/` | Generic EtherCAT master framework (ICube, external) |
-| `myactuator_ethercat` | `src/hardware_interface/myactuator_ethercat/` | Pure C++ driver library (types, PDO structs, CiA 402 FSM, unit conversion) |
-| `myactuator_hardware` | `src/hardware_interface/myactuator_hardware/` | Custom ros2_control plugin (alternative to ethercat_driver_ros2) |
 | `arm_ethercat_safety` | `src/hardware_interface/arm_ethercat_safety/` | Safety monitor node (watchdog, e-stop, joint limits, faults) |
 | `arm_real_bringup` | `src/bringup/arm_real_bringup/` | Launch files, controller config, per-joint EtherCAT YAML configs |
-
-**Current active path:** The URDF uses `ethercat_driver_ros2` (generic CiA 402 driver) with per-joint YAML configs. The custom `myactuator_hardware` plugin exists as an alternative implementation.
 
 ---
 
@@ -241,35 +237,6 @@ joints:
   # ... per joint (X4 wrists use velocity_max: 3.0)
 ```
 
-### Actuator Reference Config
-
-**File:** `src/hardware_interface/myactuator_hardware/config/left_arm_actuators.yaml`
-
-Documents bus topology, motor types, direction, and offset calibration values for the custom `myactuator_hardware` plugin:
-
-```yaml
-ethercat:
-  master_index: 0
-  network_interface: "eth0"
-  cycle_time_us: 1000
-  dc_sync: true
-
-slaves:
-  - joint: left_shoulder_pitch_joint_X6
-    slave_position: 0
-    motor_type: X6
-    direction: 1
-    offset_raw: 0            # Calibrate with demo_joint_offset tool
-    max_torque_pct: 80
-  # ... 5 more joints
-```
-
-### Device Constants
-
-**File:** `src/hardware_interface/myactuator_ethercat/config/myactuator_rmd_x_v4.yaml`
-
-Reference file documenting PDO indices, sync manager layout, DC config, unit conversion factors, and CiA 402 timeouts for the MyActuator RMD X V4.
-
 ---
 
 ## Safety Monitor
@@ -432,8 +399,7 @@ Absolute encoders on MyActuator drives read raw values (±65535 = ±180°) that 
 
 ### Where Offsets Are Applied
 
-- **ethercat_driver_ros2 path:** In each per-joint YAML (`config/ethercat/*.yaml`), the TxPDO position channel has an `offset` field
-- **myactuator_hardware path:** In `left_arm_actuators.yaml`, each slave has an `offset_raw` field
+In each per-joint YAML (`config/ethercat/*.yaml`), the TxPDO position channel has an `offset` field (rad), and the RxPDO position channel also has an `offset` field (raw counts).
 
 ---
 
@@ -452,6 +418,5 @@ Absolute encoders on MyActuator drives read raw values (±65535 = ±180°) that 
 
 | File | Purpose |
 |------|---------|
-| `myactuator_ethercat/esi/MT-Device-250702.xml` | ESI (EtherCAT Slave Information) file |
-| `myactuator_ethercat/config/myactuator_rmd_x_v4.yaml` | Device constants reference |
+| `docs/myActuator/esi/MT-Device-250702.xml` | ESI (EtherCAT Slave Information) file |
 | `docs/myActuator/` | MyActuator protocol documentation |

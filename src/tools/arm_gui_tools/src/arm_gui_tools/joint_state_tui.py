@@ -184,12 +184,12 @@ JOINT_LIMITS = {
 }
 
 SAFETY_LIMITS = {
-    'left_shoulder_pitch_joint_X6':  {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0, 'torque_max': 80},
-    'left_shoulder_roll_joint_X6':   {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0, 'torque_max': 80},
-    'left_shoulder_yaw_joint_X4':    {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.5, 'torque_max': 80},
-    'left_elbow_pitch_joint_X6':     {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 2.0, 'torque_max': 80},
-    'left_wrist_yaw_joint_X4':       {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 3.0, 'torque_max': 80},
-    'left_wrist_roll_joint_X4':      {'pos_min': -3.14, 'pos_max': 3.14, 'vel_max': 3.0, 'torque_max': 80},
+    'left_shoulder_pitch_joint_X6':  {'pos_min': -3.02, 'pos_max': 1.72, 'vel_max': 2.0, 'torque_max': 40},
+    'left_shoulder_roll_joint_X6':   {'pos_min': -0.21, 'pos_max': 2.90, 'vel_max': 2.0, 'torque_max': 40},
+    'left_shoulder_yaw_joint_X4':    {'pos_min': -1.72, 'pos_max': 3.02, 'vel_max': 2.0, 'torque_max': 40},
+    'left_elbow_pitch_joint_X6':     {'pos_min': -1.61, 'pos_max': 1.73, 'vel_max': 2.0, 'torque_max': 40},
+    'left_wrist_yaw_joint_X4':       {'pos_min': -2.23, 'pos_max': 2.35, 'vel_max': 2.0, 'torque_max': 40},
+    'left_wrist_roll_joint_X4':      {'pos_min': -1.59, 'pos_max': 1.57, 'vel_max': 2.0, 'torque_max': 40},
 }
 
 CIA402_STATES = {

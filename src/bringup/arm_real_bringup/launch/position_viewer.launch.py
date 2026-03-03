@@ -1,6 +1,7 @@
 from launch import LaunchDescription
-from launch.actions import TimerAction
+from launch.actions import TimerAction, IncludeLaunchDescription
 from launch.substitutions import Command, PathJoinSubstitution
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -18,6 +19,7 @@ def generate_launch_description():
     """
     pkg_dual_arm_description = FindPackageShare("dual_arm_description")
     pkg_arm_real_bringup = FindPackageShare("arm_real_bringup")
+    pkg_arm_ethercat_safety = FindPackageShare("arm_ethercat_safety")
 
     # Robot description — real hardware URDF with readonly EtherCAT configs
     robot_description_content = Command([
@@ -92,10 +94,19 @@ def generate_launch_description():
         additional_env={"OGRE_RTT_MODE": "Copy"},
     )
 
+    # Safety monitor — monitors joint limits, provides e-stop service
+    # Controller deactivation will gracefully skip (no left_arm_controller in readonly)
+    safety_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([pkg_arm_ethercat_safety, "launch", "safety_monitor.launch.py"])
+        )
+    )
+
     return LaunchDescription([
         robot_state_publisher,
         ros2_control_node,
         joint_state_broadcaster_spawner,
         joint_state_publisher,
+        safety_launch,
         rviz,
     ])

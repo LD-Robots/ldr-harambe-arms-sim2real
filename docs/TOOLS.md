@@ -76,7 +76,7 @@ demo_joint_offset
 3. Click **Capture Selected** to store the raw encoder value
 4. Repeat for all 6 joints
 5. Click **Export YAML** to generate offset config
-6. Copy the output into `myactuator_hardware/config/left_arm_actuators.yaml`
+6. Copy the offset values into the per-joint YAML slave configs at `arm_real_bringup/config/ethercat/*.yaml` (set `offset` field on the TxPDO and RxPDO position channels)
 
 **Features:**
 - Calibration table (8 columns): joint name, motor, URDF limits (deg), real limits (deg, observed min/max), current position (deg), current raw value, captured offset (raw), status

@@ -176,13 +176,13 @@
     <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_femur_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_lower_femur_assembly" reason="Adjacent"/>
     <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_l_tibia_assembly" reason="Adjacent"/>
-    <disable_collisions link1="urdf_l_tibia_assembly" link2="udrf_ankle_assembly" reason="Adjacent"/>
-    <disable_collisions link1="udrf_ankle_assembly" link2="urdf_foot_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="urdf_ankle_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_foot_assembly" reason="Adjacent"/>
     <!--Left leg non-adjacent-->
     <disable_collisions link1="urdf_base" link2="urdf_l_upper_femur_assembly" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
     <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_l_tibia_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_lower_femur_assembly" link2="udrf_ankle_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_ankle_assembly" reason="Never"/>
     <disable_collisions link1="urdf_simplified_torso" link2="urdf_hip_assembly" reason="Never"/>
 
     <!--DISABLE COLLISIONS: Right leg chain-->
@@ -190,13 +190,13 @@
     <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Adjacent"/>
     <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_lower_femur_assembly_2" reason="Adjacent"/>
     <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_tibia_assembly" reason="Adjacent"/>
-    <disable_collisions link1="urdf_r_tibia_assembly" link2="udrf_ankle_assembly_2" reason="Adjacent"/>
-    <disable_collisions link1="udrf_ankle_assembly_2" link2="urdf_foot_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_tibia_assembly" link2="urdf_ankle_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_foot_assembly_2" reason="Adjacent"/>
     <!--Right leg non-adjacent-->
     <disable_collisions link1="urdf_base" link2="urdf_r_upper_femur_assemby" reason="Never"/>
     <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_lower_femur_assembly_2" reason="Never"/>
     <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_r_tibia_assembly" reason="Never"/>
-    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="udrf_ankle_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_ankle_assembly_2" reason="Never"/>
     <disable_collisions link1="urdf_simplified_torso" link2="urdf_hip_assembly_2" reason="Never"/>
 
     <!--DISABLE COLLISIONS: Between legs-->

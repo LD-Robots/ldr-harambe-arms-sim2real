@@ -89,6 +89,17 @@ SafetyMonitorNode::SafetyMonitorNode(const rclcpp::NodeOptions & options)
   // --- Initialize Fault Handler (not actively wired to drive status) ---
   fault_handler_ = std::make_unique<FaultHandler>();
 
+  // --- Controller Management ---
+  controller_name_ = get_parameter_or("safety_monitor.controller_name",
+    rclcpp::ParameterValue(std::string("left_arm_controller"))).get<std::string>();
+
+  switch_controller_client_ =
+    create_client<controller_manager_msgs::srv::SwitchController>(
+      "/controller_manager/switch_controller");
+
+  RCLCPP_INFO(get_logger(), "Controller to deactivate on violation: %s",
+    controller_name_.c_str());
+
   // --- Create ROS Interfaces ---
 
   joint_state_sub_ = create_subscription<sensor_msgs::msg::JointState>(
@@ -119,6 +130,9 @@ SafetyMonitorNode::SafetyMonitorNode(const rclcpp::NodeOptions & options)
         watchdog_->reset();
         fault_handler_->clear();
         system_safe_ = true;
+        if (controller_deactivated_) {
+          activate_controller();
+        }
         response->success = true;
         response->message = "Safety system reset successful";
         RCLCPP_INFO(get_logger(), "Safety system reset");
@@ -143,6 +157,7 @@ void SafetyMonitorNode::joint_state_callback(
   const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   // Feed the watchdog -- valid data received
+  first_joint_state_received_ = true;
   watchdog_->feed();
 
   // Check joint limits
@@ -173,7 +188,9 @@ void SafetyMonitorNode::safety_check_timer_callback()
   // Aggregate safety state
   bool was_safe = system_safe_;
 
-  if (watchdog_->is_timed_out()) {
+  // Don't arm watchdog until first /joint_states message arrives
+  // (joint_state_broadcaster may take 10+ seconds to start)
+  if (first_joint_state_received_ && watchdog_->is_timed_out()) {
     system_safe_ = false;
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
       "Watchdog timeout! Action: %s", watchdog_->get_timeout_action().c_str());
@@ -185,6 +202,11 @@ void SafetyMonitorNode::safety_check_timer_callback()
 
   if (was_safe && !system_safe_) {
     RCLCPP_ERROR(get_logger(), "SYSTEM UNSAFE -- protective action required");
+  }
+
+  // Deactivate controller on any unsafe state (not just transition)
+  if (!system_safe_ && !controller_deactivated_) {
+    deactivate_controller();
   }
 
   // Publish safety status
@@ -249,6 +271,65 @@ void SafetyMonitorNode::safety_check_timer_callback()
   diag_msg.status.push_back(overall);
 
   diagnostics_pub_->publish(diag_msg);
+}
+
+void SafetyMonitorNode::deactivate_controller()
+{
+  if (!switch_controller_client_->wait_for_service(0s)) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+      "controller_manager not available — cannot deactivate %s",
+      controller_name_.c_str());
+    return;
+  }
+
+  auto request = std::make_shared<controller_manager_msgs::srv::SwitchController::Request>();
+  request->deactivate_controllers = {controller_name_};
+  request->strictness = controller_manager_msgs::srv::SwitchController::Request::BEST_EFFORT;
+
+  controller_deactivated_ = true;
+
+  switch_controller_client_->async_send_request(request,
+    [this](rclcpp::Client<controller_manager_msgs::srv::SwitchController>::SharedFuture future) {
+      auto result = future.get();
+      if (result->ok) {
+        RCLCPP_WARN(get_logger(), "Controller '%s' DEACTIVATED by safety monitor",
+          controller_name_.c_str());
+      } else {
+        // Keep controller_deactivated_ = true to avoid retry spam.
+        // In viewer mode the controller doesn't exist — nothing to deactivate.
+        // Only /safety/reset can clear this flag.
+        RCLCPP_WARN(get_logger(),
+          "Controller '%s' not found or already inactive — treating as deactivated",
+          controller_name_.c_str());
+      }
+    });
+}
+
+void SafetyMonitorNode::activate_controller()
+{
+  if (!switch_controller_client_->wait_for_service(0s)) {
+    RCLCPP_WARN(get_logger(),
+      "controller_manager not available — cannot reactivate %s",
+      controller_name_.c_str());
+    return;
+  }
+
+  auto request = std::make_shared<controller_manager_msgs::srv::SwitchController::Request>();
+  request->activate_controllers = {controller_name_};
+  request->strictness = controller_manager_msgs::srv::SwitchController::Request::BEST_EFFORT;
+
+  switch_controller_client_->async_send_request(request,
+    [this](rclcpp::Client<controller_manager_msgs::srv::SwitchController>::SharedFuture future) {
+      auto result = future.get();
+      if (result->ok) {
+        controller_deactivated_ = false;
+        RCLCPP_INFO(get_logger(), "Controller '%s' REACTIVATED after safety reset",
+          controller_name_.c_str());
+      } else {
+        RCLCPP_ERROR(get_logger(), "Failed to reactivate controller '%s'",
+          controller_name_.c_str());
+      }
+    });
 }
 
 }  // namespace arm_ethercat_safety

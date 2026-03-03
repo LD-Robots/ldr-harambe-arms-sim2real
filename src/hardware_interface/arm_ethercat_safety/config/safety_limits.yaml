@@ -1,46 +1,52 @@
-# Joint safety limits for left arm EtherCAT actuators
-# These are SAFETY limits — more restrictive than URDF/MoveIt planning limits.
-# If any limit is exceeded, the safety monitor triggers protective action.
+# Safety monitor configuration
+# Node name "safety_monitor" must match the launch file node name
+safety_monitor:
+  ros__parameters:
+    safety_monitor:
+      controller_name: "left_arm_controller"
 
-joints:
-  left_shoulder_pitch_joint_X6:
-    position_min: -3.14       # rad
-    position_max: 3.14        # rad
-    velocity_max: 2.0         # rad/s
-    torque_max_pct: 80        # % of rated current
-    position_margin: 0.1      # rad — warning zone before hard limit
+    # Joint safety limits for left arm EtherCAT actuators
+    # These are SAFETY limits — more restrictive than URDF/MoveIt planning limits.
+    # If any limit is exceeded, the safety monitor deactivates the controller.
+    joints:
+      left_shoulder_pitch_joint_X6:
+        position_min: -3.02       # rad
+        position_max: 1.72        # rad
+        velocity_max: 2.0         # rad/s
+        torque_max_pct: 40.0      # % of rated current
+        position_margin: 0.1      # rad — warning zone before hard limit
 
-  left_shoulder_roll_joint_X6:
-    position_min: -3.14
-    position_max: 3.14
-    velocity_max: 2.0
-    torque_max_pct: 80
-    position_margin: 0.1
+      left_shoulder_roll_joint_X6:
+        position_min: -0.21
+        position_max: 2.90
+        velocity_max: 2.0
+        torque_max_pct: 40.0
+        position_margin: 0.01
 
-  left_shoulder_yaw_joint_X4:
-    position_min: -3.14
-    position_max: 3.14
-    velocity_max: 2.5
-    torque_max_pct: 80
-    position_margin: 0.1
+      left_shoulder_yaw_joint_X4:
+        position_min: -1.72
+        position_max: 3.02
+        velocity_max: 2.5
+        torque_max_pct: 40.0
+        position_margin: 0.1
 
-  left_elbow_pitch_joint_X6:
-    position_min: -3.14
-    position_max: 3.14
-    velocity_max: 2.0
-    torque_max_pct: 80
-    position_margin: 0.1
+      left_elbow_pitch_joint_X6:
+        position_min: -1.61
+        position_max: 1.73
+        velocity_max: 2.0
+        torque_max_pct: 40.0
+        position_margin: 0.1
 
-  left_wrist_yaw_joint_X4:
-    position_min: -3.14
-    position_max: 3.14
-    velocity_max: 3.0
-    torque_max_pct: 80
-    position_margin: 0.1
+      left_wrist_yaw_joint_X4:
+        position_min: -2.23
+        position_max: 2.35
+        velocity_max: 3.0
+        torque_max_pct: 40.0
+        position_margin: 0.1
 
-  left_wrist_roll_joint_X4:
-    position_min: -3.14
-    position_max: 3.14
-    velocity_max: 3.0
-    torque_max_pct: 80
-    position_margin: 0.1
+      left_wrist_roll_joint_X4:
+        position_min: -1.59
+        position_max: 1.57
+        velocity_max: 3.0
+        torque_max_pct: 40.0
+        position_margin: 0.1
