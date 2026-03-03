@@ -1,0 +1,34 @@
+# MyActuator RMD X4 V4 — left_wrist_yaw_joint_X4
+# Bus position: 4 | Direction: -1 (factors negated)
+# READ-ONLY: auto_state_transitions disabled — drives stay in SWITCH_ON_DISABLED
+vendor_id:  0x00202008
+product_id: 0x00000000
+assign_activate: 0x0300
+auto_fault_reset: false
+auto_state_transitions: false
+mode_of_operation: 8           # CSP (Cyclic Synchronous Position)
+
+sdo:
+  - {index: 0x6072, sub_index: 0, type: uint16, value: 800}   # max_torque 80%
+
+rpdo:   # RxPDO 0x1600 — Master to Slave (16 bytes)
+  - index: 0x1600
+    channels:
+      - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -41722.0, offset: 131, default: 0}
+      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -41722.0, default: 0}
+      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
+      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 800}
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: ~,        default: 8}
+      - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}
+
+tpdo:   # TxPDO 0x1A00 — Slave to Master (16 bytes)
+  - index: 0x1a00
+    channels:
+      - {index: 0x6041, sub_index: 0, type: uint16, state_interface: ~}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -2.397e-5, offset: 0.006280}
+      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -2.397e-5}
+      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02}
+      - {index: 0x603f, sub_index: 0, type: uint16, state_interface: ~}
+      - {index: 0x6061, sub_index: 0, type: int8,   state_interface: ~}
+      - {index: 0x5ff2, sub_index: 0, type: int8,   state_interface: ~}

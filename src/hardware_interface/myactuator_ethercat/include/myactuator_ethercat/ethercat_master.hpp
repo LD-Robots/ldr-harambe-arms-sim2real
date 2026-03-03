@@ -46,6 +46,14 @@ public:
   /// Receives process data, updates slave PDOs, sends process data
   void exchange();
 
+  /// Receive EtherCAT frames and read slave TxPDOs (first half of cycle).
+  /// Call from ros2_control read() before controller update.
+  void receive();
+
+  /// Write slave RxPDOs and send EtherCAT frames (second half of cycle).
+  /// Call from ros2_control write() after controller update.
+  void send();
+
   /// Deactivate master and release all resources
   void stop();
 

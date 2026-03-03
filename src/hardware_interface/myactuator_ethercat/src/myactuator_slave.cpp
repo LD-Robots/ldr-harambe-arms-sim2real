@@ -154,15 +154,57 @@ void MyActuatorSlave::write_pdos(uint8_t * domain_pd)
 
 bool MyActuatorSlave::step_enable_sequence()
 {
-  // TODO: Implementation for when we're ready to enable drives
-  // 1. Decode current state from tx_pdo_.status_word
-  // 2. If FAULT → send fault reset
-  // 3. If SWITCH_ON_DISABLED → send CW_SHUTDOWN (0x0006)
-  // 4. If READY_TO_SWITCH_ON → send CW_SWITCH_ON (0x0007)
-  // 5. If SWITCHED_ON → send CW_ENABLE_OP (0x000F)
-  //    CRITICAL: Set target_position = position_actual BEFORE enabling
-  // 6. Return true when OPERATION_ENABLED
-  return false;
+  DriveState current_state = Cia402StateMachine::decode_state(tx_pdo_.status_word);
+
+  switch (current_state) {
+    case DriveState::FAULT:
+      // Send fault reset (rising edge on bit 7)
+      rx_pdo_.control_word = Cia402StateMachine::CW_FAULT_RESET;
+      return false;
+
+    case DriveState::FAULT_REACTION_ACTIVE:
+      // Wait for fault reaction to complete
+      return false;
+
+    case DriveState::NOT_READY_TO_SWITCH_ON:
+      // Drive is initializing, wait
+      return false;
+
+    case DriveState::SWITCH_ON_DISABLED:
+      // Step 1: SHUTDOWN (0x0006) -> READY_TO_SWITCH_ON
+      rx_pdo_.control_word = Cia402StateMachine::CW_SHUTDOWN;
+      return false;
+
+    case DriveState::READY_TO_SWITCH_ON:
+      // Step 2: SWITCH_ON (0x0007) -> SWITCHED_ON
+      rx_pdo_.control_word = Cia402StateMachine::CW_SWITCH_ON;
+      return false;
+
+    case DriveState::SWITCHED_ON:
+      // CRITICAL: Set target_position = actual_position BEFORE enabling
+      // to prevent sudden joint jumps. Uses raw bus values directly
+      // (no direction/offset transform) because write_pdos() writes
+      // rx_pdo_.target_position byte-for-byte to the process data image.
+      rx_pdo_.target_position = tx_pdo_.position_actual;
+      rx_pdo_.mode_of_operation = static_cast<int8_t>(ControlMode::CSP);
+      // Step 3: ENABLE_OP (0x000F) -> OPERATION_ENABLED
+      rx_pdo_.control_word = Cia402StateMachine::CW_ENABLE_OP;
+      return false;
+
+    case DriveState::OPERATION_ENABLED:
+      // Drive is fully enabled and ready for commands
+      return true;
+
+    case DriveState::QUICK_STOP_ACTIVE:
+      // Recover from quick stop via DISABLE_VOLTAGE -> SWITCH_ON_DISABLED
+      rx_pdo_.control_word = Cia402StateMachine::CW_DISABLE_VOLTAGE;
+      return false;
+
+    default:
+      // Unknown state -- disable for safety
+      rx_pdo_.control_word = Cia402StateMachine::CW_DISABLE_VOLTAGE;
+      return false;
+  }
 }
 
 void MyActuatorSlave::disable()

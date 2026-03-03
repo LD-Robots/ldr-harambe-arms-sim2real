@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EthercatMonitorWindow</class>
+ <widget class="QMainWindow" name="EthercatMonitorWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>750</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>EtherCAT Monitor</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+QMainWindow { background-color: #1e1e2e; color: #cdd6f4; }
+QLabel { color: #cdd6f4; }
+QFrame { background-color: #313244; border-radius: 8px; }
+QTableWidget { background-color: #1e1e2e; color: #cdd6f4; gridline-color: #45475a; border: none; font-family: monospace; font-size: 12px; }
+QTableWidget::item { padding: 4px 8px; }
+QTableWidget QHeaderView::section { background-color: #313244; color: #cdd6f4; border: 1px solid #45475a; padding: 6px; font-weight: bold; font-size: 12px; }
+QTabWidget::pane { border: 1px solid #45475a; background-color: #1e1e2e; border-radius: 4px; }
+QTabBar::tab { background-color: #313244; color: #cdd6f4; padding: 8px 16px; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+QTabBar::tab:selected { background-color: #45475a; color: #cdd6f4; }
+QTextEdit { background-color: #1e1e2e; color: #a6e3a1; border: none; font-family: monospace; font-size: 11px; }
+QGroupBox { color: #cdd6f4; border: 1px solid #45475a; border-radius: 6px; margin-top: 8px; padding-top: 16px; font-weight: bold; }
+QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 4px; }
+QPushButton { background-color: #313244; color: #cdd6f4; border: 1px solid #45475a; border-radius: 4px; padding: 6px 16px; font-weight: bold; }
+QPushButton:hover { background-color: #45475a; }
+QPushButton:disabled { color: #6c7086; }
+   </string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="main_layout">
+    <property name="spacing">
+     <number>8</number>
+    </property>
+    <property name="leftMargin">
+     <number>12</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>12</number>
+    </property>
+    <property name="bottomMargin">
+     <number>12</number>
+    </property>
+
+    <!-- ==================== STATUS BAR (QFrame, fixed 65px) ==================== -->
+    <item>
+     <widget class="QFrame" name="frame_status_bar">
+      <property name="minimumSize">
+       <size><width>0</width><height>65</height></size>
+      </property>
+      <property name="maximumSize">
+       <size><width>16777215</width><height>70</height></size>
+      </property>
+      <property name="styleSheet">
+       <string>QFrame#frame_status_bar { background-color: #313244; border-radius: 8px; }</string>
+      </property>
+      <layout class="QHBoxLayout" name="layout_status_bar">
+       <property name="leftMargin"><number>16</number></property>
+       <property name="rightMargin"><number>16</number></property>
+       <property name="spacing"><number>24</number></property>
+
+       <!-- Primary state indicator -->
+       <item>
+        <widget class="QLabel" name="label_state_indicator">
+         <property name="text">
+          <string>DISCONNECTED</string>
+         </property>
+         <property name="styleSheet">
+          <string>color: #6c7086; font-size: 14px; font-weight: bold;</string>
+         </property>
+        </widget>
+       </item>
+
+       <!-- Mode indicator -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_mode">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_mode_caption">
+           <property name="text"><string>Mode</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_mode_value">
+           <property name="text"><string>--</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- Interface -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_iface">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_iface_caption">
+           <property name="text"><string>Interface</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_iface_value">
+           <property name="text"><string>eth0</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- Slaves -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_slaves">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_slaves_caption">
+           <property name="text"><string>Slaves</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_slaves_value">
+           <property name="text"><string>-- / 6</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- Cycle Rate -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_cycle">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_cycle_caption">
+           <property name="text"><string>Cycle Rate</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_cycle_value">
+           <property name="text"><string>-- Hz</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- Safety -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_safety">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_safety_caption">
+           <property name="text"><string>Safety</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_safety_value">
+           <property name="text"><string>Unknown</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- E-Stop -->
+       <item>
+        <layout class="QVBoxLayout" name="layout_sb_estop">
+         <property name="spacing"><number>2</number></property>
+         <item>
+          <widget class="QLabel" name="label_sb_estop_caption">
+           <property name="text"><string>E-Stop</string></property>
+           <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_sb_estop_value">
+           <property name="text"><string>Unknown</string></property>
+           <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+
+       <!-- Spacer -->
+       <item>
+        <spacer name="status_bar_spacer">
+         <property name="orientation"><enum>Qt::Horizontal</enum></property>
+        </spacer>
+       </item>
+
+       <!-- E-STOP button in status bar -->
+       <item>
+        <widget class="QPushButton" name="button_estop">
+         <property name="text"><string>E-STOP</string></property>
+         <property name="minimumSize"><size><width>100</width><height>36</height></size></property>
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #f38ba8; color: #1e1e2e; border-radius: 4px; font-weight: bold; font-size: 13px; } QPushButton:hover { background-color: #eba0ac; } QPushButton:disabled { background-color: #45475a; color: #6c7086; }</string>
+         </property>
+        </widget>
+       </item>
+
+       <!-- Reset button -->
+       <item>
+        <widget class="QPushButton" name="button_reset">
+         <property name="text"><string>Reset</string></property>
+         <property name="minimumSize"><size><width>70</width><height>36</height></size></property>
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #89b4fa; color: #1e1e2e; border-radius: 4px; font-weight: bold; } QPushButton:hover { background-color: #b4d0fb; } QPushButton:disabled { background-color: #45475a; color: #6c7086; }</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <!-- ==================== SPLITTER: TABLE + DIAGNOSTIC TABS ==================== -->
+    <item>
+     <widget class="QSplitter" name="splitter_main">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+      <property name="handleWidth">
+       <number>6</number>
+      </property>
+      <property name="styleSheet">
+       <string>QSplitter::handle { background-color: #45475a; border-radius: 2px; } QSplitter::handle:hover { background-color: #89b4fa; }</string>
+      </property>
+
+      <!-- MAIN DATA TABLE -->
+      <widget class="QTableWidget" name="table_joints">
+       <property name="columnCount">
+        <number>9</number>
+       </property>
+       <property name="rowCount">
+        <number>0</number>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>true</bool>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <column>
+        <property name="text"><string>Joint</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Motor</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Bus#</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Position (rad)</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Velocity (rad/s)</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Torque (%)</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Drive State</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Raw</string></property>
+       </column>
+       <column>
+        <property name="text"><string>Status</string></property>
+       </column>
+      </widget>
+
+      <!-- DIAGNOSTIC TABS -->
+      <widget class="QTabWidget" name="tab_widget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+
+      <!-- Tab 0: Fault Log -->
+      <widget class="QWidget" name="tab_fault_log">
+       <attribute name="title">
+        <string>Fault Log</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="layout_fault_log">
+        <property name="spacing"><number>8</number></property>
+        <property name="margin"><number>8</number></property>
+        <item>
+         <layout class="QHBoxLayout" name="layout_fault_controls">
+          <item>
+           <spacer name="fault_controls_spacer">
+            <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="button_clear_log">
+            <property name="text"><string>Clear Log</string></property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTextEdit" name="text_fault_log">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+      <!-- Tab 1: Safety Status -->
+      <widget class="QWidget" name="tab_safety">
+       <attribute name="title">
+        <string>Safety Status</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="layout_safety">
+        <property name="spacing"><number>8</number></property>
+        <property name="margin"><number>8</number></property>
+        <!-- Safety summary grid -->
+        <item>
+         <widget class="QGroupBox" name="group_safety_summary">
+          <property name="title">
+           <string>Safety Summary</string>
+          </property>
+          <layout class="QGridLayout" name="layout_safety_summary">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_safety_overall_caption">
+             <property name="text"><string>Overall</string></property>
+             <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_safety_overall">
+             <property name="text"><string>Unknown</string></property>
+             <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="label_watchdog_caption">
+             <property name="text"><string>Watchdog</string></property>
+             <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="label_watchdog_state">
+             <property name="text"><string>N/A</string></property>
+             <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="label_wd_action_caption">
+             <property name="text"><string>Timeout Action</string></property>
+             <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="label_wd_action">
+             <property name="text"><string>hold_position</string></property>
+             <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QLabel" name="label_violations_caption">
+             <property name="text"><string>Violations</string></property>
+             <property name="styleSheet"><string>color: #6c7086; font-size: 10px;</string></property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QLabel" name="label_violations_count">
+             <property name="text"><string>0</string></property>
+             <property name="styleSheet"><string>font-size: 13px; font-weight: bold;</string></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <!-- Per-joint limit table -->
+        <item>
+         <widget class="QTableWidget" name="table_safety_limits">
+          <property name="columnCount">
+           <number>6</number>
+          </property>
+          <property name="rowCount">
+           <number>0</number>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <column>
+           <property name="text"><string>Joint</string></property>
+          </column>
+          <column>
+           <property name="text"><string>Pos Min</string></property>
+          </column>
+          <column>
+           <property name="text"><string>Pos Max</string></property>
+          </column>
+          <column>
+           <property name="text"><string>Vel Max</string></property>
+          </column>
+          <column>
+           <property name="text"><string>Torque Max %</string></property>
+          </column>
+          <column>
+           <property name="text"><string>Limit Status</string></property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+      <!-- Tab 2: Raw Data -->
+      <widget class="QWidget" name="tab_raw_data">
+       <attribute name="title">
+        <string>Raw Data</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="layout_raw_data">
+        <property name="spacing"><number>8</number></property>
+        <property name="margin"><number>8</number></property>
+        <item>
+         <widget class="QTextEdit" name="text_raw_data">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="styleSheet">
+           <string>color: #89b4fa; font-family: monospace; font-size: 11px;</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+
+     </widget><!-- end splitter_main -->
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

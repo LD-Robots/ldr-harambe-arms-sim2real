@@ -75,6 +75,8 @@ PositionReaderNode::PositionReaderNode(const rclcpp::NodeOptions & options)
   joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
   raw_position_pub_ = create_publisher<std_msgs::msg::Int32MultiArray>(
     "/ethercat/raw_positions", 10);
+  status_word_pub_ = create_publisher<std_msgs::msg::Int32MultiArray>(
+    "/ethercat/status_words", 10);
 
   // Initialize EtherCAT
   if (!initialize_ethercat()) {
@@ -176,9 +178,14 @@ void PositionReaderNode::publish_callback()
   auto raw_msg = std_msgs::msg::Int32MultiArray();
   raw_msg.data.resize(slaves_.size());
 
+  // CiA 402 status words for drive state monitoring
+  auto sw_msg = std_msgs::msg::Int32MultiArray();
+  sw_msg.data.resize(slaves_.size());
+
   for (size_t i = 0; i < slaves_.size(); ++i) {
     int32_t raw_pos = slaves_[i].get_actual_position_raw();
     raw_msg.data[i] = raw_pos;
+    sw_msg.data[i] = static_cast<int32_t>(slaves_[i].get_status_word());
 
     double gr = gear_ratios_[i];
     js_msg.position[i] = UnitConversion::raw_to_rad(raw_pos) / gr;
@@ -190,6 +197,7 @@ void PositionReaderNode::publish_callback()
 
   joint_state_pub_->publish(js_msg);
   raw_position_pub_->publish(raw_msg);
+  status_word_pub_->publish(sw_msg);
 }
 
 void PositionReaderNode::status_log_callback()

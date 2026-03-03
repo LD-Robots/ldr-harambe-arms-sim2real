@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EtherCATStatusWindow</class>
+ <widget class="QMainWindow" name="EtherCATStatusWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>EtherCAT Status Monitor</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+    QMainWindow { background-color: #1e1e2e; color: #cdd6f4; }
+    QLabel { color: #cdd6f4; }
+    QFrame { background-color: #313244; border-radius: 8px; }
+    QTableWidget { background-color: #1e1e2e; color: #cdd6f4; gridline-color: #45475a; border: none; font-family: monospace; font-size: 12px; }
+    QTableWidget::item { padding: 4px 8px; }
+    QTableWidget QHeaderView::section { background-color: #313244; color: #cdd6f4; border: 1px solid #45475a; padding: 6px; font-weight: bold; font-size: 12px; }
+    QTabWidget::pane { border: 1px solid #45475a; background-color: #1e1e2e; border-radius: 4px; }
+    QTabBar::tab { background-color: #313244; color: #cdd6f4; padding: 8px 16px; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    QTabBar::tab:selected { background-color: #45475a; color: #cdd6f4; }
+    QTextEdit { background-color: #1e1e2e; color: #a6e3a1; border: none; font-family: monospace; font-size: 11px; }
+    QGroupBox { color: #cdd6f4; border: 1px solid #45475a; border-radius: 6px; margin-top: 8px; padding-top: 16px; font-weight: bold; }
+    QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 4px; }
+   </string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainLayout">
+    <property name="spacing">
+     <number>8</number>
+    </property>
+    <property name="leftMargin">
+     <number>12</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>12</number>
+    </property>
+    <property name="bottomMargin">
+     <number>12</number>
+    </property>
+
+    <!-- EtherCAT Master Status Bar -->
+    <item>
+     <widget class="QFrame" name="masterStatusFrame">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>60</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>70</height>
+       </size>
+      </property>
+      <layout class="QHBoxLayout" name="masterStatusLayout">
+       <property name="spacing">
+        <number>24</number>
+       </property>
+       <property name="leftMargin">
+        <number>16</number>
+       </property>
+       <property name="rightMargin">
+        <number>16</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="masterStateIndicator">
+         <property name="text">
+          <string>OPERATIONAL</string>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #a6e3a1; font-size: 14px; font-weight: bold;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="interfaceLayout">
+         <item>
+          <widget class="QLabel" name="interfaceLabel">
+           <property name="text">
+            <string>Interface</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #6c7086; font-size: 10px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="interfaceValue">
+           <property name="text">
+            <string>enp3s0</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 13px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="slavesLayout">
+         <item>
+          <widget class="QLabel" name="slavesLabel">
+           <property name="text">
+            <string>Slaves</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #6c7086; font-size: 10px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="slavesValue">
+           <property name="text">
+            <string>6 / 6</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 13px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="cycleLayout">
+         <item>
+          <widget class="QLabel" name="cycleLabel">
+           <property name="text">
+            <string>Cycle Rate</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #6c7086; font-size: 10px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="cycleValue">
+           <property name="text">
+            <string>1000 Hz</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 13px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="uptimeLayout">
+         <item>
+          <widget class="QLabel" name="uptimeLabel">
+           <property name="text">
+            <string>Uptime</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #6c7086; font-size: 10px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="uptimeValue">
+           <property name="text">
+            <string>00:00:00</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 13px; font-weight: bold; font-family: monospace;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="modeLayout">
+         <item>
+          <widget class="QLabel" name="modeLabel">
+           <property name="text">
+            <string>Mode</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #6c7086; font-size: 10px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="modeValue">
+           <property name="text">
+            <string>DEMO</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 13px; font-weight: bold; color: #f9e2af;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="masterStatusSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <!-- Actuators Table -->
+    <item>
+     <widget class="QTableWidget" name="actuatorsTable">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>220</height>
+       </size>
+      </property>
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="columnCount">
+       <number>10</number>
+      </property>
+      <property name="rowCount">
+       <number>6</number>
+      </property>
+      <column>
+       <property name="text">
+        <string>Joint Name</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Motor</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Slave #</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>CiA 402 State</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Position (deg)</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Velocity (deg/s)</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Torque (Nm)</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Status Word</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Error Code</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Health</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+
+    <!-- Diagnostics Tabs -->
+    <item>
+     <widget class="QTabWidget" name="diagnosticsTabs">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+
+      <!-- Fault Log Tab -->
+      <widget class="QWidget" name="faultLogTab">
+       <attribute name="title">
+        <string>Fault Log</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="faultLogLayout">
+        <item>
+         <widget class="QTextEdit" name="faultLogText">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>No faults recorded.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+      <!-- Safety Status Tab -->
+      <widget class="QWidget" name="safetyStatusTab">
+       <attribute name="title">
+        <string>Safety Status</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="safetyStatusLayout">
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="safetyTopRow">
+          <property name="spacing">
+           <number>16</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="estopLabel">
+            <property name="text">
+             <string>E-Stop: CLEAR</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font-size: 13px; font-weight: bold; color: #a6e3a1; padding: 4px 8px;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="watchdogLabel">
+            <property name="text">
+             <string>Watchdog: OK</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font-size: 13px; font-weight: bold; color: #a6e3a1; padding: 4px 8px;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="safetyTopSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="safetyTable">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::NoSelection</enum>
+          </property>
+          <property name="columnCount">
+           <number>5</number>
+          </property>
+          <property name="rowCount">
+           <number>6</number>
+          </property>
+          <column>
+           <property name="text">
+            <string>Joint</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Position Limit</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Velocity Limit</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Torque Limit</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Status</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+      <!-- Raw PDO Tab -->
+      <widget class="QWidget" name="rawPdoTab">
+       <attribute name="title">
+        <string>Raw PDO</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="rawPdoLayout">
+        <item>
+         <widget class="QTextEdit" name="rawPdoText">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">font-family: monospace; font-size: 11px; color: #89b4fa;</string>
+          </property>
+          <property name="placeholderText">
+           <string>No PDO data available.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+     </widget>
+    </item>
+
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

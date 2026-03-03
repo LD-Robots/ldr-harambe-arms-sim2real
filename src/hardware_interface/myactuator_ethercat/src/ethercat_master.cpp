@@ -121,6 +121,52 @@ void EthercatMaster::exchange()
   ecrt_master_send(master);
 }
 
+void EthercatMaster::receive()
+{
+  if (!is_active_) return;
+
+  auto * master = static_cast<ec_master_t *>(master_);
+  auto * domain = static_cast<ec_domain_t *>(domain_);
+
+  // Receive EtherCAT frames from the network
+  ecrt_master_receive(master);
+  ecrt_domain_process(domain);
+
+  // Read TxPDOs from all slaves (feedback data)
+  for (auto & slave : *slaves_) {
+    slave.read_pdos(domain_pd_);
+  }
+}
+
+void EthercatMaster::send()
+{
+  if (!is_active_) return;
+
+  auto * master = static_cast<ec_master_t *>(master_);
+  auto * domain = static_cast<ec_domain_t *>(domain_);
+
+  // Write RxPDOs for all slaves (command data)
+  for (auto & slave : *slaves_) {
+    slave.write_pdos(domain_pd_);
+  }
+
+  // Queue domain for sending
+  ecrt_domain_queue(domain);
+
+  // Distributed clock synchronization
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  ecrt_master_application_time(
+    master,
+    static_cast<uint64_t>(ts.tv_sec) * 1000000000ULL +
+    static_cast<uint64_t>(ts.tv_nsec));
+  ecrt_master_sync_reference_clock(master);
+  ecrt_master_sync_slave_clocks(master);
+
+  // Send EtherCAT frames
+  ecrt_master_send(master);
+}
+
 void EthercatMaster::stop()
 {
   if (master_) {

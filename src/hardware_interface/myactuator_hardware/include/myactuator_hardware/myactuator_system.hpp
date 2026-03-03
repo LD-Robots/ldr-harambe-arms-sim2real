@@ -12,8 +12,8 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
-// #include "myactuator_ethercat/ethercat_master.hpp"
-// #include "myactuator_ethercat/myactuator_slave.hpp"
+#include "myactuator_ethercat/ethercat_master.hpp"
+#include "myactuator_ethercat/myactuator_slave.hpp"
 
 namespace myactuator_hardware
 {
@@ -84,9 +84,9 @@ private:
   // Per-joint command storage
   std::vector<double> hw_commands_positions_;
 
-  // EtherCAT (uncomment when implementing)
-  // std::unique_ptr<myactuator_ethercat::EthercatMaster> master_;
-  // std::vector<myactuator_ethercat::MyActuatorSlave> slaves_;
+  // EtherCAT master and per-joint slave instances
+  std::unique_ptr<myactuator_ethercat::EthercatMaster> master_;
+  std::vector<myactuator_ethercat::MyActuatorSlave> slaves_;
 
   // Configuration
   int master_index_{0};

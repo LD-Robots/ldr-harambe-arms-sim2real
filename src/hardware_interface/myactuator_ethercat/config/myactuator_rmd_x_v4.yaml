@@ -61,13 +61,12 @@ units:
 motor_types:
   X4:
     description: "RMD X4 V4 — smaller actuator"
-    # Fill in actual specs from datasheet
-    gear_ratio: 1.0
+    gear_ratio: 36.0
     rated_torque_nm: 0.0
     max_speed_rpm: 0.0
   X6:
     description: "RMD X6 V4 — larger actuator"
-    gear_ratio: 1.0
+    gear_ratio: 19.612
     rated_torque_nm: 0.0
     max_speed_rpm: 0.0
 

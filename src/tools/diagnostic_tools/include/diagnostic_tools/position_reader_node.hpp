@@ -21,8 +21,9 @@ namespace diagnostic_tools
 /// (DISABLE_VOLTAGE), drives stay in SWITCH_ON_DISABLED.
 ///
 /// Publishes:
-///   /joint_states          — sensor_msgs/JointState (rad, rad/s, torque %)
+///   /joint_states           — sensor_msgs/JointState (rad, rad/s, torque %)
 ///   /ethercat/raw_positions — std_msgs/Int32MultiArray (raw encoder values)
+///   /ethercat/status_words  — std_msgs/Int32MultiArray (CiA 402 status words)
 class PositionReaderNode : public rclcpp::Node
 {
 public:
@@ -42,6 +43,7 @@ private:
   // Publishers
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
   rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr raw_position_pub_;
+  rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr status_word_pub_;
 
   // Timers
   rclcpp::TimerBase::SharedPtr cycle_timer_;    // 1 kHz EtherCAT exchange

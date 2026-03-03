@@ -92,7 +92,7 @@ Both share the same underlying `JointTrajectoryController`.
 | `hardware_interface/` | myactuator_ethercat, myactuator_hardware, arm_ethercat_safety | EtherCAT driver, ros2_control plugin, safety monitor |
 | `bringup/` | arm_system_bringup, arm_real_bringup | Sim bringup and real hardware bringup |
 | `teleop/` | arm_teleop | Keyboard, joystick, and Cartesian teleop |
-| `tools/` | arm_gui_tools, diagnostic_tools, dualsense_tools | GUI launcher, monitoring, gamepad input |
+| `tools/` | arm_gui_tools, diagnostic_tools, dualsense_tools, ethercat_tools | GUI launcher, monitoring, EtherCAT diagnostics, gamepad input |
 | `applications/` | *(empty — future demos)* | |
 
 All packages use `ament_cmake`. Python is the primary language for nodes and launch files; C++ is used for MTC nodes (`arm_mtc/src/`), the joint teleop node, and the EtherCAT driver stack.
@@ -160,6 +160,34 @@ ros2 launch arm_real_bringup arm_real.launch.py
 | `safety_limits.yaml` | `arm_ethercat_safety/config/` | Per-joint position/velocity/torque safety limits |
 | `MT-Device-250702.xml` | `myactuator_ethercat/esi/` | ESI file for MyActuator RMD X V4 |
 
+### Motor Specs & Calibration
+
+**Encoder resolution:** raw ±65535 = ±180° → `position_factor = π/65535 ≈ 4.794e-5 rad/count` (20,861 counts/rad)
+
+**Gear ratios:** X6 = 19.612:1, X4 = 36:1
+
+**Conversion factors by motor type:**
+
+| Motor | Position cmd factor | Position state factor | Velocity factor | Torque cmd/state |
+|-------|--------------------|-----------------------|-----------------|------------------|
+| X6 | 20861.0 counts/rad | 4.794e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
+| X4 | 41722.0 counts/rad | 2.397e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
+
+X4 position factor is 2x X6 due to the higher gear ratio (36 vs 19.612).
+
+**Calibrated zero offsets** (from `arm_real_bringup/config/ethercat/`):
+
+| Joint | Motor | Bus Pos | Dir | Cmd Offset (raw) | State Offset (rad) |
+|-------|-------|---------|-----|-------------------|---------------------|
+| left_shoulder_pitch_X6 | X6 | 0 | -1 | -3892 | 0.186573 |
+| left_shoulder_roll_X6 | X6 | 1 | -1 | 652 | -0.031255 |
+| left_shoulder_yaw_X4 | X4 | 2 | -1 | 14022 | 0.672181 |
+| left_elbow_pitch_X6 | X6 | 3 | -1 | -3328 | 0.159536 |
+| left_wrist_yaw_X4 | X4 | 4 | -1 | 131 | 0.006280 |
+| left_wrist_roll_X4 | X4 | 5 | +1 | 2 | 0.000096 |
+
+Offsets are applied as: command `raw = rad × factor + offset_raw`, state `rad = raw × factor + offset_rad`. Use `demo_joint_offset` tool to recalibrate.
+
 ### MyActuator Protocol Reference
 
 - **PDO layout**: RxPDO 0x1600 (16 bytes: control_word, target_position, target_velocity, target_torque, max_torque, mode, padding), TxPDO 0x1A00 (16 bytes: status_word, position_actual, velocity_actual, torque_actual, error_code, mode_display, padding)
@@ -167,3 +195,24 @@ ros2 launch arm_real_bringup arm_real.launch.py
 - **CiA 402 enable**: 0x0006 → 0x0007 → 0x000F (verify status at each step)
 - **CRITICAL**: Set target_position = actual_position BEFORE enabling to prevent joint jumps
 - Full protocol docs in `docs/myActuator/`
+
+## Monitoring & Diagnostic Tools
+
+### EtherCAT Tools (`ethercat_tools` package)
+
+| Command | Purpose |
+|---------|---------|
+| `demo_ethercat_status` | Real-time EtherCAT master + 6 slave status (CiA 402 state, PDO data, safety) |
+| `demo_joint_state` | Joint state monitor with auto SIM/REAL detection |
+| `demo_joint_offset` | Absolute encoder zero-offset calibration tool |
+
+### GUI Tools (`arm_gui_tools` package)
+
+| Command | Purpose |
+|---------|---------|
+| `ros2 run arm_gui_tools full_system_launcher` | Full system GUI launcher |
+| `ros2 run arm_gui_tools ethercat_monitor` | Full EtherCAT diagnostics (real hardware, subscribes to /diagnostics) |
+| `ros2 run arm_gui_tools joint_state_monitor` | Lightweight joint table (ROS or DEMO) |
+| `ros2 run arm_gui_tools joint_state_tui` | Terminal dashboard with Rich (multi-tab, keyboard controls) |
+
+All tools support three modes: **DEMO** (offline, simulated data), **SIM** (Gazebo /joint_states only), **REAL** (EtherCAT topics present). Mode is auto-detected. Detailed docs in `docs/TOOLS.md`.
