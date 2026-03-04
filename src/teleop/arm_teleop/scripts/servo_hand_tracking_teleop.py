@@ -30,6 +30,7 @@ import rclpy
 from builtin_interfaces.msg import Duration
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped, Quaternion
+from visualization_msgs.msg import Marker
 from image_geometry import PinholeCameraModel
 from moveit_msgs.srv import ServoCommandType
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -60,6 +61,20 @@ FINGER_LANDMARKS = {
 THUMB_ABD_LANDMARKS = (1, 2, 5)  # thumb CMC, thumb MCP, index MCP
 
 COMMAND_TYPE_POSE = 2
+
+# EE frame names for TF lookup (current EE position)
+EE_FRAMES = {
+    "left": "urdf_l_wrist_assembly",
+    "right": "urdf_r_wrist_assembly",
+}
+
+
+# Camera optical frame name (from Orbbec driver, child of camera_link)
+CAMERA_OPTICAL_FRAME = "camera_color_optical_frame"
+
+# Robot reference point (where the robot's "head" is, in urdf_base frame)
+# Midpoint above shoulders: X=0.05 forward, Y=0 center, Z=0.55 above shoulders
+ROBOT_HEAD_REF = np.array([0.05, 0.0, 0.55])
 
 
 @dataclass
@@ -141,6 +156,8 @@ class ServoHandTrackingTeleop(Node):
         self._latest_depth: Optional[np.ndarray] = None
         self._left_hand = HandState()
         self._right_hand = HandState()
+        self._head_position: Optional[np.ndarray] = None  # smoothed head 3D in camera frame
+        self._head_position_base: Optional[np.ndarray] = None  # head in urdf_base frame
         self._servo_ready = {"left": False, "right": False}
         self._command_type_set = {"left": False, "right": False}
 
@@ -156,6 +173,12 @@ class ServoHandTrackingTeleop(Node):
             min_tracking_confidence=self._min_tracking_confidence,
         )
         self._mp_drawing = mp.solutions.drawing_utils
+
+        # MediaPipe Face Detection (for head reference point)
+        self._mp_face = mp.solutions.face_detection.FaceDetection(
+            model_selection=0,  # 0=short range (<2m), 1=long range
+            min_detection_confidence=0.5,
+        )
 
         # --- Subscribers ---
         self.create_subscription(
@@ -180,6 +203,16 @@ class ServoHandTrackingTeleop(Node):
         )
         self._right_hand_pub = self.create_publisher(
             JointTrajectory, "/right_hand_controller/joint_trajectory", 10
+        )
+        # Visualization markers for RViz
+        self._left_marker_pub = self.create_publisher(
+            Marker, "/left_target_marker", 10
+        )
+        self._right_marker_pub = self.create_publisher(
+            Marker, "/right_target_marker", 10
+        )
+        self._head_marker_pub = self.create_publisher(
+            Marker, "/head_ref_marker", 10
         )
 
         # --- Service clients ---
@@ -254,7 +287,7 @@ class ServoHandTrackingTeleop(Node):
     # ------------------------------------------------------------------ #
 
     def _init_servo(self) -> None:
-        """Set command type to POSE for both servo nodes."""
+        """Set command type to POSE and unpause both servo nodes."""
         all_set = all(self._command_type_set.values())
         if all_set:
             self._init_timer.cancel()
@@ -285,14 +318,38 @@ class ServoHandTrackingTeleop(Node):
             resp = future.result()
             if resp.success:
                 self._command_type_set[side] = True
-                self._servo_ready[side] = True
-                self.get_logger().info(f"{side} servo ready (POSE mode)")
+                self.get_logger().info(f"{side} servo POSE mode set, unpausing...")
+                pause_client = (
+                    self._left_pause_client if side == "left"
+                    else self._right_pause_client
+                )
+                if pause_client.service_is_ready():
+                    req = SetBool.Request()
+                    req.data = False  # unpause
+                    unpause_future = pause_client.call_async(req)
+                    unpause_future.add_done_callback(
+                        lambda f, s=side: self._unpause_done(f, s)
+                    )
+                else:
+                    self.get_logger().warn(
+                        f"{side} pause_servo service not ready"
+                    )
+                    self._servo_ready[side] = True
             else:
                 self.get_logger().warn(
                     f"Failed to set {side} command type, retrying..."
                 )
         except Exception as e:
             self.get_logger().error(f"{side} command type call failed: {e}")
+
+    def _unpause_done(self, future, side: str) -> None:
+        try:
+            future.result()
+            self._servo_ready[side] = True
+            self.get_logger().info(f"{side} servo unpaused and ready")
+        except Exception as e:
+            self.get_logger().error(f"{side} unpause failed: {e}")
+            self._servo_ready[side] = True
 
     # ------------------------------------------------------------------ #
     # 3D deprojection
@@ -511,14 +568,34 @@ class ServoHandTrackingTeleop(Node):
 
         # Run MediaPipe
         rgb = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
+        h, w = color.shape[:2]
+
+        # --- Face detection (head reference) ---
+        face_results = self._mp_face.process(rgb)
+        if face_results.detections:
+            det = face_results.detections[0]  # first face
+            # Nose tip = keypoint 2 in face detection
+            nose = det.location_data.relative_keypoints[2]
+            nose_px = nose.x * w
+            nose_py = nose.y * h
+            head_3d = self._deproject_pixel(nose_px, nose_py, depth)
+            if head_3d is not None:
+                alpha = self._smoothing_alpha
+                if self._head_position is None:
+                    self._head_position = head_3d.copy()
+                else:
+                    self._head_position = (
+                        alpha * head_3d + (1.0 - alpha) * self._head_position
+                    )
+                self._publish_head_marker(self._head_position)
+
+        # --- Hand detection ---
         results = self._mp_hands.process(rgb)
 
         self._left_hand.detected = False
         self._right_hand.detected = False
 
         if results.multi_hand_landmarks and results.multi_handedness:
-            h, w = color.shape[:2]
-
             for hand_landmarks, handedness_info in zip(
                 results.multi_hand_landmarks, results.multi_handedness
             ):
@@ -571,7 +648,7 @@ class ServoHandTrackingTeleop(Node):
                     hand_landmarks.landmark
                 )
 
-                # Publish PoseStamped
+                # Publish pose command to servo (head-relative)
                 self._publish_pose(
                     smoothed_pos,
                     smoothed_quat,
@@ -623,53 +700,183 @@ class ServoHandTrackingTeleop(Node):
     # Pose publishing
     # ------------------------------------------------------------------ #
 
+    def _publish_head_marker(self, head_cam: np.ndarray) -> None:
+        """Transform head position to urdf_base and publish RViz marker."""
+        try:
+            tf_cam_to_base = self._tf_buffer.lookup_transform(
+                self._target_frame,
+                CAMERA_OPTICAL_FRAME,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.05),
+            )
+        except Exception:
+            return
+
+        cam_pose = PoseStamped()
+        cam_pose.header.stamp = self.get_clock().now().to_msg()
+        cam_pose.header.frame_id = CAMERA_OPTICAL_FRAME
+        cam_pose.pose.position.x = float(head_cam[0])
+        cam_pose.pose.position.y = float(head_cam[1])
+        cam_pose.pose.position.z = float(head_cam[2])
+        cam_pose.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+
+        base_pose = do_transform_pose_stamped(cam_pose, tf_cam_to_base)
+        self._head_position_base = np.array([
+            base_pose.pose.position.x,
+            base_pose.pose.position.y,
+            base_pose.pose.position.z,
+        ])
+
+        # Blue sphere for head reference on robot
+        marker = Marker()
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.header.frame_id = self._target_frame
+        marker.ns = "head_ref"
+        marker.id = 0
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose.position.x = float(ROBOT_HEAD_REF[0])
+        marker.pose.position.y = float(ROBOT_HEAD_REF[1])
+        marker.pose.position.z = float(ROBOT_HEAD_REF[2])
+        marker.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+        marker.scale.x = 0.08
+        marker.scale.y = 0.08
+        marker.scale.z = 0.08
+        marker.color.a = 0.6
+        marker.color.r, marker.color.g, marker.color.b = 0.0, 0.5, 1.0
+        self._head_marker_pub.publish(marker)
+
     def _publish_pose(
         self,
         position: np.ndarray,
         orientation: np.ndarray,
         is_left: bool,
     ) -> None:
+        """Compute hand position relative to head, apply to robot reference.
+
+        hand_offset = hand_3d - head_3d (in camera frame)
+        robot_target = ROBOT_HEAD_REF + hand_offset (transformed to robot frame)
+        """
         side = "left" if is_left else "right"
+
         if not self._servo_ready.get(side, False):
+            self.get_logger().warn(
+                f"{side} servo not ready, skipping pose publish",
+                throttle_duration_sec=2.0,
+            )
             return
 
-        # Create PoseStamped in camera optical frame
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = self._cam_model.tfFrame()
+        if self._head_position is None:
+            self.get_logger().warn(
+                "Head not detected yet, skipping pose publish",
+                throttle_duration_sec=2.0,
+            )
+            return
 
-        pose_msg.pose.position.x = float(position[0])
-        pose_msg.pose.position.y = float(position[1])
-        pose_msg.pose.position.z = float(position[2])
-        pose_msg.pose.orientation = Quaternion(
-            x=float(orientation[0]),
-            y=float(orientation[1]),
-            z=float(orientation[2]),
-            w=float(orientation[3]),
-        )
+        # 1. Compute offset from head in camera frame
+        offset_cam = position - self._head_position
 
-        # Transform to target frame (urdf_base)
+        # 2. Transform the offset to urdf_base orientation
+        #    Build a PoseStamped for the offset point (relative to camera origin)
         try:
-            transform = self._tf_buffer.lookup_transform(
+            tf_cam_to_base = self._tf_buffer.lookup_transform(
                 self._target_frame,
-                pose_msg.header.frame_id,
+                CAMERA_OPTICAL_FRAME,
                 rclpy.time.Time(),
                 timeout=rclpy.duration.Duration(seconds=0.05),
             )
-            pose_transformed = do_transform_pose_stamped(pose_msg, transform)
         except Exception as e:
-            if self._debug_mode:
-                self.get_logger().warn(f"TF lookup failed: {e}")
+            self.get_logger().warn(
+                f"TF camera→base lookup failed: {e}",
+                throttle_duration_sec=2.0,
+            )
             return
 
-        # Publish to the correct servo node
+        # Transform offset as a direction vector (use two points: origin + offset)
+        origin_pose = PoseStamped()
+        origin_pose.header.stamp = self.get_clock().now().to_msg()
+        origin_pose.header.frame_id = CAMERA_OPTICAL_FRAME
+        origin_pose.pose.position.x = 0.0
+        origin_pose.pose.position.y = 0.0
+        origin_pose.pose.position.z = 0.0
+        origin_pose.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+
+        offset_pose = PoseStamped()
+        offset_pose.header = origin_pose.header
+        offset_pose.pose.position.x = float(offset_cam[0])
+        offset_pose.pose.position.y = float(offset_cam[1])
+        offset_pose.pose.position.z = float(offset_cam[2])
+        offset_pose.pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+
+        origin_base = do_transform_pose_stamped(origin_pose, tf_cam_to_base)
+        offset_base = do_transform_pose_stamped(offset_pose, tf_cam_to_base)
+
+        # Offset in robot frame = transformed_offset - transformed_origin
+        dx = offset_base.pose.position.x - origin_base.pose.position.x
+        dy = offset_base.pose.position.y - origin_base.pose.position.y
+        dz = offset_base.pose.position.z - origin_base.pose.position.z
+
+        # 3. Robot target = robot head ref + offset
+        target_x = ROBOT_HEAD_REF[0] + dx
+        target_y = ROBOT_HEAD_REF[1] + dy
+        target_z = ROBOT_HEAD_REF[2] + dz
+
+        # 4. Get current EE orientation (keep stable)
+        ee_frame = EE_FRAMES[side]
+        try:
+            tf_ee = self._tf_buffer.lookup_transform(
+                self._target_frame,
+                ee_frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.05),
+            )
+        except Exception as e:
+            self.get_logger().warn(
+                f"TF EE lookup failed ({ee_frame}): {e}",
+                throttle_duration_sec=2.0,
+            )
+            return
+
+        # 5. Publish PoseStamped
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = self.get_clock().now().to_msg()
+        pose_msg.header.frame_id = self._target_frame
+        pose_msg.pose.position.x = float(target_x)
+        pose_msg.pose.position.y = float(target_y)
+        pose_msg.pose.position.z = float(target_z)
+        pose_msg.pose.orientation = Quaternion(
+            x=tf_ee.transform.rotation.x,
+            y=tf_ee.transform.rotation.y,
+            z=tf_ee.transform.rotation.z,
+            w=tf_ee.transform.rotation.w,
+        )
+
         pub = self._left_pose_pub if is_left else self._right_pose_pub
-        pub.publish(pose_transformed)
+        pub.publish(pose_msg)
+
+        # Publish visualization marker for RViz
+        marker = Marker()
+        marker.header = pose_msg.header
+        marker.ns = f"{side}_target"
+        marker.id = 0
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose = pose_msg.pose
+        marker.scale.x = 0.06
+        marker.scale.y = 0.06
+        marker.scale.z = 0.06
+        marker.color.a = 0.8
+        if is_left:
+            marker.color.r, marker.color.g, marker.color.b = 0.0, 1.0, 0.0
+        else:
+            marker.color.r, marker.color.g, marker.color.b = 1.0, 0.0, 0.0
+        marker_pub = self._left_marker_pub if is_left else self._right_marker_pub
+        marker_pub.publish(marker)
 
         if self._debug_mode:
-            p = pose_transformed.pose.position
             self.get_logger().info(
-                f"{side} pose: ({p.x:.3f}, {p.y:.3f}, {p.z:.3f})",
+                f"{side} offset=({dx:.3f},{dy:.3f},{dz:.3f}) "
+                f"target=({target_x:.3f},{target_y:.3f},{target_z:.3f})",
                 throttle_duration_sec=0.5,
             )
 
@@ -714,6 +921,7 @@ class ServoHandTrackingTeleop(Node):
 
     def destroy_node(self) -> None:
         self._mp_hands.close()
+        self._mp_face.close()
         cv2.destroyAllWindows()
         super().destroy_node()
 

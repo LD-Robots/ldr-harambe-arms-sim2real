@@ -1,0 +1,84 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Value: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Depth: 5
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: false
+      Show Arrows: false
+      Show Axes: true
+      Show Names: true
+      Frame Timeout: 15
+      Frames:
+        urdf_base:
+          Value: true
+        urdf_l_wrist_assembly:
+          Value: true
+        urdf_r_wrist_assembly:
+          Value: true
+        camera_link:
+          Value: true
+      All Enabled: false
+    - Class: rviz_default_plugins/Marker
+      Name: Left Target
+      Enabled: true
+      Topic:
+        Value: /left_target_marker
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/Marker
+      Name: Right Target
+      Enabled: true
+      Topic:
+        Value: /right_target_marker
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/Marker
+      Name: Head Reference
+      Enabled: true
+      Topic:
+        Value: /head_ref_marker
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: urdf_base
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/FocusCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 1.5
+      Focal Point:
+        X: 0.2
+        Y: 0.0
+        Z: 0.3
+      Name: Current View
+      Pitch: 0.4
+      Yaw: 3.14
+      Target Frame: urdf_base
+Window Geometry:
+  Width: 1200
+  Height: 800

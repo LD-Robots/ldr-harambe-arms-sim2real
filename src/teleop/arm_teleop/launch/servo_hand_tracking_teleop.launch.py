@@ -44,7 +44,7 @@ def generate_launch_description():
         DeclareLaunchArgument("min_tracking_confidence", default_value="0.5"),
         DeclareLaunchArgument("hand_publish_rate", default_value="10.0"),
         DeclareLaunchArgument("publish_rate", default_value="50.0"),
-        DeclareLaunchArgument("linear_scale", default_value="0.3"),
+        DeclareLaunchArgument("linear_scale", default_value="1.0"),
         DeclareLaunchArgument("angular_scale", default_value="0.5"),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         # Camera static TF (camera position relative to urdf_base)
@@ -73,6 +73,25 @@ def generate_launch_description():
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
         .to_moveit_configs()
+    )
+
+    # ------------------------------------------------------------------ #
+    # RViz
+    # ------------------------------------------------------------------ #
+    rviz_config = PathJoinSubstitution([
+        FindPackageShare("arm_teleop"), "config", "hand_tracking_teleop.rviz"
+    ])
+
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        arguments=["-d", rviz_config],
+        parameters=[
+            moveit_config.robot_description,
+            {"use_sim_time": LaunchConfiguration("use_sim_time")},
+        ],
+        output="screen",
     )
 
     # ------------------------------------------------------------------ #
@@ -161,7 +180,10 @@ def generate_launch_description():
     # ------------------------------------------------------------------ #
     # Step 1: Move both arms to ready position
     # ------------------------------------------------------------------ #
-    ready_positions = "0.1, 0.1, 0.1, -0.1, 0.1, 0.1"
+    # Ready positions: pitch, roll, yaw, elbow, wrist_yaw, wrist_roll
+    # Roll is mirrored: left +0.3 (away from body), right -0.3 (away from body)
+    left_ready  = "0.1, 0.3, 0.1, -0.3, 0.0, 0.0"
+    right_ready = "0.1, -0.3, -0.1, -0.3, 0.0, 0.0"
 
     move_left_ready = ExecuteProcess(
         cmd=[
@@ -172,7 +194,7 @@ def generate_launch_description():
             "left_shoulder_pitch_joint_X6, left_shoulder_roll_joint_X6, "
             "left_shoulder_yaw_joint_X4, left_elbow_pitch_joint_X6, "
             "left_wrist_yaw_joint_X4, left_wrist_roll_joint_X4], "
-            f"points: [{{positions: [{ready_positions}], "
+            f"points: [{{positions: [{left_ready}], "
             "time_from_start: {sec: 2, nanosec: 0}}]}}",
         ],
         output="screen",
@@ -187,7 +209,7 @@ def generate_launch_description():
             "right_shoulder_pitch_joint_X6, right_shoulder_roll_joint_X6, "
             "right_shoulder_yaw_joint_X4, right_elbow_pitch_joint_X6, "
             "right_wrist_yaw_joint_X4, right_wrist_roll_joint_X4], "
-            f"points: [{{positions: [{ready_positions}], "
+            f"points: [{{positions: [{right_ready}], "
             "time_from_start: {sec: 2, nanosec: 0}}]}}",
         ],
         output="screen",
@@ -381,6 +403,8 @@ def generate_launch_description():
     return LaunchDescription(
         args
         + [
+            # RViz with target pose visualization
+            rviz_node,
             # Step 0a: Orbbec camera
             orbbec_launch,
             # Step 0b: Static TF
