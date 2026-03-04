@@ -16,6 +16,11 @@ install(DIRECTORY scripts/
   USE_SOURCE_PERMISSIONS
 )
 
+install(PROGRAMS
+  scripts/homing_sequence.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()

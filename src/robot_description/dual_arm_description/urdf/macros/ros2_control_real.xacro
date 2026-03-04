@@ -6,7 +6,7 @@
 
         <!-- Select config directory and frequency based on readonly mode -->
         <xacro:property name="config_dir" value="ethercat"/>
-        <xacro:property name="ctrl_freq" value="1000"/>
+        <xacro:property name="ctrl_freq" value="100"/>
         <xacro:if value="$(arg readonly)">
             <xacro:property name="config_dir" value="ethercat_readonly"/>
             <xacro:property name="ctrl_freq" value="100"/>
@@ -25,6 +25,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftShoulderPitch">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>
@@ -38,6 +39,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftShoulderRoll">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>
@@ -51,6 +53,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftShoulderYaw">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>
@@ -64,6 +67,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftElbowPitch">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>
@@ -77,6 +81,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftWristYaw">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>
@@ -90,6 +95,7 @@
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
+                <state_interface name="status_word"/>
                 <ec_module name="LeftWristRoll">
                     <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
                     <param name="alias">0</param>

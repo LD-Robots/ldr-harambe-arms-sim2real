@@ -2,12 +2,12 @@ moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControll
 
 moveit_simple_controller_manager:
   controller_names:
-    - left_arm_controller
+    - left_arm_group_controller
     - right_arm_controller
     - left_hand_controller
     - right_hand_controller
 
-  left_arm_controller:
+  left_arm_group_controller:
     type: FollowJointTrajectory
     joints:
       - left_shoulder_pitch_joint_X6

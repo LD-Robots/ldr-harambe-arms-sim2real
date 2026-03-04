@@ -40,11 +40,18 @@ def generate_launch_description():
 
     # ros2_control_node — replaces Gazebo plugin for real hardware
     # This node loads the hardware interface plugin and controller manager
+    # chrt -f 49 sets SCHED_FIFO on the entire process to prevent overruns
+    # Remap /joint_states → /joint_states_raw so joint_state_publisher is the
+    # sole publisher on /joint_states (merges EtherCAT + default joints).
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[robot_description, controller_config],
         output="screen",
+        prefix="chrt -f 49",
+        remappings=[
+            ("/joint_states", "/joint_states_raw"),
+        ],
     )
 
     # Controller spawners — chained sequentially
@@ -54,7 +61,7 @@ def generate_launch_description():
         arguments=[
             "joint_state_broadcaster",
             "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
+            "--controller-manager-timeout", "60",
             "--switch-timeout", "20",
             "--service-call-timeout", "60",
         ],
@@ -65,13 +72,27 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         arguments=[
-            "left_arm_controller",
+            "left_arm_group_controller",
             "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
+            "--controller-manager-timeout", "60",
             "--switch-timeout", "20",
             "--service-call-timeout", "60",
         ],
         output="screen",
+    )
+
+    # Homing sequence — slowly move to URDF zero before MoveIt is launched
+    homing_sequence_node = Node(
+        package="arm_real_bringup",
+        executable="homing_sequence.py",
+        name="homing_sequence",
+        output="screen",
+        parameters=[{
+            "controller_name": "left_arm_group_controller",
+            "max_velocity": 0.2,
+            "target_position": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "min_duration": 3.0,
+        }],
     )
 
     # Chain: EtherCAT init (~30s) → JSB spawner → left_arm_controller spawner
@@ -79,7 +100,7 @@ def generate_launch_description():
     # The spawner's --controller-manager-timeout handles any remaining wait.
     # Once JSB spawner exits (short-lived), left_arm_controller spawner starts.
     delayed_jsb_spawner = TimerAction(
-        period=10.0,
+        period=2.0,
         actions=[joint_state_broadcaster_spawner],
     )
 
@@ -87,6 +108,13 @@ def generate_launch_description():
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
             on_exit=[left_arm_controller_spawner],
+        )
+    )
+
+    start_homing_after_controller = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=left_arm_controller_spawner,
+            on_exit=[homing_sequence_node],
         )
     )
 
@@ -104,7 +132,7 @@ def generate_launch_description():
         executable="joint_state_publisher",
         name="joint_state_publisher",
         parameters=[{
-            "source_list": ["/joint_states"],
+            "source_list": ["/joint_states_raw"],
             "rate": 30.0,
         }],
     )
@@ -124,9 +152,10 @@ def generate_launch_description():
         # ros2_control with EtherCAT hardware interface
         ros2_control_node,
 
-        # Sequential controller spawning (TimerAction → JSB → left_arm_controller)
+        # Sequential controller spawning (TimerAction → JSB → controller → homing)
         delayed_jsb_spawner,
         start_left_arm_after_jsb,
+        start_homing_after_controller,
 
         # Safety system
         safety_launch,

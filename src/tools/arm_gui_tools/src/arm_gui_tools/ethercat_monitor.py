@@ -27,6 +27,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 from std_srvs.srv import Trigger
+from control_msgs.msg import DynamicJointState
 
 
 # ===========================================================
@@ -127,6 +128,7 @@ CIA402_STATES = {
 }
 
 STALE_TIMEOUT = 2.0
+ETHERCAT_INTERFACE = 'enp129s0'
 
 
 # ===========================================================
@@ -134,11 +136,42 @@ STALE_TIMEOUT = 2.0
 # ===========================================================
 
 
+def _decode_cia402_state(status_word):
+    """Decode raw CiA 402 status_word to state name string."""
+    sw = int(status_word)
+    if (sw & 0x4F) == 0x00:
+        return 'NOT_READY_TO_SWITCH_ON'
+    if (sw & 0x4F) == 0x40:
+        return 'SWITCH_ON_DISABLED'
+    if (sw & 0x6F) == 0x21:
+        return 'READY_TO_SWITCH_ON'
+    if (sw & 0x6F) == 0x23:
+        return 'SWITCHED_ON'
+    if (sw & 0x6F) == 0x27:
+        return 'OPERATION_ENABLED'
+    if (sw & 0x6F) == 0x07:
+        return 'QUICK_STOP_ACTIVE'
+    if (sw & 0x4F) == 0x0F:
+        return 'FAULT_REACTION_ACTIVE'
+    if (sw & 0x4F) == 0x08:
+        return 'FAULT'
+    return 'N/A'
+
+
 def _is_alive(data, topic):
     last = data.get('last_update', {}).get(topic)
     if last is None:
         return None
     return (time.time() - last) < STALE_TIMEOUT
+
+
+def _ethercat_link_up():
+    """Check if the EtherCAT NIC has physical link (carrier)."""
+    try:
+        with open(f'/sys/class/net/{ETHERCAT_INTERFACE}/carrier') as f:
+            return f.read().strip() == '1'
+    except (FileNotFoundError, OSError):
+        return None  # interface not found, can't tell
 
 
 def _status_color(ratio):
@@ -191,9 +224,13 @@ class EthercatMonitorWindow(QtWidgets.QMainWindow):
         self._known_faults = set()
         self._last_diag_id = None
 
+        # Drive state transition tracking
+        self._prev_drive_states = {}
+
         # ROS data accumulator
         self._ros_data = {
             'joint_states': {},
+            'drive_states': {},
             'safety_ok': None,
             'diagnostics': None,
             'last_update': {},
@@ -459,9 +496,9 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
             }
         self._ros_data['joint_states'] = joints
         now = time.time()
-        self._ros_data['last_update']['/joint_states'] = now
-        self._ros_data['msg_counts'].setdefault('/joint_states', 0)
-        self._ros_data['msg_counts']['/joint_states'] += 1
+        self._ros_data['last_update']['/joint_states_raw'] = now
+        self._ros_data['msg_counts'].setdefault('/joint_states_raw', 0)
+        self._ros_data['msg_counts']['/joint_states_raw'] += 1
         self._refresh()
 
     def safety_status_callback(self, msg):
@@ -474,17 +511,69 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
         self._ros_data['last_update']['/diagnostics'] = time.time()
         self._refresh()
 
-    def _get_drive_states(self, data):
-        """Extract per-joint CiA 402 drive states from /diagnostics."""
+    def dynamic_joint_state_callback(self, msg):
+        """Extract status_word from /dynamic_joint_states and decode CiA 402 state."""
         drive_states = {}
-        diag = data.get('diagnostics')
-        if diag:
-            for status in diag.status:
-                kv = {item.key: item.value for item in status.values}
-                if 'drive_state' in kv:
-                    joint = kv.get('joint', status.name)
-                    drive_states[joint] = kv['drive_state']
-        return drive_states
+        for i, jname in enumerate(msg.joint_names):
+            if i < len(msg.interface_values):
+                iv = msg.interface_values[i]
+                for k, name in enumerate(iv.interface_names):
+                    if name == 'status_word' and k < len(iv.values):
+                        state = _decode_cia402_state(iv.values[k])
+                        if state:
+                            drive_states[jname] = state
+                        break
+        if drive_states:
+            self._log_drive_transitions(drive_states)
+            self._ros_data['drive_states'] = drive_states
+            self._ros_data['last_update']['/dynamic_joint_states'] = time.time()
+            self._refresh()
+
+    # CiA 402 state ordering for transition direction coloring
+    _CIA402_ORDER = [
+        'NOT_READY_TO_SWITCH_ON', 'SWITCH_ON_DISABLED',
+        'READY_TO_SWITCH_ON', 'SWITCHED_ON', 'OPERATION_ENABLED',
+    ]
+
+    def _log_drive_transitions(self, new_states):
+        """Log per-drive CiA 402 state changes to the event log."""
+        display_map = {j['name']: j['display'] for j in JOINT_CONFIG}
+        now_str = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+
+        for jname, new_state in new_states.items():
+            old_state = self._prev_drive_states.get(jname)
+            if old_state == new_state:
+                continue
+            display = display_map.get(jname, jname)
+            old_label = CIA402_STATES.get(old_state, ('--', C_SUBTEXT))[0]
+            new_label = CIA402_STATES.get(new_state, (new_state, C_SUBTEXT))[0]
+
+            # Color by direction: green=forward, yellow=backward, red=fault
+            if new_state in ('FAULT', 'FAULT_REACTION_ACTIVE'):
+                color = C_RED
+            elif (new_state in self._CIA402_ORDER and
+                  old_state in self._CIA402_ORDER and
+                  self._CIA402_ORDER.index(new_state) <
+                  self._CIA402_ORDER.index(old_state)):
+                color = C_YELLOW
+            else:
+                color = C_GREEN
+
+            prefix = '[STATE]' if old_state is None else '[STATE]'
+            self._log_event(
+                now_str,
+                f'{prefix} {display}: {old_label} \u2192 {new_label}',
+                color)
+
+        self._prev_drive_states = dict(new_states)
+
+    def _get_drive_states(self, data):
+        """Return per-joint CiA 402 drive states, empty if link is down or topic stale."""
+        if _ethercat_link_up() is False:
+            return {}
+        if not _is_alive(data, '/dynamic_joint_states'):
+            return {}
+        return data.get('drive_states', {})
 
     def _refresh(self):
         self._update_status_bar(self._ros_data)
@@ -498,9 +587,12 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
 
     def _update_status_bar(self, data):
         now = time.time()
-        js_alive = _is_alive(data, '/joint_states')
+        js_alive = _is_alive(data, '/joint_states_raw')
+        link_up = _ethercat_link_up()
 
-        if js_alive is None:
+        if link_up is False:
+            self._set_state_indicator('LINK DOWN', C_RED)
+        elif js_alive is None:
             self._set_state_indicator('DISCONNECTED', C_SUBTEXT)
         elif js_alive:
             n_joints = len(data.get('joint_states', {}))
@@ -516,29 +608,31 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
                 has_fault = any(
                     ds in ('FAULT', 'FAULT_REACTION_ACTIVE')
                     for ds in drive_states.values())
+                n_enabled = sum(
+                    1 for ds in drive_states.values()
+                    if ds == 'OPERATION_ENABLED')
                 all_enabled = (
                     len(drive_states) >= expected and
-                    all(ds == 'OPERATION_ENABLED'
-                        for ds in drive_states.values()))
-                any_enabled = any(
-                    ds == 'OPERATION_ENABLED'
-                    for ds in drive_states.values())
+                    n_enabled == expected)
 
                 if has_fault:
                     self._set_state_indicator('FAULT', C_RED)
                 elif all_enabled:
                     self._set_state_indicator('OPERATIONAL', C_GREEN)
-                elif any_enabled:
-                    self._set_state_indicator('PARTIAL', C_YELLOW)
+                elif drive_states and n_enabled > 0:
+                    self._set_state_indicator(
+                        f'ENABLING {n_enabled}/{expected}', C_YELLOW)
                 elif drive_states:
-                    self._set_state_indicator('DISABLED', C_PEACH)
+                    self._set_state_indicator(
+                        f'INITIALIZING {len(drive_states)}/{expected}',
+                        C_PEACH)
                 else:
                     self._set_state_indicator('CONNECTED', C_BLUE)
         else:
             self._set_state_indicator('STALE', C_RED)
 
         # Cycle rate
-        topic = '/joint_states'
+        topic = '/joint_states_raw'
         count = data.get('msg_counts', {}).get(topic, 0)
         if topic not in self._rate_window_start:
             self._rate_window_start[topic] = now
@@ -568,7 +662,7 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
 
     def _update_joint_table(self, data):
         joint_data = data.get('joint_states', {})
-        js_alive = _is_alive(data, '/joint_states')
+        js_alive = _is_alive(data, '/joint_states_raw')
         drive_states = self._get_drive_states(data)
 
         table = self.table_joints
@@ -674,6 +768,10 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
                 else:
                     self._set_label(
                         self.label_watchdog_state, 'TIMEOUT', C_RED)
+                action = kv.get('timeout_action')
+                if action:
+                    self._set_label(
+                        self.label_wd_action, action, C_TEXT)
 
             if 'estop' in name_lower or 'e-stop' in name_lower:
                 active = kv.get('active', 'false').lower() == 'true'
@@ -697,7 +795,11 @@ QSplitter::handle:hover {{ background-color: {C_BLUE}; }}
 
             if 'violation' in name_lower or 'joint_limit' in name_lower:
                 count = kv.get('violation_count', '0')
-                self.label_violations_count.setText(str(count))
+                count_int = int(count) if count.isdigit() else 0
+                color = C_RED if status.level == DiagnosticStatus.ERROR else (
+                    C_YELLOW if count_int > 0 else C_GREEN)
+                self._set_label(
+                    self.label_violations_count, str(count_int), color)
 
         self._update_raw_data(data)
 
@@ -808,7 +910,7 @@ def main():
 
     # Subscribe to topics
     ros_node.create_subscription(
-        JointState, '/joint_states',
+        JointState, '/joint_states_raw',
         window.joint_state_callback, 10)
     ros_node.create_subscription(
         Bool, '/safety/status',
@@ -816,12 +918,21 @@ def main():
     ros_node.create_subscription(
         DiagnosticArray, '/diagnostics',
         window.diagnostics_callback, 10)
+    ros_node.create_subscription(
+        DynamicJointState, '/dynamic_joint_states',
+        window.dynamic_joint_state_callback, 10)
 
     # Spin ROS in Qt event loop
     ros_timer = QTimer()
     ros_timer.timeout.connect(
         lambda: rclpy.spin_once(ros_node, timeout_sec=0))
     ros_timer.start(10)  # 100 Hz
+
+    # Periodic stale-check: refresh UI even when no messages arrive
+    # so stale detection triggers when topics stop publishing
+    stale_timer = QTimer()
+    stale_timer.timeout.connect(window._refresh)
+    stale_timer.start(500)  # 2 Hz
 
     ros_node.get_logger().info('EtherCAT Monitor started')
 

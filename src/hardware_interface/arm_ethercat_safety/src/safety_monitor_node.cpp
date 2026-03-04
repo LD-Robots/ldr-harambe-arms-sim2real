@@ -1,8 +1,8 @@
 #include "arm_ethercat_safety/safety_monitor_node.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
-#include <set>
 #include <string>
 
 using namespace std::chrono_literals;
@@ -57,12 +57,17 @@ SafetyMonitorNode::SafetyMonitorNode(const rclcpp::NodeOptions & options)
   std::vector<JointLimitMonitor::JointLimits> joint_limits;
   auto all_params = list_parameters({"joints"}, 2);
 
-  std::set<std::string> discovered_joints;
+  std::vector<std::string> discovered_joints;
   for (const auto & prefix : all_params.prefixes) {
     // prefix format: "joints.left_shoulder_pitch_joint_X6"
     auto dot_pos = prefix.find('.');
     if (dot_pos != std::string::npos) {
-      discovered_joints.insert(prefix.substr(dot_pos + 1));
+      std::string name = prefix.substr(dot_pos + 1);
+      if (std::find(discovered_joints.begin(), discovered_joints.end(), name) ==
+        discovered_joints.end())
+      {
+        discovered_joints.push_back(name);
+      }
     }
   }
 
@@ -162,7 +167,7 @@ void SafetyMonitorNode::joint_state_callback(
 
   // Check joint limits
   auto violations = joint_limit_monitor_->check(
-    msg->position, msg->velocity, msg->effort);
+    msg->name, msg->position, msg->velocity, msg->effort);
 
   if (joint_limit_monitor_->has_error()) {
     system_safe_ = false;
@@ -218,6 +223,14 @@ void SafetyMonitorNode::safety_check_timer_callback()
   auto diag_msg = diagnostic_msgs::msg::DiagnosticArray();
   diag_msg.header.stamp = this->now();
 
+  auto make_kv = [](const std::string & key, const std::string & value) {
+    diagnostic_msgs::msg::KeyValue kv;
+    kv.key = key;
+    kv.value = value;
+    return kv;
+  };
+
+  // -- Watchdog --
   diagnostic_msgs::msg::DiagnosticStatus wd_status;
   wd_status.name = "safety_monitor: watchdog";
   wd_status.hardware_id = "ethercat_arm";
@@ -228,8 +241,10 @@ void SafetyMonitorNode::safety_check_timer_callback()
     wd_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     wd_status.message = "OK";
   }
+  wd_status.values.push_back(make_kv("timeout_action", watchdog_->get_timeout_action()));
   diag_msg.status.push_back(wd_status);
 
+  // -- E-Stop --
   diagnostic_msgs::msg::DiagnosticStatus estop_status;
   estop_status.name = "safety_monitor: estop";
   estop_status.hardware_id = "ethercat_arm";
@@ -241,26 +256,39 @@ void SafetyMonitorNode::safety_check_timer_callback()
     estop_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     estop_status.message = "OK";
   }
+  estop_status.values.push_back(
+    make_kv("active", estop_handler_->is_active() ? "true" : "false"));
+  estop_status.values.push_back(make_kv("reaction", estop_handler_->get_reaction()));
   diag_msg.status.push_back(estop_status);
 
+  // -- Joint Limits --
   diagnostic_msgs::msg::DiagnosticStatus jl_status;
   jl_status.name = "safety_monitor: joint_limits";
   jl_status.hardware_id = "ethercat_arm";
+  const auto & violations = joint_limit_monitor_->get_violations();
   if (joint_limit_monitor_->has_error()) {
     jl_status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
     jl_status.message = "Joint limit violation";
-    for (const auto & v : joint_limit_monitor_->get_violations()) {
-      diagnostic_msgs::msg::KeyValue kv;
-      kv.key = v.joint_name + "/" + v.limit_type;
-      kv.value = std::to_string(v.actual_value);
-      jl_status.values.push_back(kv);
-    }
+  } else if (!violations.empty()) {
+    jl_status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+    jl_status.message = "Approaching limit";
   } else {
     jl_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     jl_status.message = "OK";
   }
+  jl_status.values.push_back(
+    make_kv("violation_count", std::to_string(violations.size())));
+  for (const auto & v : violations) {
+    std::string severity_str =
+      (v.severity == JointLimitMonitor::Severity::ERROR) ? "ERROR" : "WARNING";
+    jl_status.values.push_back(make_kv(
+      v.joint_name + "/" + v.limit_type,
+      severity_str + " actual=" + std::to_string(v.actual_value) +
+      " limit=" + std::to_string(v.limit_value)));
+  }
   diag_msg.status.push_back(jl_status);
 
+  // -- Overall --
   diagnostic_msgs::msg::DiagnosticStatus overall;
   overall.name = "safety_monitor: overall";
   overall.hardware_id = "ethercat_arm";
@@ -268,6 +296,8 @@ void SafetyMonitorNode::safety_check_timer_callback()
     diagnostic_msgs::msg::DiagnosticStatus::OK :
     diagnostic_msgs::msg::DiagnosticStatus::ERROR;
   overall.message = system_safe_ ? "System safe" : "SYSTEM UNSAFE";
+  overall.values.push_back(
+    make_kv("controller_deactivated", controller_deactivated_ ? "true" : "false"));
   diag_msg.status.push_back(overall);
 
   diagnostics_pub_->publish(diag_msg);

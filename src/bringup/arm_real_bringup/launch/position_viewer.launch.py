@@ -48,11 +48,16 @@ def generate_launch_description():
 
     # ros2_control_node — loads EthercatDriver plugin, runs PDO exchange
     # Drives stay in SWITCH_ON_DISABLED (readonly configs disable auto state transitions)
+    # Remap /joint_states → /joint_states_raw so joint_state_publisher is the
+    # sole publisher on /joint_states (merges EtherCAT + default joints).
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[robot_description, controller_config],
         output="screen",
+        remappings=[
+            ("/joint_states", "/joint_states_raw"),
+        ],
     )
 
     # Joint State Broadcaster — publishes /joint_states from EtherCAT TxPDO data
@@ -81,7 +86,7 @@ def generate_launch_description():
         executable="joint_state_publisher",
         name="joint_state_publisher",
         parameters=[{
-            "source_list": ["/joint_states"],
+            "source_list": ["/joint_states_raw"],
             "rate": 30.0,
         }],
     )

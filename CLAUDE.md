@@ -148,7 +148,7 @@ An additional `readonly:=true` xacro arg selects read-only slave configs (`ether
 # Pre-flight check
 bash $(ros2 pkg prefix arm_real_bringup)/share/arm_real_bringup/scripts/check_ethercat.sh
 
-# Full control (enables drives, 1 kHz)
+# Full control (enables drives, 100 Hz)
 ros2 launch arm_real_bringup arm_real.launch.py
 
 # Read-only position viewer (drives stay disabled, 100 Hz)
@@ -161,7 +161,7 @@ ros2 launch arm_real_bringup position_viewer.launch.py
 |------|----------|---------|
 | `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config: PDO mapping, factors, offsets (full control) |
 | `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat_readonly/` | Same but `auto_state_transitions: false` (read-only) |
-| `controllers.yaml` | `arm_real_bringup/config/` | Real hardware controllers (1 kHz update rate) |
+| `controllers.yaml` | `arm_real_bringup/config/` | Real hardware controllers (100 Hz update rate) |
 | `controllers_viewer.yaml` | `arm_real_bringup/config/` | Read-only viewer (JSB only, 100 Hz) |
 | `safety_limits.yaml` | `arm_ethercat_safety/config/` | Per-joint position/velocity/torque safety limits |
 | `ros2_control_real.xacro` | `dual_arm_description/urdf/macros/` | URDF hardware plugin definition |

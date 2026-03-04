@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dual_arm_description">
+    <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+
+    <!-- Import dual_arm_description (body, arms, legs, hands) -->
+    <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />
+
+    <!-- Fix robot base to world (same as real hardware variant) -->
+    <link name="world"/>
+    <joint name="world_joint" type="fixed">
+        <parent link="world"/>
+        <child link="urdf_base"/>
+    </joint>
+
+    <!-- Import control_xacro (mock hardware for MoveIt planning) -->
+    <xacro:include filename="robot_harambe_v0.3.ros2_control.xacro" />
+    <xacro:robot_harambe_v03_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+
+</robot>

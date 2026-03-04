@@ -6,8 +6,8 @@ EtherCAT driver stack for the left arm's 6 MyActuator RMD X V4 actuators, using 
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  ros2_control  (controller_manager @ 1 kHz)                      │
-│    ├── joint_state_broadcaster  → /joint_states (500 Hz)         │
+│  ros2_control  (controller_manager @ 100 Hz)                     │
+│    ├── joint_state_broadcaster  → /joint_states (100 Hz)         │
 │    └── left_arm_controller      → JointTrajectoryController      │
 ├──────────────────────────────────────────────────────────────────┤
 │  ethercat_driver/EthercatDriver  (ros2_control SystemInterface)  │
@@ -41,6 +41,32 @@ A separate **safety monitor node** (`arm_ethercat_safety`) runs independently at
 
 ---
 
+## Prerequisites
+
+### Realtime Scheduling Permissions
+
+The `ros2_control_node` requires SCHED_FIFO realtime scheduling to maintain the 100 Hz EtherCAT cycle without overruns. Without RT permissions, the control loop will miss cycles, causing slaves to drop from OP state.
+
+Run the setup script once per machine:
+
+```bash
+sudo bash $(ros2 pkg prefix arm_real_bringup)/share/arm_real_bringup/scripts/setup_realtime.sh
+```
+
+This creates a `realtime` group with `rtprio 99` and `memlock unlimited` in `/etc/security/limits.d/`. **Log out and back in** after running.
+
+Verify:
+```bash
+ulimit -r    # should show 99
+id -nG       # should include 'realtime'
+```
+
+### EtherLab IgH Master
+
+The `ec_master` kernel module must be loaded and the EtherCAT interface configured. See the pre-flight check below.
+
+---
+
 ## Bus Topology
 
 Left arm, shoulder to wrist:
@@ -71,7 +97,7 @@ Loaded when `dual_arm.urdf.xacro use_sim:=false`. Defines one `<ros2_control>` b
     <hardware>
         <plugin>ethercat_driver/EthercatDriver</plugin>
         <param name="master_id">0</param>
-        <param name="control_frequency">1000</param>
+        <param name="control_frequency">100</param>
     </hardware>
 
     <joint name="left_shoulder_pitch_joint_X6">
@@ -110,6 +136,8 @@ mode_of_operation: 8             # CSP (Cyclic Synchronous Position)
 
 sdo:
   - {index: 0x6072, sub_index: 0, type: uint16, value: 800}   # max_torque 80%
+  - {index: 0x60C2, sub_index: 1, type: int8, value: 10}      # interpolation time = 10
+  - {index: 0x60C2, sub_index: 2, type: int8, value: -3}      # time base 10^-3 s → 10 ms cycle
 
 rpdo:   # Master → Slave (16 bytes)
   - index: 0x1600
@@ -195,11 +223,11 @@ Offset formula: command `raw = rad × factor + offset_raw`, state `rad = raw × 
 ```yaml
 controller_manager:
   ros__parameters:
-    update_rate: 1000  # Hz — matches EtherCAT cycle time
+    update_rate: 100  # Hz — matches MyActuator 10 ms cycle
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
-      publish_rate: 500
+      publish_rate: 100
 
     left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
@@ -379,7 +407,7 @@ Startup sequence:
 
 ```bash
 ros2 control list_controllers          # Should show left_arm_controller active
-ros2 topic hz /joint_states            # Should show ~500 Hz
+ros2 topic hz /joint_states            # Should show ~100 Hz
 ros2 topic echo /safety/status         # data: true (system safe)
 ros2 topic echo /diagnostics           # Per-subsystem status
 ```

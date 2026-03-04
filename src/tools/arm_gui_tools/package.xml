@@ -16,6 +16,7 @@
   <depend>trajectory_msgs</depend>
   <depend>std_srvs</depend>
   <depend>diagnostic_msgs</depend>
+  <depend>control_msgs</depend>
   <exec_depend>arm_ethercat_safety</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>

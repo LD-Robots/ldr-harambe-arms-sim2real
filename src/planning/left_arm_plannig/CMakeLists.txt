@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(dual_arm_moveit_config)
+project(left_arm_plannig)
 
 find_package(ament_cmake REQUIRED)
 
@@ -13,10 +13,4 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/launch")
 endif()
 
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
-  install(
-    PROGRAMS scripts/cycle_poses.py
-    DESTINATION lib/${PROJECT_NAME})
-endif()
 install(FILES .setup_assistant DESTINATION share/${PROJECT_NAME})

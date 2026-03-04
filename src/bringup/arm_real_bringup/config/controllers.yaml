@@ -1,18 +1,19 @@
 # Real hardware controller configuration — Left arm only
-# Update rate matches EtherCAT cycle (1 kHz)
+# Update rate must match MyActuator RMD X V4 native rate and 0x60C2 SDO (10 ms)
 
 controller_manager:
   ros__parameters:
-    update_rate: 1000  # Hz — matches EtherCAT cycle time
+    update_rate: 100  # Hz — matches MyActuator 10 ms cycle
+    thread_priority: 49  # SCHED_FIFO priority (kernel IRQs at 50)
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
-      publish_rate: 500
+      publish_rate: 100
 
-    left_arm_controller:
+    left_arm_group_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-left_arm_controller:
+left_arm_group_controller:
   ros__parameters:
     joints:
       - left_shoulder_pitch_joint_X6

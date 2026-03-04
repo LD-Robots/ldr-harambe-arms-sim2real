@@ -7,18 +7,26 @@ namespace arm_ethercat_safety
 
 void JointLimitMonitor::configure(const std::vector<JointLimits> & limits)
 {
-  limits_ = limits;
+  limits_.clear();
+  for (const auto & lim : limits) {
+    limits_[lim.joint_name] = lim;
+  }
 }
 
 std::vector<JointLimitMonitor::Violation> JointLimitMonitor::check(
+  const std::vector<std::string> & names,
   const std::vector<double> & positions,
   const std::vector<double> & velocities,
   const std::vector<double> & efforts)
 {
   violations_.clear();
 
-  for (size_t i = 0; i < limits_.size() && i < positions.size(); ++i) {
-    const auto & lim = limits_[i];
+  for (size_t i = 0; i < names.size() && i < positions.size(); ++i) {
+    auto it = limits_.find(names[i]);
+    if (it == limits_.end()) {
+      continue;  // Joint not in safety config (e.g. hand joints)
+    }
+    const auto & lim = it->second;
 
     // Position check
     if (positions[i] < lim.position_min || positions[i] > lim.position_max) {

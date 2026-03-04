@@ -1,0 +1,20 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: dual_arm_description
+    relative_path: urdf/dual_arm_base.xacro
+  srdf:
+    relative_path: config/robot_harambe_v0.3.srdf
+  package_settings:
+    author_name: ldr
+    author_email: ldr@ldr.ro
+    generated_timestamp: 1772614998
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+      - effort
+  modified_urdf:
+    xacros:
+      - control_xacro

@@ -25,7 +25,7 @@ rpdo:   # RxPDO 0x1600 — Master to Slave (16 bytes)
 tpdo:   # TxPDO 0x1A00 — Slave to Master (16 bytes)
   - index: 0x1a00
     channels:
-      - {index: 0x6041, sub_index: 0, type: uint16, state_interface: ~}
+      - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
       - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: 0.186573}
       - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.794e-5}
       - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02}
