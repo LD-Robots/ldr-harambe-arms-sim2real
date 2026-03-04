@@ -6,6 +6,7 @@
     <xacro:arg name="use_isaac" default="false" />
     <xacro:arg name="fixed_legs" default="true" />
     <xacro:arg name="readonly" default="false" />
+    <xacro:arg name="gravcomp" default="false" />
 
     <xacro:if value="$(arg use_isaac)">
         <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_isaac.xacro" />

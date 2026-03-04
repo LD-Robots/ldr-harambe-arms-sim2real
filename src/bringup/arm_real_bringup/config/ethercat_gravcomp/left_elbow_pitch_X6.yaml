@@ -25,7 +25,7 @@ assign_activate: 0x0300         # Enable DC sync (SYNC0 + SYNC1 for deterministi
 auto_fault_reset: true          # Automatically clear drive faults when detected
 auto_state_transitions: true    # Walk CiA 402 state machine to OPERATION_ENABLED on startup
                                 #   Set to false for read-only mode (stays in SWITCH_ON_DISABLED)
-mode_of_operation: 8            # 8 = CSP (Cyclic Synchronous Position) — drive follows position cmds
+mode_of_operation: 10            # 8 = CSP (Cyclic Synchronous Position) — drive follows position cmds
 
 # ─── SDO: One-time parameters written to drive at startup ───
 sdo:
@@ -65,7 +65,7 @@ rpdo:
       # [1 byte] Mode of operation (0x6060) — runtime-switchable via mode_controller
       #   Write 8 for CSP (position), 10 for CST (torque/gravity comp)
       #   default: 8 = startup fallback before any controller writes to this interface
-      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: mode_of_operation, default: 8}
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: mode_of_operation, default: 10}
 
       # [1 byte] Padding (0x5FF1) — unused, fills the 16-byte PDO frame
       - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}

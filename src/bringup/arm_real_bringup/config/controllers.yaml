@@ -1,5 +1,14 @@
 # Real hardware controller configuration — Left arm only
 # Update rate must match MyActuator RMD X V4 native rate and 0x60C2 SDO (10 ms)
+#
+# Three controllers claim DIFFERENT interfaces on the same joints (no conflicts):
+#   left_arm_group_controller  → position  (JTC, active in CSP mode)
+#   left_arm_effort_controller → effort    (inactive at startup, activate for CST/gravity comp)
+#   mode_controller            → mode_of_operation (always active, sets drive CiA 402 mode)
+#
+# Runtime mode switching:
+#   ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
+#   Values: 8 = CSP (position), 9 = CSV (velocity), 10 = CST (torque)
 
 controller_manager:
   ros__parameters:
@@ -12,6 +21,12 @@ controller_manager:
 
     left_arm_group_controller:
       type: joint_trajectory_controller/JointTrajectoryController
+
+    left_arm_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+
+    mode_controller:
+      type: forward_command_controller/ForwardCommandController
 
 left_arm_group_controller:
   ros__parameters:
@@ -32,3 +47,24 @@ left_arm_group_controller:
       goal_time: 0.0
     allow_partial_joints_goal: false
     allow_nonzero_velocity_at_trajectory_end: false
+
+left_arm_effort_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+
+mode_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+    interface_name: mode_of_operation

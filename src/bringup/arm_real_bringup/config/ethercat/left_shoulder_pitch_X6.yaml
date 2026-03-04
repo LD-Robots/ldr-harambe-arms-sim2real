@@ -62,8 +62,10 @@ rpdo:
       # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 50%)
       - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 500}
 
-      # [1 byte] Mode of operation (0x6060) — 8 = CSP, re-sent every cycle
-      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: ~,        default: 8}
+      # [1 byte] Mode of operation (0x6060) — runtime-switchable via mode_controller
+      #   Write 8 for CSP (position), 10 for CST (torque/gravity comp)
+      #   default: 8 = startup fallback before any controller writes to this interface
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: mode_of_operation, default: 8}
 
       # [1 byte] Padding (0x5FF1) — unused, fills the 16-byte PDO frame
       - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}

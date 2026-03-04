@@ -4,12 +4,14 @@
     <!-- Uses ethercat_driver_ros2 (ICube-Robotics) with EcCiA402Drive per joint -->
     <xacro:macro name="dual_arm_ros2_control_real">
 
-        <!-- Select config directory and frequency based on readonly mode -->
+        <!-- Select config directory based on operating mode -->
         <xacro:property name="config_dir" value="ethercat"/>
         <xacro:property name="ctrl_freq" value="100"/>
         <xacro:if value="$(arg readonly)">
             <xacro:property name="config_dir" value="ethercat_readonly"/>
-            <xacro:property name="ctrl_freq" value="100"/>
+        </xacro:if>
+        <xacro:if value="$(arg gravcomp)">
+            <xacro:property name="config_dir" value="ethercat_gravcomp"/>
         </xacro:if>
 
         <!-- Left arm — 6 DOF EtherCAT actuators (MyActuator RMD X V4) -->
@@ -22,6 +24,8 @@
 
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
@@ -36,6 +40,8 @@
 
             <joint name="left_shoulder_roll_joint_X6">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
@@ -50,6 +56,8 @@
 
             <joint name="left_shoulder_yaw_joint_X4">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
@@ -64,6 +72,8 @@
 
             <joint name="left_elbow_pitch_joint_X6">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
@@ -78,6 +88,8 @@
 
             <joint name="left_wrist_yaw_joint_X4">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
@@ -92,6 +104,8 @@
 
             <joint name="left_wrist_roll_joint_X4">
                 <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>

@@ -7,8 +7,10 @@ EtherCAT driver stack for the left arm's 6 MyActuator RMD X V4 actuators, using 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  ros2_control  (controller_manager @ 100 Hz)                     │
-│    ├── joint_state_broadcaster  → /joint_states (100 Hz)         │
-│    └── left_arm_controller      → JointTrajectoryController      │
+│    ├── joint_state_broadcaster    → /joint_states (100 Hz)       │
+│    ├── left_arm_group_controller  → JTC (position, active)       │
+│    ├── left_arm_effort_controller → Effort (torque, inactive)    │
+│    └── mode_controller            → Forward (mode_of_operation)  │
 ├──────────────────────────────────────────────────────────────────┤
 │  ethercat_driver/EthercatDriver  (ros2_control SystemInterface)  │
 │    └── 6 × EcCiA402Drive modules (one per joint)                 │
@@ -102,9 +104,12 @@ Loaded when `dual_arm.urdf.xacro use_sim:=false`. Defines one `<ros2_control>` b
 
     <joint name="left_shoulder_pitch_joint_X6">
         <command_interface name="position"/>
+        <command_interface name="effort"/>
+        <command_interface name="mode_of_operation"/>
         <state_interface name="position"/>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
+        <state_interface name="status_word"/>
         <ec_module name="LeftShoulderPitch">
             <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
             <param name="alias">0</param>
@@ -112,9 +117,14 @@ Loaded when `dual_arm.urdf.xacro use_sim:=false`. Defines one `<ros2_control>` b
             <param name="slave_config">$(find arm_real_bringup)/config/ethercat/left_shoulder_pitch_X6.yaml</param>
         </ec_module>
     </joint>
-    <!-- ... 5 more joints ... -->
+    <!-- ... 5 more joints (same 3 command + 4 state interfaces each) ... -->
 </ros2_control>
 ```
+
+Three command interfaces per joint enable runtime mode switching:
+- `position` — claimed by `left_arm_group_controller` (JTC, CSP mode)
+- `effort` — claimed by `left_arm_effort_controller` (effort controller, CST mode)
+- `mode_of_operation` — claimed by `mode_controller` (sets CiA 402 mode at runtime)
 
 Each `<ec_module>` references a per-joint YAML slave config.
 
@@ -147,7 +157,7 @@ rpdo:   # Master → Slave (16 bytes)
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: 20861.0}   # target_velocity
       - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: 50.0}      # target_torque
       - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 800}      # max_torque
-      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: ~,        default: 8}        # mode (CSP)
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: mode_of_operation, default: 8}  # mode (CSP default, runtime-switchable)
       - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}        # padding
 
 tpdo:   # Slave → Master (16 bytes)
@@ -220,34 +230,41 @@ Offset formula: command `raw = rad × factor + offset_raw`, state `rad = raw × 
 
 **File:** `src/bringup/arm_real_bringup/config/controllers.yaml`
 
+Unified config with three controllers claiming **different** interfaces on the same joints (no conflicts):
+
 ```yaml
 controller_manager:
   ros__parameters:
     update_rate: 100  # Hz — matches MyActuator 10 ms cycle
+    thread_priority: 49
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
       publish_rate: 100
 
-    left_arm_controller:
+    left_arm_group_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-left_arm_controller:
+    left_arm_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+
+    mode_controller:
+      type: forward_command_controller/ForwardCommandController
+
+left_arm_group_controller:
   ros__parameters:
-    joints:
-      - left_shoulder_pitch_joint_X6
-      - left_shoulder_roll_joint_X6
-      - left_shoulder_yaw_joint_X4
-      - left_elbow_pitch_joint_X6
-      - left_wrist_yaw_joint_X4
-      - left_wrist_roll_joint_X4
+    joints: [left_shoulder_pitch_joint_X6, ..., left_wrist_roll_joint_X4]
     command_interfaces: [position]
-    state_interfaces: [position, velocity, effort]
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
-    allow_partial_joints_goal: false
-    allow_nonzero_velocity_at_trajectory_end: false
+    state_interfaces: [position, velocity]
+
+left_arm_effort_controller:
+  ros__parameters:
+    joints: [left_shoulder_pitch_joint_X6, ..., left_wrist_roll_joint_X4]
+
+mode_controller:
+  ros__parameters:
+    joints: [left_shoulder_pitch_joint_X6, ..., left_wrist_roll_joint_X4]
+    interface_name: mode_of_operation
 ```
 
 ### Safety Limits
@@ -358,7 +375,7 @@ OPERATION_ENABLED       ←  status_word bit check confirms
 | 6 | 0x60FF | int32 | Target velocity |
 | 10 | 0x6071 | int16 | Target torque |
 | 12 | 0x6072 | int16 | Max torque |
-| 14 | 0x6060 | int8 | Mode of operation (8=CSP) |
+| 14 | 0x6060 | int8 | Mode of operation (8=CSP, 10=CST, runtime-switchable) |
 | 15 | 0x5FF1 | int8 | Padding |
 
 ### TxPDO 0x1A00 — Slave to Master (16 bytes)
@@ -393,20 +410,54 @@ Verifies:
 ### Launch
 
 ```bash
+# Full control — CSP mode (position), homing sequence on startup
 ros2 launch arm_real_bringup arm_real.launch.py
+
+# Gravity-compensated recording — CST mode (torque)
+ros2 launch arm_real_bringup recording.launch.py
 ```
 
-Startup sequence:
+**arm_real.launch.py** startup sequence:
 1. `robot_state_publisher` — publishes URDF TF (use_sim:=false variant)
 2. `ros2_control_node` — loads `EthercatDriver` plugin, initializes EtherCAT master, activates slaves
-3. `joint_state_broadcaster` — spawned after control node ready
-4. `left_arm_controller` — spawned after JSB ready
-5. `safety_monitor` — launched in parallel via included launch file
+3. `joint_state_broadcaster` — spawned after 2s delay
+4. `mode_controller` + `left_arm_group_controller` + `left_arm_effort_controller` (inactive) — spawned after JSB
+5. `homing_sequence` — runs after controllers, moves to URDF zero at 0.2 rad/s
+6. `safety_monitor` — launched in parallel via included launch file
+
+**recording.launch.py** startup sequence:
+1–3. Same as above
+4. `mode_controller` + `left_arm_effort_controller` — spawned after JSB
+5. Set mode to CST via `ros2 topic pub --once /mode_controller/commands ... {data: [10,10,10,10,10,10]}`
+6. `gravity_comp_node` — starts after mode switch, publishes gravity compensation torques
+
+### Dynamic Mode Switching (CSP ↔ CST)
+
+Mode switching happens at runtime via the `mode_controller` (ForwardCommandController on `mode_of_operation` interface). No restart required.
+
+**Switch to CST (torque/gravity comp):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_group_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
+ros2 control switch_controllers --activate left_arm_effort_controller
+```
+
+**Switch back to CSP (position control):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_effort_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [8,8,8,8,8,8]}"
+ros2 control switch_controllers --activate left_arm_group_controller
+```
+
+**How it works internally:**
+- The mode_of_operation PDO channel (0x6060) has `command_interface: mode_of_operation` — when a controller writes to it, the PDO sends that value; otherwise `default: 8` (CSP) is sent as fallback
+- `EcCiA402Drive::processData()` reads `mode_of_operation_display_` from TxPDO (0x6061) — when the drive reports CST, position commands are automatically overridden with `last_position_` to prevent jumps
+- Mode values: **8** = CSP, **9** = CSV, **10** = CST
 
 ### Verifying
 
 ```bash
-ros2 control list_controllers          # Should show left_arm_controller active
+ros2 control list_controllers          # Should show 3 controllers (mode_controller active, effort inactive/active)
 ros2 topic hz /joint_states            # Should show ~100 Hz
 ros2 topic echo /safety/status         # data: true (system safe)
 ros2 topic echo /diagnostics           # Per-subsystem status

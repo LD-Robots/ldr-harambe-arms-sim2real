@@ -4,6 +4,7 @@
     <!-- Public args so launches can change them -->
     <xacro:arg name="robot_name" default="dual_arm_description"/>
     <xacro:arg name="readonly" default="false"/>
+    <xacro:arg name="gravcomp" default="false"/>
 
     <!-- Bring in base structure (links, joints, hands) -->
     <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />

@@ -81,6 +81,33 @@ def generate_launch_description():
         output="screen",
     )
 
+    # Mode controller — always active, enables runtime CSP/CST switching
+    # Publish to /mode_controller/commands to change mode:
+    #   Float64MultiArray data: [8,8,8,8,8,8] = CSP, [10,10,10,10,10,10] = CST
+    mode_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "mode_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    # Effort controller — inactive at startup, activate for CST/gravity comp mode
+    effort_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "left_arm_effort_controller",
+            "--inactive",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
     # Homing sequence — slowly move to URDF zero before MoveIt is launched
     homing_sequence_node = Node(
         package="arm_real_bringup",
@@ -104,10 +131,14 @@ def generate_launch_description():
         actions=[joint_state_broadcaster_spawner],
     )
 
-    start_left_arm_after_jsb = RegisterEventHandler(
+    start_controllers_after_jsb = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
-            on_exit=[left_arm_controller_spawner],
+            on_exit=[
+                mode_controller_spawner,
+                left_arm_controller_spawner,
+                effort_controller_spawner,
+            ],
         )
     )
 
@@ -152,9 +183,9 @@ def generate_launch_description():
         # ros2_control with EtherCAT hardware interface
         ros2_control_node,
 
-        # Sequential controller spawning (TimerAction → JSB → controller → homing)
+        # Sequential controller spawning (TimerAction → JSB → controllers → homing)
         delayed_jsb_spawner,
-        start_left_arm_after_jsb,
+        start_controllers_after_jsb,
         start_homing_after_controller,
 
         # Safety system

@@ -138,7 +138,7 @@ Located in `src/simulation/arm_gazebo/worlds/`: `lab-ldr.sdf` (default), `lab2.s
 
 ### URDF Switching
 
-`dual_arm.urdf.xacro use_sim:=false` loads `ros2_control_real.xacro` with the `ethercat_driver/EthercatDriver` plugin. Each joint has an `<ec_module>` referencing a per-joint YAML slave config via `EcCiA402Drive`. `use_sim:=true` loads Gazebo (unchanged).
+`dual_arm.urdf.xacro use_sim:=false` loads `ros2_control_real.xacro` with the `ethercat_driver/EthercatDriver` plugin. Each joint exports three command interfaces (`position`, `effort`, `mode_of_operation`) and has an `<ec_module>` referencing a per-joint YAML slave config via `EcCiA402Drive`. `use_sim:=true` loads Gazebo (unchanged).
 
 An additional `readonly:=true` xacro arg selects read-only slave configs (`ethercat_readonly/`) that keep drives in SWITCH_ON_DISABLED state.
 
@@ -148,8 +148,11 @@ An additional `readonly:=true` xacro arg selects read-only slave configs (`ether
 # Pre-flight check
 bash $(ros2 pkg prefix arm_real_bringup)/share/arm_real_bringup/scripts/check_ethercat.sh
 
-# Full control (enables drives, 100 Hz)
+# Full control — CSP mode (position), enables drives, 100 Hz
 ros2 launch arm_real_bringup arm_real.launch.py
+
+# Gravity-compensated recording — CST mode (torque), enables drives, 100 Hz
+ros2 launch arm_real_bringup recording.launch.py
 
 # Read-only position viewer (drives stay disabled, 100 Hz)
 ros2 launch arm_real_bringup position_viewer.launch.py
@@ -159,12 +162,12 @@ ros2 launch arm_real_bringup position_viewer.launch.py
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config: PDO mapping, factors, offsets (full control) |
+| `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config: PDO mapping, factors, offsets, mode_of_operation interface |
 | `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat_readonly/` | Same but `auto_state_transitions: false` (read-only) |
-| `controllers.yaml` | `arm_real_bringup/config/` | Real hardware controllers (100 Hz update rate) |
+| `controllers.yaml` | `arm_real_bringup/config/` | Unified controllers: JTC (position), effort, mode_controller (100 Hz) |
 | `controllers_viewer.yaml` | `arm_real_bringup/config/` | Read-only viewer (JSB only, 100 Hz) |
 | `safety_limits.yaml` | `arm_ethercat_safety/config/` | Per-joint position/velocity/torque safety limits |
-| `ros2_control_real.xacro` | `dual_arm_description/urdf/macros/` | URDF hardware plugin definition |
+| `ros2_control_real.xacro` | `dual_arm_description/urdf/macros/` | URDF hardware plugin definition (position + effort + mode_of_operation) |
 
 ### Motor Specs & Calibration
 
@@ -196,7 +199,35 @@ Offsets are encoded in each per-joint YAML slave config as `offset` fields on th
 
 ### Per-Joint Slave Config Format
 
-Each YAML file in `arm_real_bringup/config/ethercat/` defines: vendor/product ID, DC sync, SDO initialization, RxPDO channels (command interfaces with factors and offsets), TxPDO channels (state interfaces with factors and offsets). Direction reversal is achieved by negating all factors. See `docs/ETHERCAT.md` for the full annotated example.
+Each YAML file in `arm_real_bringup/config/ethercat/` defines: vendor/product ID, DC sync, SDO initialization, RxPDO channels (command interfaces with factors and offsets), TxPDO channels (state interfaces with factors and offsets). Direction reversal is achieved by negating all factors. The mode_of_operation PDO channel (0x6060) is exposed as a `command_interface: mode_of_operation` for runtime mode switching. See `docs/ETHERCAT.md` for the full annotated example.
+
+### Dynamic Mode Switching (CSP ↔ CST)
+
+CiA 402 modes are switched at runtime without restarting. Three ros2_control controllers claim **different** interfaces on the same joints (no conflicts):
+
+| Controller | Interface | Purpose | Startup State |
+|------------|-----------|---------|---------------|
+| `left_arm_group_controller` | position | JointTrajectoryController for CSP | active |
+| `left_arm_effort_controller` | effort | JointGroupEffortController for CST | inactive |
+| `mode_controller` | mode_of_operation | ForwardCommandController to set CiA 402 mode | active |
+
+**Switch to CST (torque/gravity comp):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_group_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
+ros2 control switch_controllers --activate left_arm_effort_controller
+```
+
+**Switch back to CSP (position control):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_effort_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [8,8,8,8,8,8]}"
+ros2 control switch_controllers --activate left_arm_group_controller
+```
+
+Mode values: **8** = CSP (Cyclic Synchronous Position), **9** = CSV (Cyclic Synchronous Velocity), **10** = CST (Cyclic Synchronous Torque).
+
+The existing `EcCiA402Drive::processData()` handles mode switching automatically — when the drive reports CST mode via TxPDO (0x6061), position commands are overridden with `last_position_` to prevent jumps.
 
 ### MyActuator Protocol Reference
 
