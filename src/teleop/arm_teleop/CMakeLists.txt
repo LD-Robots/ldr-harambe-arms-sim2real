@@ -38,6 +38,7 @@ install(
     scripts/realsense_skeleton_teleop.py
     scripts/skeleton_calibration.py
     scripts/robot_pose_calibration.py
+    scripts/servo_hand_tracking_teleop.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

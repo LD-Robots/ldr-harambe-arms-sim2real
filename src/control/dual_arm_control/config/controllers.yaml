@@ -18,6 +18,12 @@ controller_manager:
     right_hand_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
+    left_servo_controller:
+      type: forward_command_controller/ForwardCommandController
+
+    right_servo_controller:
+      type: forward_command_controller/ForwardCommandController
+
 
 # Left Arm Trajectory Controller
 left_arm_controller:
@@ -84,6 +90,30 @@ left_hand_controller:
       goal_time: 0.0
     allow_partial_joints_goal: false
     allow_integration_in_goal_trajectories: true
+
+# Left Servo Forward Command Controller (for MoveIt Servo)
+left_servo_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+    interface_name: position
+
+# Right Servo Forward Command Controller (for MoveIt Servo)
+right_servo_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+    interface_name: position
 
 # Right Hand Trajectory Controller
 right_hand_controller:

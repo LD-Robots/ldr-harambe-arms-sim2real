@@ -25,6 +25,8 @@
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>image_geometry</exec_depend>
 
   <!-- pip install pyrealsense2 mediapipe opencv-python numpy -->
 
