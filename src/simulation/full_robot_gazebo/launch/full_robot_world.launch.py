@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from ament_index_python.packages import get_package_prefix
 import os
@@ -15,12 +16,14 @@ def generate_launch_description():
     # Set GZ_SIM_RESOURCE_PATH so Gazebo can resolve model:// URIs
     install_dir_full_robot = get_package_prefix('full_robot_description')
     install_dir_hand = get_package_prefix('hand_description')
+    install_dir_imu = get_package_prefix('imu_description')
 
     gz_resource_path = SetEnvironmentVariable(
         name='GZ_SIM_RESOURCE_PATH',
         value=':'.join([
             os.path.join(install_dir_full_robot, 'share'),
             os.path.join(install_dir_hand, 'share'),
+            os.path.join(install_dir_imu, 'share'),
         ])
     )
 
@@ -67,6 +70,15 @@ def generate_launch_description():
         }.items()
     )
 
+    # IMU bridge: Gazebo Harmonic -> ROS 2
+    imu_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='imu_bridge',
+        arguments=['/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU'],
+        output='screen',
+    )
+
     return LaunchDescription([
         gz_resource_path,
         world_arg,
@@ -74,4 +86,5 @@ def generate_launch_description():
         gazebo,
         clock_bridge,
         spawn_robot,
+        imu_bridge,
     ])
