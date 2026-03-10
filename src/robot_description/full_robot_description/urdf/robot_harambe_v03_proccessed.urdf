@@ -292,42 +292,48 @@
     <parent link="urdf_l_lower_forearm_assembly" />
     <child link="urdf_l_wrist_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+    <limit effort="10.5" velocity="8.69" lower="-1.57" upper="1.57" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="left_wrist_yaw_joint_X4" type="revolute">
     <origin xyz="0.0391738 -0.035 -0.158223" rpy="-0.142861 -0.19688 0.634041" />
     <parent link="urdf_l_upper_forearm_assembly" />
     <child link="urdf_l_lower_forearm_assembly" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-2.36" upper="2.36" />
+    <limit effort="10.5" velocity="8.69" lower="-2.36" upper="2.36" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="left_elbow_pitch_joint_X6" type="revolute">
     <origin xyz="0.019337 0.0291733 -0.075" rpy="0 -0.0190902 -0.585348" />
     <parent link="urdf_l_elbow_assembly" />
     <child link="urdf_l_upper_forearm_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-1.31" upper="1.83" />
+    <limit effort="20" velocity="16.02" lower="-1.31" upper="1.83" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <joint name="left_shoulder_yaw_joint_X4" type="revolute">
     <origin xyz="-0.046 0.0343048 -0.161394" rpy="0.209376 0.00530409 -0.0249664" />
     <parent link="urdf_l_upper_arm_assembly" />
     <child link="urdf_l_elbow_assembly" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-1.75" upper="2.97" />
+    <limit effort="10.5" velocity="8.69" lower="-1.75" upper="2.97" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="left_shoulder_roll_joint_X6" type="revolute">
     <origin xyz="0.0456571 0.07 0.00560599" rpy="0 -0.122173 0" />
     <parent link="urdf_l_shoulder_assembly" />
     <child link="urdf_l_upper_arm_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-0.21" upper="2.93" />
+    <limit effort="20" velocity="16.02" lower="-0.21" upper="2.93" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <joint name="left_shoulder_pitch_joint_X6" type="revolute">
     <origin xyz="0 0.1755 0.423977" rpy="0 0 0" />
     <parent link="urdf_simplified_torso" />
     <child link="urdf_l_shoulder_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-3.02" upper="1.69" />
+    <limit effort="20" velocity="16.02" lower="-3.02" upper="1.69" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <link name="urdf_r_shoulder_assembly">
     <inertial>
@@ -511,49 +517,56 @@
     <parent link="urdf_r_lower_forearm_assembly" />
     <child link="urdf_r_wrist_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+    <limit effort="10.5" velocity="8.69" lower="-1.57" upper="1.57" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="right_wrist_yaw_joint_X4" type="revolute">
     <origin xyz="0.0403763 0.04 -0.163076" rpy="0.142857 -0.196885 -0.634033" />
     <parent link="urdf_r_upper_forearm_assembly" />
     <child link="urdf_r_lower_forearm_assembly" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-2.36" upper="2.36" />
+    <limit effort="10.5" velocity="8.69" lower="-2.36" upper="2.36" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="right_elbow_pitch_joint_X6" type="revolute">
     <origin xyz="0.0220994 -0.0333409 -0.065" rpy="0 -0.019088 0.585341" />
     <parent link="urdf_r_elbow_assembly" />
     <child link="urdf_r_upper_forearm_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-1.31" upper="1.83" />
+    <limit effort="20" velocity="16.02" lower="-1.31" upper="1.83" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <joint name="right_shoulder_yaw_joint_X4" type="revolute">
     <origin xyz="-0.046 -0.0353456 -0.166285" rpy="-0.209378 0.00530246 0.0249661" />
     <parent link="urdf_r_upper_arm_assembly" />
     <child link="urdf_r_elbow_assembly" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-2.97" upper="1.75" />
+    <limit effort="10.5" velocity="8.69" lower="-2.97" upper="1.75" />
+    <dynamics friction="1.14" damping="0.114" />
   </joint>
   <joint name="right_shoulder_roll_joint_X6" type="revolute">
     <origin xyz="0.0456571 -0.07 0.00560599" rpy="0 -0.122173 0" />
     <parent link="urdf_r_shoulder_assembly" />
     <child link="urdf_r_upper_arm_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-2.93" upper="0.21" />
+    <limit effort="20" velocity="16.02" lower="-2.93" upper="0.21" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <joint name="right_shoulder_pitch_joint_X6" type="revolute">
     <origin xyz="0 -0.1755 0.423977" rpy="0 0 0" />
     <parent link="urdf_simplified_torso" />
     <child link="urdf_r_shoulder_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-3.02" upper="1.69" />
+    <limit effort="20" velocity="16.02" lower="-3.02" upper="1.69" />
+    <dynamics friction="1.6" damping="0.16" />
   </joint>
   <joint name="waist_yaw_joint" type="revolute">
     <origin xyz="0.0333787 -0.000698852 -0.300748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_simplified_torso" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-1.57" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <link name="urdf_hip_assembly">
     <inertial>
@@ -773,42 +786,48 @@
     <parent link="urdf_ankle_assembly" />
     <child link="urdf_foot_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+    <limit effort="43" velocity="13.3" lower="-0.79" upper="0.79" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_ankle_pitch_joint" type="revolute">
     <origin xyz="-1.45092e-06 -0.051 -0.395" rpy="0 0 0" />
     <parent link="urdf_l_tibia_assembly" />
     <child link="urdf_ankle_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+    <limit effort="43" velocity="13.3" lower="-0.79" upper="0.79" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_knee_joint" type="revolute">
     <origin xyz="0 0.055 -0.113" rpy="0 0 0" />
     <parent link="urdf_lower_femur_assembly" />
     <child link="urdf_l_tibia_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-0.17" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-0.17" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_hip_yaw_joint" type="revolute">
     <origin xyz="-0.053 -7.97086e-07 -0.217" rpy="0 0 0" />
     <parent link="urdf_l_upper_femur_assembly" />
     <child link="urdf_lower_femur_assembly" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-1.57" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_hip_roll_joint" type="revolute">
     <origin xyz="0.055 0.073 0" rpy="0 0 0" />
     <parent link="urdf_hip_assembly" />
     <child link="urdf_l_upper_femur_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-0.35" upper="3.14" />
+    <limit effort="43" velocity="13.3" lower="-0.35" upper="3.14" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_hip_pitch_joint" type="revolute">
     <origin xyz="0.0333787 0.111301 -0.467748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_hip_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-2.53" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-2.53" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <link name="urdf_hip_assembly_2">
     <inertial>
@@ -1023,46 +1042,52 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_pitch_joint" type="revolute">
+  <joint name="right_ankle_roll_joint" type="revolute">
     <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0" />
     <parent link="urdf_ankle_assembly_2" />
     <child link="urdf_foot_assembly_2" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+    <limit effort="43" velocity="13.3" lower="-0.79" upper="0.79" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
-  <joint name="right_ankle_roll_joint" type="revolute">
+  <joint name="right_ankle_pitch_joint" type="revolute">
     <origin xyz="-4.02748e-07 0.059 -0.395" rpy="0 0 0" />
     <parent link="urdf_r_tibia_assembly" />
     <child link="urdf_ankle_assembly_2" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
+    <limit effort="43" velocity="13.3" lower="-0.79" upper="0.79" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="right_knee_joint" type="revolute">
     <origin xyz="0 -0.055 -0.113" rpy="0 0 0" />
     <parent link="urdf_lower_femur_assembly_2" />
     <child link="urdf_r_tibia_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-0.17" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-0.17" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="right_hip_yaw_joint" type="revolute">
     <origin xyz="-0.053 7.97086e-07 -0.217" rpy="0 0 0" />
     <parent link="urdf_r_upper_femur_assemby" />
     <child link="urdf_lower_femur_assembly_2" />
     <axis xyz="0 0 1" />
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-1.57" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="right_hip_roll_joint" type="revolute">
     <origin xyz="0.055 -0.078 0" rpy="0 0 0" />
     <parent link="urdf_hip_assembly_2" />
     <child link="urdf_r_upper_femur_assemby" />
     <axis xyz="1 0 0" />
-    <limit effort="100" velocity="100" lower="-3.14" upper="0.35" />
+    <limit effort="43" velocity="13.3" lower="-3.14" upper="0.35" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="right_hip_pitch_joint" type="revolute">
     <origin xyz="0.0333787 -0.107699 -0.467748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_hip_assembly_2" />
     <axis xyz="0 1 0" />
-    <limit effort="100" velocity="100" lower="-2.53" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="-2.53" upper="1.57" />
+    <dynamics friction="3.21" damping="0.321" />
   </joint>
 </robot>
