@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="harambe_full_robot">
+
+  <!-- Control mode: "position" or "effort" -->
+  <xacro:arg name="control_mode" default="position" />
+
+  <!-- Full robot: all joints active (not fixed) -->
+  <xacro:arg name="fixed_legs" default="false" />
+  <xacro:arg name="only_left" default="false" />
+
+  <!-- Body (base + torso) -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
+
+  <!-- Left Arm -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/left_arm_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/left_arm_joints.xacro" />
+
+  <!-- Right Arm -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/right_arm_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/right_arm_joints.xacro" />
+
+  <!-- Left Foot -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/left_foot_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/left_foot_joints.xacro" />
+
+  <!-- Right Foot -->
+  <xacro:include filename="$(find full_robot_description)/urdf/links/right_foot_links.xacro" />
+  <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
+
+  <!-- Hands -->
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
+
+  <xacro:inspire_hand_left
+      parent="urdf_l_wrist_assembly"
+      prefix="left_"
+      mount_x="-0.034"
+      mount_y="0.015"
+      mount_z="-0.06"
+      mount_roll="1.424576"
+      mount_pitch="-0.201364"
+      mount_yaw="2.205507"/>
+
+  <xacro:inspire_hand_right
+      parent="urdf_r_wrist_assembly"
+      prefix="right_"
+      mount_x="-0.029"
+      mount_y="-0.011"
+      mount_z="-0.06"
+      mount_roll="1.717027"
+      mount_pitch="-0.201373"
+      mount_yaw="-2.205496"/>
+
+  <!-- Fix robot base to world frame -->
+  <link name="world"/>
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="urdf_base"/>
+  </joint>
+
+  <!-- ros2_control: position mode -->
+  <xacro:if value="${'$(arg control_mode)' == 'position'}">
+    <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_position.xacro" />
+    <xacro:full_robot_ros2_control_position />
+  </xacro:if>
+
+  <!-- ros2_control: effort mode -->
+  <xacro:if value="${'$(arg control_mode)' == 'effort'}">
+    <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_effort.xacro" />
+    <xacro:full_robot_ros2_control_effort />
+  </xacro:if>
+
+  <!-- Gazebo gz_ros2_control plugin -->
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find full_robot_gazebo)/config/controllers_$(arg control_mode).yaml</parameters>
+      <update_rate>100</update_rate>
+    </plugin>
+  </gazebo>
+
+</robot>
