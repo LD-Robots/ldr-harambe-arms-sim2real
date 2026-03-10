@@ -4,7 +4,7 @@
   <ns0:property name="leg_joint_type" value="${'fixed' if '$(arg fixed_legs)' == 'true' else 'revolute'}" />
   <ns0:arg name="only_left" default="true" />
   <ns0:property name="waist_joint_type" value="${'fixed' if '$(arg only_left)' == 'true' or '$(arg fixed_legs)' == 'true' else 'revolute'}" />
-  <joint name="waist_yaw_joint" type="${waist_joint_type}">
+  <joint name="waist_yaw_joint_X8" type="${waist_joint_type}">
     <origin xyz="0.0333787 -0.000698852 -0.300748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_simplified_torso" />
