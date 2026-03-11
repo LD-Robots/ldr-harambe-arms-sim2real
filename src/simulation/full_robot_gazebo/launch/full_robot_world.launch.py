@@ -70,12 +70,20 @@ def generate_launch_description():
         }.items()
     )
 
-    # IMU bridge: Gazebo Harmonic -> ROS 2
-    imu_bridge = Node(
+    # IMU bridges: Gazebo Harmonic -> ROS 2
+    pelvis_imu_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        name='imu_bridge',
-        arguments=['/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU'],
+        name='pelvis_imu_bridge',
+        arguments=['/pelvis_imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU'],
+        output='screen',
+    )
+
+    torso_imu_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='torso_imu_bridge',
+        arguments=['/torso_imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU'],
         output='screen',
     )
 
@@ -86,5 +94,6 @@ def generate_launch_description():
         gazebo,
         clock_bridge,
         spawn_robot,
-        imu_bridge,
+        pelvis_imu_bridge,
+        torso_imu_bridge,
     ])

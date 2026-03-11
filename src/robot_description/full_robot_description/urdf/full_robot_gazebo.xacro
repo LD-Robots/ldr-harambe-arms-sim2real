@@ -52,18 +52,25 @@
       mount_pitch="-0.201373"
       mount_yaw="-2.205496"/>
 
-  <!-- IMU sensor (BNO055) mounted on torso -->
+  <!-- IMU sensors (BNO055) -->
   <xacro:include filename="$(find imu_description)/urdf/bno055_imu.xacro" />
-  <xacro:bno055_imu name="torso_imu" parent="urdf_simplified_torso" topic="/imu/data" update_rate="100">
+
+  <!-- Pelvis IMU — raw sensor axes: x+=up, y+=right, z+=forward -->
+  <xacro:bno055_imu name="pelvis_imu" parent="urdf_simplified_torso" topic="/pelvis_imu/data" update_rate="100">
     <origin xyz="0.0735 0.0 -0.17" rpy="0 ${pi/2} ${pi}"/>
   </xacro:bno055_imu>
 
+  <!-- Torso IMU — raw sensor axes: x+=up, y+=left, z+=backward -->
+  <xacro:bno055_imu name="torso_imu" parent="urdf_simplified_torso" topic="/torso_imu/data" update_rate="100">
+    <origin xyz="0.0635 0.0 0.35" rpy="0 ${pi/2} 0"/>
+  </xacro:bno055_imu>
+
   <!-- Fix robot base to world frame -->
-  <link name="world"/>
+  <!-- <link name="world"/>
   <joint name="world_joint" type="fixed">
     <parent link="world"/>
     <child link="urdf_base"/>
-  </joint>
+  </joint> -->
 
   <!-- ros2_control: position mode -->
   <xacro:if value="${'$(arg control_mode)' == 'position'}">
