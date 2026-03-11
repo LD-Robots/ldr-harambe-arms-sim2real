@@ -1,30 +1,31 @@
 # Position controller configuration for Harambe full humanoid robot
 # 37 DOF: 1 waist + 6 left arm + 6 right arm + 6 left hand + 6 right hand + 6 left leg + 6 right leg
+# All controllers use JointGroupPositionController (direct position commands for RL policy)
 
 controller_manager:
   ros__parameters:
-    update_rate: 100  # Hz
+    update_rate: 1000  # Hz
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     left_arm_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
     right_arm_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
     left_hand_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
     right_hand_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
     legs_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
     whole_body_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: position_controllers/JointGroupPositionController
 
 
 left_arm_controller:
@@ -36,15 +37,6 @@ left_arm_controller:
       - left_elbow_pitch_joint_X6
       - left_wrist_yaw_joint_X4
       - left_wrist_roll_joint_X4
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
 
 right_arm_controller:
   ros__parameters:
@@ -55,15 +47,6 @@ right_arm_controller:
       - right_elbow_pitch_joint_X6
       - right_wrist_yaw_joint_X4
       - right_wrist_roll_joint_X4
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
 
 left_hand_controller:
   ros__parameters:
@@ -74,15 +57,6 @@ left_hand_controller:
       - left_middle_proximal_joint
       - left_ring_proximal_joint
       - left_pinky_proximal_joint
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
 
 right_hand_controller:
   ros__parameters:
@@ -93,15 +67,6 @@ right_hand_controller:
       - right_middle_proximal_joint
       - right_ring_proximal_joint
       - right_pinky_proximal_joint
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
 
 legs_controller:
   ros__parameters:
@@ -119,62 +84,32 @@ legs_controller:
       - right_knee_joint_X8
       - right_ankle_roll_joint_X4
       - right_ankle_pitch_joint_X4
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
 
 whole_body_controller:
   ros__parameters:
     joints:
-      - waist_yaw_joint_X8
-      - left_shoulder_pitch_joint_X6
-      - left_shoulder_roll_joint_X6
-      - left_shoulder_yaw_joint_X4
-      - left_elbow_pitch_joint_X6
-      - left_wrist_yaw_joint_X4
-      - left_wrist_roll_joint_X4
-      - right_shoulder_pitch_joint_X6
-      - right_shoulder_roll_joint_X6
-      - right_shoulder_yaw_joint_X4
-      - right_elbow_pitch_joint_X6
-      - right_wrist_yaw_joint_X4
-      - right_wrist_roll_joint_X4
-      - left_thumb_proximal_yaw_joint
-      - left_thumb_proximal_pitch_joint
-      - left_index_proximal_joint
-      - left_middle_proximal_joint
-      - left_ring_proximal_joint
-      - left_pinky_proximal_joint
-      - right_thumb_proximal_yaw_joint
-      - right_thumb_proximal_pitch_joint
-      - right_index_proximal_joint
-      - right_middle_proximal_joint
-      - right_ring_proximal_joint
-      - right_pinky_proximal_joint
-      - left_hip_pitch_joint_X8
-      - left_hip_roll_joint_X8
-      - left_hip_yaw_joint_X8
-      - left_knee_joint_X8
-      - left_ankle_roll_joint_X4
-      - left_ankle_pitch_joint_X4
-      - right_hip_pitch_joint_X8
-      - right_hip_roll_joint_X8
-      - right_hip_yaw_joint_X8
-      - right_knee_joint_X8
-      - right_ankle_roll_joint_X4
-      - right_ankle_pitch_joint_X4
-    command_interfaces:
-      - position
-    state_interfaces:
-      - position
-      - velocity
-    allow_nonzero_velocity_at_trajectory_end: true
-    constraints:
-      stopped_velocity_tolerance: 0.01
-      goal_time: 0.0
+      - left_hip_pitch_joint_X8       # 0
+      - right_hip_pitch_joint_X8      # 1
+      - waist_yaw_joint_X8            # 2
+      - left_hip_roll_joint_X8        # 3
+      - right_hip_roll_joint_X8       # 4
+      - left_shoulder_pitch_joint_X6  # 5
+      - right_shoulder_pitch_joint_X6 # 6
+      - left_hip_yaw_joint_X8        # 7
+      - right_hip_yaw_joint_X8       # 8
+      - left_shoulder_roll_joint_X6  # 9
+      - right_shoulder_roll_joint_X6 # 10
+      - left_knee_joint_X8           # 11
+      - right_knee_joint_X8          # 12
+      - left_shoulder_yaw_joint_X4   # 13
+      - right_shoulder_yaw_joint_X4  # 14
+      - left_ankle_pitch_joint_X4    # 15
+      - right_ankle_pitch_joint_X4   # 16
+      - left_elbow_pitch_joint_X6    # 17
+      - right_elbow_pitch_joint_X6   # 18
+      - left_ankle_roll_joint_X4     # 19
+      - right_ankle_roll_joint_X4    # 20
+      - left_wrist_yaw_joint_X4      # 21
+      - right_wrist_yaw_joint_X4     # 22
+      - left_wrist_roll_joint_X4     # 23
+      - right_wrist_roll_joint_X4    # 24

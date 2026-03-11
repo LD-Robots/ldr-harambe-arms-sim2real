@@ -75,79 +75,12 @@ def generate_launch_description():
         output="screen",
     )
 
-    left_arm_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "left_arm_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
-            "--switch-timeout", "20",
-            "--service-call-timeout", "60",
-        ],
-        output="screen",
-    )
-
-    right_arm_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "right_arm_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
-            "--switch-timeout", "20",
-            "--service-call-timeout", "60",
-        ],
-        output="screen",
-    )
-
-    left_hand_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "left_hand_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
-            "--switch-timeout", "20",
-            "--service-call-timeout", "60",
-        ],
-        output="screen",
-    )
-
-    right_hand_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "right_hand_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
-            "--switch-timeout", "20",
-            "--service-call-timeout", "60",
-        ],
-        output="screen",
-    )
-
-    legs_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "legs_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "20",
-            "--switch-timeout", "20",
-            "--service-call-timeout", "60",
-        ],
-        output="screen",
-    )
-
-    # Whole body controller - spawned inactive (cannot coexist with per-group controllers)
-    # Activate with: ros2 control switch_controllers --activate whole_body_controller --deactivate left_arm_controller right_arm_controller left_hand_controller right_hand_controller legs_controller
+    # Single whole_body_controller for RL policy deployment
     whole_body_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
             "whole_body_controller",
-            "--inactive",
             "--controller-manager", "/controller_manager",
             "--controller-manager-timeout", "20",
             "--switch-timeout", "20",
@@ -156,7 +89,7 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Chain: spawn_entity -> (5s) -> JSB -> left_arm -> right_arm -> left_hand -> right_hand -> legs -> whole_body (inactive)
+    # Chain: spawn_entity -> (5s) -> JSB -> whole_body_controller
     start_jsb_after_spawn = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=spawn_entity,
@@ -164,44 +97,9 @@ def generate_launch_description():
         )
     )
 
-    start_left_arm_after_jsb = RegisterEventHandler(
+    start_whole_body_after_jsb = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
-            on_exit=[left_arm_controller_spawner],
-        )
-    )
-
-    start_right_arm_after_left_arm = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=left_arm_controller_spawner,
-            on_exit=[right_arm_controller_spawner],
-        )
-    )
-
-    start_left_hand_after_right_arm = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=right_arm_controller_spawner,
-            on_exit=[left_hand_controller_spawner],
-        )
-    )
-
-    start_right_hand_after_left_hand = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=left_hand_controller_spawner,
-            on_exit=[right_hand_controller_spawner],
-        )
-    )
-
-    start_legs_after_right_hand = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=right_hand_controller_spawner,
-            on_exit=[legs_controller_spawner],
-        )
-    )
-
-    start_whole_body_after_legs = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=legs_controller_spawner,
             on_exit=[whole_body_controller_spawner],
         )
     )
@@ -216,10 +114,5 @@ def generate_launch_description():
 
         # Sequential controller chain (triggered by events)
         start_jsb_after_spawn,
-        start_left_arm_after_jsb,
-        start_right_arm_after_left_arm,
-        start_left_hand_after_right_arm,
-        start_right_hand_after_left_hand,
-        start_legs_after_right_hand,
-        start_whole_body_after_legs,
+        start_whole_body_after_jsb,
     ])
