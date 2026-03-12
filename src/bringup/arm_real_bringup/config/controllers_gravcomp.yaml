@@ -1,5 +1,5 @@
 # Gravity compensation controller config — CST (torque) mode
-# Uses effort controller only (no position controller)
+# Uses effort controllers only (no position controllers)
 # Drives boot directly into CST mode via ethercat_gravcomp/ slave configs
 
 controller_manager:
@@ -12,6 +12,14 @@ controller_manager:
 
     left_arm_effort_controller:
       type: effort_controllers/JointGroupEffortController
+    right_arm_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    waist_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    left_leg_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    right_leg_effort_controller:
+      type: effort_controllers/JointGroupEffortController
 
 left_arm_effort_controller:
   ros__parameters:
@@ -22,3 +30,38 @@ left_arm_effort_controller:
       - left_elbow_pitch_joint_X6
       - left_wrist_yaw_joint_X4
       - left_wrist_roll_joint_X4
+
+right_arm_effort_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+
+waist_effort_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint
+
+left_leg_effort_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+
+right_leg_effort_controller:
+  ros__parameters:
+    joints:
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_roll_joint
+      # - right_ankle_pitch_joint  # uncomment when actuator arrives (bus 24)

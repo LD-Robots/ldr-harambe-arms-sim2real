@@ -21,6 +21,7 @@ install(
     scripts/demo_ethercat_status
     scripts/demo_joint_offset
     scripts/demo_joint_state
+    scripts/joint_calibration
   DESTINATION lib/${PROJECT_NAME}
 )
 

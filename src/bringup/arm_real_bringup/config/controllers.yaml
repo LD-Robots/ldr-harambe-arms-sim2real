@@ -1,13 +1,14 @@
-# Real hardware controller configuration — Left arm only
+# Real hardware controller configuration — Full body (25 DOF)
 # Update rate must match MyActuator RMD X V4 native rate and 0x60C2 SDO (10 ms)
 #
-# Three controllers claim DIFFERENT interfaces on the same joints (no conflicts):
-#   left_arm_group_controller  → position  (JTC, active in CSP mode)
-#   left_arm_effort_controller → effort    (inactive at startup, activate for CST/gravity comp)
-#   mode_controller            → mode_of_operation (always active, sets drive CiA 402 mode)
+# Controllers claim DIFFERENT interfaces on the same joints (no conflicts):
+#   *_group_controller   → position  (JTC, active in CSP mode)
+#   *_effort_controller  → effort    (inactive at startup, activate for CST/gravity comp)
+#   mode_controller      → mode_of_operation (always active, sets drive CiA 402 mode)
 #
-# Runtime mode switching:
-#   ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
+# Runtime mode switching (example for all joints):
+#   ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray \
+#     "{data: [10,10,10,10,10,10, 10,10,10,10,10,10, 10, 10,10,10,10,10,10, 10,10,10,10,10,10]}"
 #   Values: 8 = CSP (position), 9 = CSV (velocity), 10 = CST (torque)
 
 controller_manager:
@@ -19,14 +20,35 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
       publish_rate: 100
 
+    # Position controllers (JTC) — active in CSP mode
     left_arm_group_controller:
       type: joint_trajectory_controller/JointTrajectoryController
+    right_arm_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    waist_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    left_leg_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    right_leg_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
 
+    # Effort controllers — inactive at startup, activate for CST/gravity comp
     left_arm_effort_controller:
       type: effort_controllers/JointGroupEffortController
+    right_arm_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    waist_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    left_leg_effort_controller:
+      type: effort_controllers/JointGroupEffortController
+    right_leg_effort_controller:
+      type: effort_controllers/JointGroupEffortController
 
+    # Mode controller — always active, all 25 joints
     mode_controller:
       type: forward_command_controller/ForwardCommandController
+
+# ─── LEFT ARM (6 joints) ───
 
 left_arm_group_controller:
   ros__parameters:
@@ -58,13 +80,157 @@ left_arm_effort_controller:
       - left_wrist_yaw_joint_X4
       - left_wrist_roll_joint_X4
 
+# ─── RIGHT ARM (6 joints) ───
+
+right_arm_group_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+right_arm_effort_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+
+# ─── WAIST (1 joint) ───
+
+waist_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+waist_effort_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint
+
+# ─── LEFT LEG (6 joints) ───
+
+left_leg_group_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+left_leg_effort_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+
+# ─── RIGHT LEG (6 joints) ───
+
+right_leg_group_controller:
+  ros__parameters:
+    joints:
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_roll_joint
+      # - right_ankle_pitch_joint  # uncomment when actuator arrives (bus 24)
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+right_leg_effort_controller:
+  ros__parameters:
+    joints:
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_roll_joint
+      # - right_ankle_pitch_joint  # uncomment when actuator arrives (bus 24)
+
+# ─── MODE CONTROLLER (all 25 joints) ───
+
 mode_controller:
   ros__parameters:
     joints:
+      # Left arm
       - left_shoulder_pitch_joint_X6
       - left_shoulder_roll_joint_X6
       - left_shoulder_yaw_joint_X4
       - left_elbow_pitch_joint_X6
       - left_wrist_yaw_joint_X4
       - left_wrist_roll_joint_X4
+      # Right arm
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      # Waist
+      - waist_yaw_joint
+      # Left leg
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+      # Right leg
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_roll_joint
+      # - right_ankle_pitch_joint  # uncomment when actuator arrives (bus 24)
     interface_name: mode_of_operation

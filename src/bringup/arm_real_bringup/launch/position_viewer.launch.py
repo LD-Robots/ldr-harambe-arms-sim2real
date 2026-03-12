@@ -27,6 +27,8 @@ def generate_launch_description():
         PathJoinSubstitution([pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false",
         " readonly:=true",
+        " only_left:=false",
+        " fixed_legs:=false",
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)

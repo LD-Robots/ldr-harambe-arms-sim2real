@@ -2,6 +2,7 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
     <!-- ros2_control interface for real EtherCAT hardware -->
     <!-- Uses ethercat_driver_ros2 (ICube-Robotics) with EcCiA402Drive per joint -->
+    <!-- All 25 actuators on a single EtherCAT bus (master_id=0) -->
     <xacro:macro name="dual_arm_ros2_control_real">
 
         <!-- Select config directory based on operating mode -->
@@ -14,13 +15,18 @@
             <xacro:property name="config_dir" value="ethercat_gravcomp"/>
         </xacro:if>
 
-        <!-- Left arm — 6 DOF EtherCAT actuators (MyActuator RMD X V4) -->
-        <ros2_control name="LeftArmSystem" type="system">
+        <!-- Full body — 25 DOF EtherCAT actuators (MyActuator RMD X V4) -->
+        <!-- Bus order: left arm (0-5) → right arm (6-11) → waist (12) → left leg (13-18) → right leg (19-24) -->
+        <ros2_control name="FullBodySystem" type="system">
             <hardware>
                 <plugin>ethercat_driver/EthercatDriver</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
             </hardware>
+
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- LEFT ARM — 6 joints (bus 0-5)                                  -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
 
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>
@@ -117,20 +123,315 @@
                     <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_wrist_roll_X4.yaml</param>
                 </ec_module>
             </joint>
-        </ros2_control>
 
-        <!-- Right arm — not actuated yet, state-only for visualization -->
-        <!-- Uncomment and add hardware plugin when right arm is connected -->
-        <!--
-        <ros2_control name="RightArmSystem" type="system">
-            <hardware>
-                <plugin>ethercat_driver/EthercatDriver</plugin>
-                <param name="master_id">0</param>
-                <param name="control_frequency">1000</param>
-            </hardware>
-            ... right arm joints (positions 6-11) ...
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- RIGHT ARM — 6 joints (bus 6-11)                                -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+
+            <joint name="right_shoulder_pitch_joint_X6">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightShoulderPitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">6</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_shoulder_pitch_X6.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_shoulder_roll_joint_X6">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightShoulderRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">7</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_shoulder_roll_X6.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_shoulder_yaw_joint_X4">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightShoulderYaw">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">8</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_shoulder_yaw_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_elbow_pitch_joint_X6">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightElbowPitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">9</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_elbow_pitch_X6.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_wrist_yaw_joint_X4">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightWristYaw">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">10</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_wrist_yaw_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_wrist_roll_joint_X4">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightWristRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">11</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_wrist_roll_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- WAIST — 1 joint (bus 12)                                       -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+
+            <joint name="waist_yaw_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="WaistYaw">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">12</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/waist_yaw_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- LEFT LEG — 6 joints (bus 13-18)                                -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+
+            <joint name="left_hip_pitch_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftHipPitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">13</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_hip_pitch_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="left_hip_roll_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftHipRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">14</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_hip_roll_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="left_hip_yaw_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftHipYaw">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">15</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_hip_yaw_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="left_knee_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftKnee">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">16</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_knee_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="left_ankle_pitch_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftAnklePitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">17</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_ankle_pitch_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="left_ankle_roll_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="LeftAnkleRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">18</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/left_ankle_roll_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- RIGHT LEG — 5 joints (bus 19-23)                               -->
+            <!-- NOTE: right_ankle_pitch (bus 24) not connected yet              -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+
+            <joint name="right_hip_pitch_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightHipPitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">19</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_hip_pitch_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_hip_roll_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightHipRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">20</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_hip_roll_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_hip_yaw_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightHipYaw">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">21</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_hip_yaw_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_knee_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightKnee">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">22</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_knee_X8.yaml</param>
+                </ec_module>
+            </joint>
+
+            <joint name="right_ankle_roll_joint">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightAnkleRoll">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">23</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_ankle_roll_X4.yaml</param>
+                </ec_module>
+            </joint>
+
+            <!-- TODO: Add right_ankle_pitch_joint (bus 24, X4) when actuator arrives -->
+
         </ros2_control>
-        -->
 
     </xacro:macro>
 </robot>

@@ -14,11 +14,13 @@ def generate_launch_description():
     pkg_arm_real_bringup = FindPackageShare("arm_real_bringup")
     pkg_arm_ethercat_safety = FindPackageShare("arm_ethercat_safety")
 
-    # Robot description from XACRO (real hardware variant)
+    # Robot description from XACRO (real hardware variant, full body)
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false",
+        " only_left:=false",
+        " fixed_legs:=false",
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -68,6 +70,7 @@ def generate_launch_description():
         output="screen",
     )
 
+    # Position controllers (JTC) — one per body part
     left_arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -81,9 +84,59 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Mode controller — always active, enables runtime CSP/CST switching
-    # Publish to /mode_controller/commands to change mode:
-    #   Float64MultiArray data: [8,8,8,8,8,8] = CSP, [10,10,10,10,10,10] = CST
+    right_arm_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "right_arm_group_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "20",
+            "--service-call-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    waist_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "waist_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "20",
+            "--service-call-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    left_leg_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "left_leg_group_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "20",
+            "--service-call-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    right_leg_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "right_leg_group_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+            "--switch-timeout", "20",
+            "--service-call-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    # Mode controller — always active, enables runtime CSP/CST switching for all 25 joints
     mode_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -95,12 +148,60 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Effort controller — inactive at startup, activate for CST/gravity comp mode
-    effort_controller_spawner = Node(
+    # Effort controllers — inactive at startup, activate for CST/gravity comp mode
+    left_arm_effort_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
             "left_arm_effort_controller",
+            "--inactive",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    right_arm_effort_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "right_arm_effort_controller",
+            "--inactive",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    waist_effort_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "waist_effort_controller",
+            "--inactive",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    left_leg_effort_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "left_leg_effort_controller",
+            "--inactive",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "60",
+        ],
+        output="screen",
+    )
+
+    right_leg_effort_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "right_leg_effort_controller",
             "--inactive",
             "--controller-manager", "/controller_manager",
             "--controller-manager-timeout", "60",
@@ -122,10 +223,10 @@ def generate_launch_description():
         }],
     )
 
-    # Chain: EtherCAT init (~30s) → JSB spawner → left_arm_controller spawner
+    # Chain: EtherCAT init (~30s) → JSB spawner → all controllers → homing
     # TimerAction gives EtherCAT time to scan slaves and configure PDOs.
     # The spawner's --controller-manager-timeout handles any remaining wait.
-    # Once JSB spawner exits (short-lived), left_arm_controller spawner starts.
+    # Once JSB spawner exits (short-lived), all other controller spawners start.
     delayed_jsb_spawner = TimerAction(
         period=2.0,
         actions=[joint_state_broadcaster_spawner],
@@ -137,7 +238,15 @@ def generate_launch_description():
             on_exit=[
                 mode_controller_spawner,
                 left_arm_controller_spawner,
-                effort_controller_spawner,
+                right_arm_controller_spawner,
+                waist_controller_spawner,
+                left_leg_controller_spawner,
+                right_leg_controller_spawner,
+                left_arm_effort_spawner,
+                right_arm_effort_spawner,
+                waist_effort_spawner,
+                left_leg_effort_spawner,
+                right_leg_effort_spawner,
             ],
         )
     )
@@ -157,7 +266,7 @@ def generate_launch_description():
     )
 
     # Joint State Publisher — fills in default values for non-EtherCAT joints
-    # (hands, right arm) so robot_state_publisher can compute full TF tree
+    # (hands) so robot_state_publisher can compute full TF tree
     joint_state_publisher = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",

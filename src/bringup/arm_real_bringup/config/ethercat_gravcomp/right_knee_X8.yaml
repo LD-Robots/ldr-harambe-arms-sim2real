@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ICube EtherCAT slave config — right_knee_joint
+# Motor: MyActuator RMD X8 V4 (gear ratio 19.612:1)
+# Bus position: 22 (slave #23rd on the EtherCAT bus)
+# Direction: +1 (uncalibrated — run demo_joint_offset to determine correct sign)
+#
+# COMMONLY MODIFIED VALUES:
+#   - offset (position cmd/state) — recalibrate with: demo_joint_offset
+#   - factor sign (±)             — negate ALL factors to flip direction
+#   - max_torque SDO value        — 400 = 40%, max 1000 = 100%
+#
+# POSITION FACTOR REFERENCE:
+#   X8 motor: 20861.0 counts/rad (cmd),  4.794e-5 rad/count (state) — same as X6
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── DEVICE IDENTITY ───
+vendor_id:  0x00202008          # MyActuator vendor ID (same for all motors)
+product_id: 0x00000000          # Product ID (0x0 = accept any product from this vendor)
+
+# ─── DISTRIBUTED CLOCK ───
+assign_activate: 0x0300         # Enable DC sync (SYNC0 + SYNC1 for deterministic timing)
+
+# ─── CiA 402 DRIVE BEHAVIOR ───
+auto_fault_reset: true          # Automatically clear drive faults when detected
+auto_state_transitions: true    # Walk CiA 402 state machine to OPERATION_ENABLED on startup
+                                #   Set to false for read-only mode (stays in SWITCH_ON_DISABLED)
+mode_of_operation: 10            # 10 = CST (Cyclic Synchronous Torque) — drive follows torque cmds
+
+# ─── SDO: One-time parameters written to drive at startup ───
+sdo:
+  # Max torque limit (obj 0x6072) — value in 0.1% units of rated torque
+  #   400 = 40% of rated torque. CHANGE THIS to allow more/less torque (max 1000 = 100%)
+  - {index: 0x6072, sub_index: 0, type: uint16, value: 400}
+  # Interpolation time period (obj 0x60C2) — defines the PDO cycle time
+  #   sub1=10, sub2=-3 → 10 × 10^(-3) s = 10 ms = 100 Hz (must match ros2_control update rate)
+  - {index: 0x60C2, sub_index: 1, type: int8, value: 10}
+  - {index: 0x60C2, sub_index: 2, type: int8, value: -3}
+
+# ─── RxPDO: Commands sent FROM master TO drive every cycle (16 bytes total) ───
+rpdo:
+  - index: 0x1600              # PDO mapping index (fixed per MyActuator protocol, don't change)
+    channels:
+      # [2 bytes] Control word (0x6040) — CiA 402 state machine cmd (managed by driver, don't touch)
+      - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
+
+      # [4 bytes] Target position (0x607A) — MAIN POSITION COMMAND
+      #   factor: radians → raw encoder counts. Positive = uncalibrated direction.
+      #     X8 motor: ±20861.0 counts/rad
+      #   offset: calibrated zero offset in raw encoder counts (0 = uncalibrated)
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: 20861.0, offset: 0, default: 0}
+
+      # [4 bytes] Target velocity (0x60FF) — velocity feedforward command
+      #   Same factor magnitude as position. No offset needed.
+      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: 20861.0, default: 0}
+
+      # [2 bytes] Target torque (0x6071) — torque command in 0.1% of rated torque
+      #   factor: ±50.0 (sign matches motor direction)
+      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: 50.0,    default: 0}
+
+      # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 40%)
+      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 400}
+
+      # [1 byte] Mode of operation (0x6060) — runtime-switchable via mode_controller
+      #   Write 8 for CSP (position), 10 for CST (torque/gravity comp)
+      #   default: 10 = startup fallback before any controller writes to this interface
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: mode_of_operation, default: 10}
+
+      # [1 byte] Padding (0x5FF1) — unused, fills the 16-byte PDO frame
+      - {index: 0x5ff1, sub_index: 0, type: int8,   command_interface: ~,        default: 0}
+
+# ─── TxPDO: Status read FROM drive TO master every cycle (16 bytes total) ───
+tpdo:
+  - index: 0x1a00              # PDO mapping index (fixed per MyActuator protocol, don't change)
+    channels:
+      # [2 bytes] Status word (0x6041) — CiA 402 state + fault/warning bits
+      - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
+
+      # [4 bytes] Actual position (0x6064) — encoder position reading
+      #   factor: raw encoder counts → radians. Positive = uncalibrated direction.
+      #     X8 motor: ±4.794e-5 rad/count
+      #   offset: calibrated zero offset in radians (0 = uncalibrated)
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 4.794e-5, offset: 0.0}
+
+      # [4 bytes] Actual velocity (0x606C) — encoder velocity
+      #   Same factor as position. No offset.
+      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: 4.794e-5}
+
+      # [2 bytes] Actual torque (0x6077) — motor torque in 0.1% rated
+      #   factor: ±0.02 converts to normalized fraction (sign matches direction)
+      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: 0.02}
+
+      # [2 bytes] Error code (0x603F) — drive error register (not mapped to ros2_control)
+      - {index: 0x603f, sub_index: 0, type: uint16, state_interface: ~}
+
+      # [1 byte] Mode of operation display (0x6061) — confirms which mode is active
+      - {index: 0x6061, sub_index: 0, type: int8,   state_interface: ~}
+
+      # [1 byte] Padding (0x5FF2) — unused, fills the 16-byte PDO frame
+      - {index: 0x5ff2, sub_index: 0, type: int8,   state_interface: ~}
