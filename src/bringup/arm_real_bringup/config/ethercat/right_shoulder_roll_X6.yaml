@@ -2,7 +2,7 @@
 # ICube EtherCAT slave config — right_shoulder_roll_joint_X6
 # Motor: MyActuator RMD X6 V4 (gear ratio 19.612:1)
 # Bus position: 7 (slave #8th on the EtherCAT bus)
-# Direction: +1 (uncalibrated — run demo_joint_offset to determine correct sign)
+# Direction: -1 (uncalibrated — run demo_joint_offset to determine correct sign)
 #
 # COMMONLY MODIFIED VALUES:
 #   - offset (position cmd/state) — recalibrate with: demo_joint_offset
@@ -44,18 +44,18 @@ rpdo:
       - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
 
       # [4 bytes] Target position (0x607A) — MAIN POSITION COMMAND
-      #   factor: radians → raw encoder counts. Positive = uncalibrated direction.
+      #   factor: radians → raw encoder counts. Negative = reversed direction.
       #     X6 motor: ±20861.0 counts/rad
       #   offset: calibrated zero offset in raw encoder counts (0 = uncalibrated)
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: 20861.0, offset: 0, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: -21836, default: 0}
 
       # [4 bytes] Target velocity (0x60FF) — velocity feedforward command
       #   Same factor magnitude as position. No offset needed.
-      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: 20861.0, default: 0}
+      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20861.0, default: 0}
 
       # [2 bytes] Target torque (0x6071) — torque command in 0.1% of rated torque
       #   factor: ±50.0 (sign matches motor direction)
-      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: 50.0,    default: 0}
+      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
 
       # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 40%)
       - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 400}
@@ -76,18 +76,18 @@ tpdo:
       - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
 
       # [4 bytes] Actual position (0x6064) — encoder position reading
-      #   factor: raw encoder counts → radians. Positive = uncalibrated direction.
+      #   factor: raw encoder counts → radians. Negative = reversed direction.
       #     X6 motor: ±4.794e-5 rad/count
       #   offset: calibrated zero offset in radians (0 = uncalibrated)
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 4.794e-5, offset: 0.0}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: -1.046766}
 
       # [4 bytes] Actual velocity (0x606C) — encoder velocity
       #   Same factor as position. No offset.
-      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: 4.794e-5}
+      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.794e-5}
 
       # [2 bytes] Actual torque (0x6077) — motor torque in 0.1% rated
       #   factor: ±0.02 converts to normalized fraction (sign matches direction)
-      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: 0.02}
+      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02}
 
       # [2 bytes] Error code (0x603F) — drive error register (not mapped to ros2_control)
       - {index: 0x603f, sub_index: 0, type: uint16, state_interface: ~}
