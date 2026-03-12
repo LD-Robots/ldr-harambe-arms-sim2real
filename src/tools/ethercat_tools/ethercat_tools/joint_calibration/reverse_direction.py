@@ -28,8 +28,8 @@ def find_ethercat_dirs():
     """
     dirs = []
 
-    # Relative to source tree
-    this_dir = os.path.dirname(os.path.abspath(__file__))
+    # Relative to source tree (realpath follows --symlink-install symlinks)
+    this_dir = os.path.dirname(os.path.realpath(__file__))
     ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
     for subdir in ("ethercat", "ethercat_readonly"):
         d = os.path.join(ws_src, "src", "bringup", "arm_real_bringup", "config", subdir)

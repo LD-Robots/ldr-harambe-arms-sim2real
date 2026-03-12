@@ -79,7 +79,7 @@ tpdo:
       #   factor: raw encoder counts → radians. Positive = uncalibrated direction.
       #     X4 motor: ±2.397e-5 rad/count
       #   offset: calibrated zero offset in radians (0 = uncalibrated)
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 2.397e-5, offset: 0.0}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 2.397e-5, offset: 0.000000}
 
       # [4 bytes] Actual velocity (0x606C) — encoder velocity
       #   Same factor as position. No offset.

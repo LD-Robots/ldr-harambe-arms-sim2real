@@ -33,8 +33,8 @@ def find_ethercat_dir():
 
     Tries source tree relative to this file first, then ament_index.
     """
-    # Relative to source tree
-    this_dir = os.path.dirname(os.path.abspath(__file__))
+    # Relative to source tree (realpath follows --symlink-install symlinks)
+    this_dir = os.path.dirname(os.path.realpath(__file__))
     ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
     ethercat_dir = os.path.join(
         ws_src, "src", "bringup", "arm_real_bringup", "config", "ethercat"

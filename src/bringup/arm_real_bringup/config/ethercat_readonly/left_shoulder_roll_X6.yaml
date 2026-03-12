@@ -15,7 +15,7 @@ rpdo:   # RxPDO 0x1600 — Master to Slave (16 bytes)
   - index: 0x1600
     channels:
       - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: -652, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: -320, default: 0}
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20861.0, default: 0}
       - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
       - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 400}
@@ -26,7 +26,7 @@ tpdo:   # TxPDO 0x1A00 — Slave to Master (16 bytes)
   - index: 0x1a00
     channels:
       - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: -0.031255}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: -0.015340}
       - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.794e-5}
       - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02}
       - {index: 0x603f, sub_index: 0, type: uint16, state_interface: ~}

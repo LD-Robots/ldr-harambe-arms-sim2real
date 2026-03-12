@@ -30,13 +30,44 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from ethercat_tools.joint_calibration.apply_offsets import apply_offsets, find_ethercat_dir
-from ethercat_tools.joint_calibration.reverse_direction import reverse_direction, find_ethercat_dirs
+from ethercat_tools.joint_calibration.apply_offsets import apply_offsets
+from ethercat_tools.joint_calibration.reverse_direction import reverse_direction
 
 # ---------------------------------------------------------------------------
 # Dynamic actuator discovery — parses EtherCAT YAML slave configs and URDF
 # to build actuator definitions at runtime for ALL joints, not just left arm.
 # ---------------------------------------------------------------------------
+
+
+def _find_source_ethercat_dir():
+    """Locate the SOURCE TREE ethercat config directory.
+
+    Uses os.path.realpath to follow symlinks (--symlink-install creates
+    symlinks in install/ that point back to src/), ensuring we always find
+    the source tree — not the install copy.
+
+    Returns the path or None.
+    """
+    # Resolve symlinks so we land in the source tree, not install/
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
+    ethercat_dir = os.path.join(
+        ws_src, "src", "bringup", "arm_real_bringup", "config", "ethercat"
+    )
+    if os.path.isdir(ethercat_dir):
+        return ethercat_dir
+
+    # Fallback: ament_index (installed workspace — read-only use only)
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        pkg_dir = get_package_share_directory("arm_real_bringup")
+        ethercat_dir = os.path.join(pkg_dir, "config", "ethercat")
+        if os.path.isdir(ethercat_dir):
+            return ethercat_dir
+    except Exception:
+        pass
+
+    return None
 
 
 def _discover_actuators_from_configs():
@@ -48,29 +79,13 @@ def _discover_actuators_from_configs():
       Line 5: # Direction: {+1|-1}
     And rpdo position channel with factor (sign = direction) and offset.
 
-    Returns list of actuator dicts (without URDF limits — those are added later).
+    Returns (actuators_list, ethercat_dir_path) tuple.
     """
     actuators = []
 
-    # Find ethercat config directory relative to this source file
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-    # Walk up: joint_calibration/ -> ethercat_tools/ -> ethercat_tools/ -> tools/ -> src/
-    ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
-    ethercat_dir = os.path.join(
-        ws_src, "src", "bringup", "arm_real_bringup", "config", "ethercat"
-    )
-
-    # Also try installed path via ament_index
-    if not os.path.isdir(ethercat_dir):
-        try:
-            from ament_index_python.packages import get_package_share_directory
-            pkg_dir = get_package_share_directory("arm_real_bringup")
-            ethercat_dir = os.path.join(pkg_dir, "config", "ethercat")
-        except Exception:
-            pass
-
-    if not os.path.isdir(ethercat_dir):
-        return actuators
+    ethercat_dir = _find_source_ethercat_dir()
+    if ethercat_dir is None:
+        return actuators, None
 
     for fname in sorted(os.listdir(ethercat_dir)):
         if not fname.endswith(".yaml"):
@@ -90,6 +105,8 @@ def _discover_actuators_from_configs():
                 break
 
         # Parse comment headers and YAML data
+        existing_rpdo = 0
+        existing_tpdo = 0.0
         try:
             with open(fpath, "r") as f:
                 raw_text = f.read()
@@ -108,6 +125,22 @@ def _discover_actuators_from_configs():
             m = re.search(r"#\s*Direction:\s*([+-]?\d+)", raw_text)
             if m:
                 direction = int(m.group(1))
+
+            # Extract existing rpdo offset (command_interface: position)
+            m = re.search(
+                r"command_interface: position,\s*factor:\s*[^,]+,\s*offset:\s*([^,]+),\s*default:",
+                raw_text,
+            )
+            if m:
+                existing_rpdo = int(float(m.group(1).strip()))
+
+            # Extract existing tpdo offset (state_interface: position)
+            m = re.search(
+                r"state_interface: position,\s*factor:\s*[^,}]+,\s*offset:\s*([^}]+)}",
+                raw_text,
+            )
+            if m:
+                existing_tpdo = float(m.group(1).strip())
 
             # If no joint name from comment, infer from filename + URDF convention
             # Arm joints have motor suffix: left_shoulder_pitch_X6 -> left_shoulder_pitch_joint_X6
@@ -138,11 +171,13 @@ def _discover_actuators_from_configs():
             "lower": -math.pi,   # Default — will be overridden by URDF
             "upper": math.pi,    # Default — will be overridden by URDF
             "config": fname,
+            "existing_rpdo": existing_rpdo,
+            "existing_tpdo": existing_tpdo,
         })
 
     # Sort by bus position
     actuators.sort(key=lambda a: a["slave"])
-    return actuators
+    return actuators, ethercat_dir
 
 
 def _apply_urdf_limits(actuators, ros_node):
@@ -280,7 +315,11 @@ def raw_to_deg(raw):
 
 
 def _compute_offset_from_sweep(act, real_limits):
-    """Compute offset from observed encoder sweep and URDF limits.
+    """Compute absolute offset from observed encoder sweep and URDF limits.
+
+    The sweep measures a delta (residual error with current offsets applied).
+    This function adds the delta to the existing offsets to produce absolute
+    values ready to write directly into the YAML config files.
 
     Returns (offset_raw, offset_tpdo_rad, offset_rpdo_raw, coverage_pct)
     or (None, None, None, 0.0) if no sweep data.
@@ -292,18 +331,24 @@ def _compute_offset_from_sweep(act, real_limits):
     real_center_raw = (rl["min"] + rl["max"]) / 2.0
     urdf_center_rad = (act["lower"] + act["upper"]) / 2.0
     urdf_center_raw = rad_to_raw(urdf_center_rad)
-    offset_raw = int(round(real_center_raw - urdf_center_raw))
+    delta_raw = int(round(real_center_raw - urdf_center_raw))
 
-    offset_rad = offset_raw * math.pi / RAW_PER_PI
-    offset_tpdo_rad = -offset_rad
+    delta_rad = delta_raw * math.pi / RAW_PER_PI
+    delta_tpdo_rad = -delta_rad
     direction = act.get("direction", 1)
-    offset_rpdo_raw = direction * offset_raw
+    delta_rpdo_raw = direction * delta_raw
+
+    # Add delta to existing offsets → absolute values
+    existing_rpdo = act.get("existing_rpdo", 0)
+    existing_tpdo = act.get("existing_tpdo", 0.0)
+    offset_tpdo_rad = existing_tpdo + delta_tpdo_rad
+    offset_rpdo_raw = existing_rpdo + delta_rpdo_raw
 
     urdf_range_raw = rad_to_raw(act["upper"] - act["lower"])
     real_range_raw = rl["max"] - rl["min"]
     coverage = (real_range_raw / urdf_range_raw * 100.0) if urdf_range_raw > 0 else 0.0
 
-    return offset_raw, offset_tpdo_rad, offset_rpdo_raw, min(coverage, 100.0)
+    return delta_raw, offset_tpdo_rad, offset_rpdo_raw, min(coverage, 100.0)
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +471,7 @@ class CalibrationWindow(QMainWindow):
         self._joint_state_data = {}
 
         # Discover actuators dynamically from EtherCAT configs + URDF
-        self._actuators = _discover_actuators_from_configs()
+        self._actuators, self._ethercat_dir = _discover_actuators_from_configs()
         _apply_urdf_limits(self._actuators, ros_node)
         self._actuator_map = {act["joint"]: act for act in self._actuators}
 
@@ -929,7 +974,7 @@ class CalibrationWindow(QMainWindow):
                                    f"{rl_lo:+.0f} .. {rl_hi:+.0f}", rl_color)
 
                 # Compute live offset preview from sweep
-                preview_raw, _, _, coverage = _compute_offset_from_sweep(
+                preview_raw, preview_tpdo, _, coverage = _compute_offset_from_sweep(
                     act, self._real_limits
                 )
 
@@ -939,10 +984,9 @@ class CalibrationWindow(QMainWindow):
                     tpdo = locked["tpdo"]
                     self._set_cell(table, row, self.COL_OFFSET,
                                    f"{tpdo:+.4f} rad", _YELLOW)
-                elif preview_raw is not None:
-                    preview_rad = -preview_raw * math.pi / RAW_PER_PI
+                elif preview_tpdo is not None:
                     self._set_cell(table, row, self.COL_OFFSET,
-                                   f"({preview_rad:+.4f})", _SUBTEXT)
+                                   f"({preview_tpdo:+.4f})", _SUBTEXT)
 
                 # Status column
                 if locked is not None:
@@ -979,14 +1023,13 @@ class CalibrationWindow(QMainWindow):
         if act:
             current_raw = self._current_raw.get(joint, 0)
             locked = self._offsets.get(joint)
-            preview_raw, _, _, coverage = _compute_offset_from_sweep(
+            preview_raw, preview_tpdo, _, coverage = _compute_offset_from_sweep(
                 act, self._real_limits
             )
             if locked is not None:
                 offset_str = f"{locked['tpdo']:+.4f} rad"
-            elif preview_raw is not None:
-                preview_rad = -preview_raw * math.pi / RAW_PER_PI
-                offset_str = f"({preview_rad:+.4f})"
+            elif preview_tpdo is not None:
+                offset_str = f"({preview_tpdo:+.4f})"
             else:
                 offset_str = "    ---"
             rl = self._real_limits[joint]
@@ -1083,11 +1126,11 @@ class CalibrationWindow(QMainWindow):
             return
 
         self._log("")
-        self._log("# ── ICube ethercat_driver_ros2 offset values ──")
+        self._log("# ── ICube ethercat_driver_ros2 offset values (absolute) ──")
         self._log("# Per-joint YAML files in arm_real_bringup/config/ethercat/")
         self._log("#")
-        self._log("# TxPDO offset (radians): added to position state_interface")
-        self._log("# RxPDO offset (raw):     added to position command_interface")
+        self._log("# TxPDO offset (radians): position state_interface offset field")
+        self._log("# RxPDO offset (raw):     position command_interface offset field")
         self._log("")
 
         for act in self._actuators:
@@ -1121,87 +1164,150 @@ class CalibrationWindow(QMainWindow):
 
     def _write_offset_for_joint(self, joint_name):
         """Write captured offset to EtherCAT YAML config files for one joint."""
-        act = self._actuator_map.get(joint_name)
-        if not act:
-            self._log(f"{joint_name}: not a known actuator.")
-            return
+        try:
+            self._log(f"Write offset requested for {joint_name}")
 
-        off = self._offsets.get(joint_name)
-        if off is None:
-            self._log(f"{joint_name}: no captured offset — capture first.")
-            return
+            act = self._actuator_map.get(joint_name)
+            if not act:
+                self._log(f"  FAIL: {joint_name} is not a known actuator.")
+                return
 
-        config = act["config"]
-        rpdo = off["rpdo"]
-        tpdo = off["tpdo"]
+            off = self._offsets.get(joint_name)
+            if off is None:
+                self._log(f"  FAIL: no captured offset for {joint_name} — capture first.")
+                return
 
-        reply = QMessageBox.question(
-            self, "Write Offset",
-            f"Write offset to {config}?\n\n"
-            f"  rpdo (raw): {rpdo:+d}\n"
-            f"  tpdo (rad): {tpdo:+.6f}\n\n"
-            "This modifies files in ethercat/ and ethercat_readonly/.",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
-            return
+            config = act["config"]
+            rpdo = off["rpdo"]
+            tpdo = off["tpdo"]
 
-        offsets_dict = {config: {"rpdo": rpdo, "tpdo": tpdo}}
+            reply = QMessageBox.question(
+                self, "Write Offset",
+                f"Write offset to {config}?\n\n"
+                f"  rpdo (raw): {rpdo:+d}\n"
+                f"  tpdo (rad): {tpdo:+.6f}\n\n"
+                "This modifies files in ethercat/ and ethercat_readonly/.",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                self._log("  Cancelled.")
+                return
 
-        # Write to both ethercat/ and ethercat_readonly/
-        ethercat_dir = find_ethercat_dir()
-        if ethercat_dir is None:
-            self._log(f"ERROR: could not locate ethercat config directory.")
-            return
+            offsets_dict = {config: {"rpdo": rpdo, "tpdo": tpdo}}
 
-        results = apply_offsets(offsets_dict, ethercat_dir=ethercat_dir)
+            # Collect all directories to write: source tree + install tree
+            dirs_to_write = []
 
-        # Also write to ethercat_readonly/ (sibling directory)
-        readonly_dir = ethercat_dir.replace("/ethercat", "/ethercat_readonly")
-        if os.path.isdir(readonly_dir):
-            results += apply_offsets(offsets_dict, ethercat_dir=readonly_dir)
+            # Source tree (ethercat/ and ethercat_readonly/)
+            if self._ethercat_dir is None:
+                self._log("  FAIL: could not locate ethercat config directory.")
+                return
+            dirs_to_write.append(self._ethercat_dir)
+            readonly_dir = os.path.join(
+                os.path.dirname(self._ethercat_dir), "ethercat_readonly"
+            )
+            if os.path.isdir(readonly_dir):
+                dirs_to_write.append(readonly_dir)
 
-        for fname, success, msg in results:
-            status = "OK" if success else "FAIL"
-            self._log(f"  {status}: {fname} — {msg}")
+            # Install tree (so launcher picks up changes without rebuild)
+            try:
+                from ament_index_python.packages import get_package_share_directory
+                install_dir = os.path.join(
+                    get_package_share_directory("arm_real_bringup"),
+                    "config", "ethercat",
+                )
+                if os.path.isdir(install_dir) and install_dir != self._ethercat_dir:
+                    dirs_to_write.append(install_dir)
+                    install_ro = os.path.join(
+                        os.path.dirname(install_dir), "ethercat_readonly"
+                    )
+                    if os.path.isdir(install_ro):
+                        dirs_to_write.append(install_ro)
+            except Exception:
+                pass
+
+            results = []
+            for d in dirs_to_write:
+                label = "src" if d.startswith(os.path.dirname(self._ethercat_dir)) else "install"
+                self._log(f"  Writing to [{label}] {d}")
+                results += apply_offsets(offsets_dict, ethercat_dir=d)
+
+            for fname, success, msg in results:
+                status = "OK" if success else "FAIL"
+                self._log(f"  {status}: {fname} — {msg}")
+
+        except Exception as e:
+            self._log(f"  ERROR: {e}")
 
     def _reverse_direction_for_joint(self, joint_name):
         """Reverse motor direction for one joint's EtherCAT config files."""
-        act = self._actuator_map.get(joint_name)
-        if not act:
-            self._log(f"{joint_name}: not a known actuator.")
-            return
+        try:
+            self._log(f"Reverse direction requested for {joint_name}")
 
-        config = act["config"]
+            act = self._actuator_map.get(joint_name)
+            if not act:
+                self._log(f"  FAIL: {joint_name} is not a known actuator.")
+                return
 
-        reply = QMessageBox.question(
-            self, "Reverse Direction",
-            f"Reverse motor direction for {joint_name}?\n\n"
-            f"Config: {config}\n"
-            f"Current direction: {act['direction']:+d}\n\n"
-            "This negates all factor values in both\n"
-            "ethercat/ and ethercat_readonly/.\n\n"
-            "Offsets must be recalibrated after reversing.",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
-            return
+            config = act["config"]
 
-        results = reverse_direction([config])
+            reply = QMessageBox.question(
+                self, "Reverse Direction",
+                f"Reverse motor direction for {joint_name}?\n\n"
+                f"Config: {config}\n"
+                f"Current direction: {act['direction']:+d}\n\n"
+                "This negates all factor values in both\n"
+                "ethercat/ and ethercat_readonly/.\n\n"
+                "Offsets must be recalibrated after reversing.",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                self._log("  Cancelled.")
+                return
 
-        for fname, dirname, success, msg in results:
-            status = "OK" if success else "FAIL"
-            self._log(f"  {status}: {dirname}/{fname} — {msg}")
+            # Build list of dirs: source tree + install tree
+            ethercat_dirs = [self._ethercat_dir]
+            readonly_dir = os.path.join(
+                os.path.dirname(self._ethercat_dir), "ethercat_readonly"
+            )
+            if os.path.isdir(readonly_dir):
+                ethercat_dirs.append(readonly_dir)
 
-        # Update in-memory state
-        act["direction"] = -act["direction"]
-        self._offsets[joint_name] = None
-        self._real_limits[joint_name] = {"min": None, "max": None}
-        self._log(
-            f"Direction reversed for {joint_name}. "
-            f"New direction: {act['direction']:+d}. "
-            "Offset cleared — recalibrate this joint."
-        )
+            # Also include install tree
+            try:
+                from ament_index_python.packages import get_package_share_directory
+                install_dir = os.path.join(
+                    get_package_share_directory("arm_real_bringup"),
+                    "config", "ethercat",
+                )
+                if os.path.isdir(install_dir) and install_dir != self._ethercat_dir:
+                    ethercat_dirs.append(install_dir)
+                    install_ro = os.path.join(
+                        os.path.dirname(install_dir), "ethercat_readonly"
+                    )
+                    if os.path.isdir(install_ro):
+                        ethercat_dirs.append(install_ro)
+            except Exception:
+                pass
+
+            results = reverse_direction([config], ethercat_dirs=ethercat_dirs)
+
+            for fname, dirname, success, msg in results:
+                status = "OK" if success else "FAIL"
+                self._log(f"  {status}: {dirname}/{fname} — {msg}")
+
+            # Update in-memory state
+            act["direction"] = -act["direction"]
+            self._offsets[joint_name] = None
+            self._real_limits[joint_name] = {"min": None, "max": None}
+            self._log(
+                f"Direction reversed for {joint_name}. "
+                f"New direction: {act['direction']:+d}. "
+                "Offset cleared — recalibrate this joint."
+            )
+
+        except Exception as e:
+            self._log(f"  ERROR: {e}")
 
     # -- ROS callbacks -------------------------------------------------------
 
