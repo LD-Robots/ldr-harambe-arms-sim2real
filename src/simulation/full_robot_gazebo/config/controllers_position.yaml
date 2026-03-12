@@ -88,28 +88,33 @@ legs_controller:
 whole_body_controller:
   ros__parameters:
     joints:
-      - left_hip_pitch_joint_X8       # 0
-      - right_hip_pitch_joint_X8      # 1
-      - waist_yaw_joint_X8            # 2
-      - left_hip_roll_joint_X8        # 3
-      - right_hip_roll_joint_X8       # 4
-      - left_shoulder_pitch_joint_X6  # 5
+      # Left arm (0-5)
+      - left_shoulder_pitch_joint_X6  # 0
+      - left_shoulder_roll_joint_X6   # 1
+      - left_shoulder_yaw_joint_X4    # 2
+      - left_elbow_pitch_joint_X6     # 3
+      - left_wrist_yaw_joint_X4       # 4
+      - left_wrist_roll_joint_X4      # 5
+      # Right arm (6-11)
       - right_shoulder_pitch_joint_X6 # 6
-      - left_hip_yaw_joint_X8        # 7
-      - right_hip_yaw_joint_X8       # 8
-      - left_shoulder_roll_joint_X6  # 9
-      - right_shoulder_roll_joint_X6 # 10
-      - left_knee_joint_X8           # 11
-      - right_knee_joint_X8          # 12
-      - left_shoulder_yaw_joint_X4   # 13
-      - right_shoulder_yaw_joint_X4  # 14
-      - left_ankle_pitch_joint_X4    # 15
-      - right_ankle_pitch_joint_X4   # 16
-      - left_elbow_pitch_joint_X6    # 17
-      - right_elbow_pitch_joint_X6   # 18
-      - left_ankle_roll_joint_X4     # 19
-      - right_ankle_roll_joint_X4    # 20
-      - left_wrist_yaw_joint_X4      # 21
-      - right_wrist_yaw_joint_X4     # 22
-      - left_wrist_roll_joint_X4     # 23
-      - right_wrist_roll_joint_X4    # 24
+      - right_shoulder_roll_joint_X6  # 7
+      - right_shoulder_yaw_joint_X4   # 8
+      - right_elbow_pitch_joint_X6    # 9
+      - right_wrist_yaw_joint_X4      # 10
+      - right_wrist_roll_joint_X4     # 11
+      # Waist (12)
+      - waist_yaw_joint_X8            # 12
+      # Left leg (13-18)
+      - left_hip_pitch_joint_X8       # 13
+      - left_hip_roll_joint_X8        # 14
+      - left_hip_yaw_joint_X8         # 15
+      - left_knee_joint_X8            # 16
+      - left_ankle_pitch_joint_X4     # 17
+      - left_ankle_roll_joint_X4      # 18
+      # Right leg (19-24)
+      - right_hip_pitch_joint_X8      # 19
+      - right_hip_roll_joint_X8       # 20
+      - right_hip_yaw_joint_X8        # 21
+      - right_knee_joint_X8           # 22
+      - right_ankle_pitch_joint_X4    # 23
+      - right_ankle_roll_joint_X4     # 24
