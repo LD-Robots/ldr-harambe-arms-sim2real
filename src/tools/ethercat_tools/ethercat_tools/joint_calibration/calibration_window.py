@@ -460,9 +460,10 @@ class CalibrationWindow(QMainWindow):
     COL_REAL_LIMITS = 3
     COL_CURRENT_DEG = 4
     COL_CURRENT_RAW = 5
-    COL_OFFSET = 6
-    COL_STATUS = 7
-    COL_ACTIONS = 8
+    COL_CUR_OFFSET = 6
+    COL_NEW_OFFSET = 7
+    COL_STATUS = 8
+    COL_ACTIONS = 9
 
     def __init__(self, ros_node):
         super().__init__()
@@ -623,10 +624,11 @@ class CalibrationWindow(QMainWindow):
 
         # Calibration table
         self._cal_table = QTableWidget()
-        self._cal_table.setColumnCount(9)
+        self._cal_table.setColumnCount(10)
         self._cal_table.setHorizontalHeaderLabels([
             "Joint Name", "Motor", "URDF Limits (deg)", "Real Limits (deg)",
-            "Current (deg)", "Current (raw)", "Offset", "Status", "Actions",
+            "Current (deg)", "Current (raw)", "Cur Offset", "New Offset",
+            "Status", "Actions",
         ])
         self._cal_table.setAlternatingRowColors(True)
         self._cal_table.setSelectionMode(QTableWidget.SingleSelection)
@@ -741,6 +743,11 @@ class CalibrationWindow(QMainWindow):
                 self._set_cell(table, row, self.COL_URDF_LIMITS,
                                f"{lo_deg:+.0f} .. {hi_deg:+.0f}", _SUBTEXT)
 
+                # Show current offset from YAML config
+                cur_tpdo = act.get("existing_tpdo", 0.0)
+                self._set_cell(table, row, self.COL_CUR_OFFSET,
+                               f"{cur_tpdo:+.4f} rad", _SUBTEXT)
+
                 # Per-row action buttons
                 btn_widget = QWidget()
                 btn_lay = QHBoxLayout(btn_widget)
@@ -773,7 +780,7 @@ class CalibrationWindow(QMainWindow):
                 self._set_cell(table, row, self.COL_URDF_LIMITS, "---", _SUBTEXT)
 
             for col in (self.COL_REAL_LIMITS, self.COL_CURRENT_DEG,
-                        self.COL_CURRENT_RAW, self.COL_OFFSET, self.COL_STATUS):
+                        self.COL_CURRENT_RAW, self.COL_NEW_OFFSET, self.COL_STATUS):
                 self._set_cell(table, row, col, "---")
 
         table.resizeColumnsToContents()
@@ -982,10 +989,10 @@ class CalibrationWindow(QMainWindow):
                 locked = self._offsets.get(joint)
                 if locked is not None:
                     tpdo = locked["tpdo"]
-                    self._set_cell(table, row, self.COL_OFFSET,
+                    self._set_cell(table, row, self.COL_NEW_OFFSET,
                                    f"{tpdo:+.4f} rad", _YELLOW)
                 elif preview_tpdo is not None:
-                    self._set_cell(table, row, self.COL_OFFSET,
+                    self._set_cell(table, row, self.COL_NEW_OFFSET,
                                    f"({preview_tpdo:+.4f})", _SUBTEXT)
 
                 # Status column
@@ -1026,6 +1033,7 @@ class CalibrationWindow(QMainWindow):
             preview_raw, preview_tpdo, _, coverage = _compute_offset_from_sweep(
                 act, self._real_limits
             )
+            cur_tpdo = act.get("existing_tpdo", 0.0)
             if locked is not None:
                 offset_str = f"{locked['tpdo']:+.4f} rad"
             elif preview_tpdo is not None:
@@ -1040,7 +1048,7 @@ class CalibrationWindow(QMainWindow):
                 f"raw={current_raw:+8d}  "
                 f"deg={current_deg:+8.2f}  "
                 f"min={rl_min}  max={rl_max}  "
-                f"offset={offset_str}  cov={coverage:.0f}%"
+                f"cur_off={cur_tpdo:+.4f}  new_off={offset_str}  cov={coverage:.0f}%"
             )
         else:
             line = (

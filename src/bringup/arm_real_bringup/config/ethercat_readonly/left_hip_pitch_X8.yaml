@@ -47,7 +47,7 @@ rpdo:
       #   factor: radians → raw encoder counts. Negative = reversed direction.
       #     X8 motor: ±20861.0 counts/rad
       #   offset: calibrated zero offset in raw encoder counts (0 = uncalibrated)
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: 51992, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: 49441, default: 0}
 
       # [4 bytes] Target velocity (0x60FF) — velocity feedforward command
       #   Same factor magnitude as position. No offset needed.
@@ -79,7 +79,7 @@ tpdo:
       #   factor: raw encoder counts → radians. Negative = reversed direction.
       #     X8 motor: ±4.794e-5 rad/count
       #   offset: calibrated zero offset in radians (0 = uncalibrated)
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: 2.492373}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: 2.370084}
 
       # [4 bytes] Actual velocity (0x606C) — encoder velocity
       #   Same factor as position. No offset.
