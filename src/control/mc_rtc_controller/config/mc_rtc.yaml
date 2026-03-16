@@ -2,7 +2,7 @@
 MainRobot: [json, "/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/src/control/mc_rtc_controller/config/harambe.json"]
 Enabled: [HarambeCoMPosture]
 IncludeHalfSitController: false
-ControllerModulePaths: ["/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/src/control/mc_rtc_controller/build"]
+ControllerModulePaths: ["/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/build/mc_rtc_controller/lib/mc_controller"]
 
 ObserverPipelines:
 - name: MainPipeline

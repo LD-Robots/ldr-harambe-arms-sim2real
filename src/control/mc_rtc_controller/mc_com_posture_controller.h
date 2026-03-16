@@ -16,8 +16,10 @@ public:
   HarambeCoMPostureController(std::shared_ptr<mc_rbdyn::RobotModule> robot_module, double dt, Backend backend);
 
   void reset(const ControllerResetData & reset_data) override;
+  bool run() override;
 
 private:
+  bool firstRun_ = true;
   std::shared_ptr<mc_tasks::CoMTask> comTask_;
   std::shared_ptr<mc_tasks::OrientationTask> torsoOriTask_;
   std::string torsoBodyName_ = "urdf_simplified_torso";

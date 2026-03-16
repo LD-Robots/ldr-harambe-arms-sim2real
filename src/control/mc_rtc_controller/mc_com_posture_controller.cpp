@@ -283,6 +283,36 @@ void HarambeCoMPostureController::reset(const ControllerResetData & reset_data)
   }
 }
 
+bool HarambeCoMPostureController::run()
+{
+  bool ret = MCController::run();
+  if(firstRun_)
+  {
+    firstRun_ = false;
+    mc_rtc::log::info("[HarambeCoMPosture] QP solver returned: {}", ret);
+    mc_rtc::log::info("[HarambeCoMPosture] PostureTask error norm: {}", postureTask->eval().norm());
+    mc_rtc::log::info("[HarambeCoMPosture] CoMTask error: ({}, {}, {})",
+                      comTask_->eval()(0), comTask_->eval()(1), comTask_->eval()(2));
+    // Log ALL joint targets from the QP solution
+    const auto & q = robot().mbc().q;
+    for(size_t i = 0; i < q.size(); i++)
+    {
+      if(!q[i].empty())
+      {
+        mc_rtc::log::info("[HarambeCoMPosture] Joint {} q={}", robot().mb().joint(i).name(), q[i][0]);
+      }
+    }
+    // Log encoder values
+    const auto & ev = robot().encoderValues();
+    const auto & rjo = robot().module().ref_joint_order();
+    for(size_t i = 0; i < rjo.size(); i++)
+    {
+      mc_rtc::log::info("[HarambeCoMPosture] Encoder {} = {}", rjo[i], ev[i]);
+    }
+  }
+  return ret;
+}
+
 } // namespace mc_control
 
 MULTI_CONTROLLERS_CONSTRUCTOR("HarambeCoMPosture",

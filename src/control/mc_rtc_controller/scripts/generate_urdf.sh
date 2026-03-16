@@ -15,7 +15,7 @@ OUTPUT_DIR="$PKG_DIR/urdf"
 
 mkdir -p "$OUTPUT_DIR"
 
-XACRO_FILE="$WORKSPACE_ROOT/src/robot_description/full_robot_description/urdf/full_robot.urdf.xacro"
+XACRO_FILE="$WORKSPACE_ROOT/src/robot_description/full_robot_description/urdf/full_robot_gazebo.xacro"
 
 if [ ! -f "$XACRO_FILE" ]; then
   echo "ERROR: Xacro file not found: $XACRO_FILE"
@@ -56,6 +56,32 @@ for link in root.findall('link'):
     if link.get('name') == 'world':
         root.remove(link)
 
+# Remove mimic tags so mc_rtc treats all revolute joints as independent DOFs
+mimic_count = 0
+for joint in root.findall('joint'):
+    mimic = joint.find('mimic')
+    if mimic is not None:
+        joint.remove(mimic)
+        mimic_count += 1
+if mimic_count:
+    print(f"Removed {mimic_count} mimic tags (all joints now independent)")
+
+# Convert finger/hand joints to fixed so mc_rtc ignores them
+finger_keywords = ('thumb', 'index', 'middle', 'ring', 'pinky')
+fixed_count = 0
+for joint in root.findall('joint'):
+    jname = joint.get('name', '')
+    if any(kw in jname for kw in finger_keywords) and joint.get('type') == 'revolute':
+        joint.set('type', 'fixed')
+        # Remove axis, limit, dynamics for fixed joints
+        for tag in ('axis', 'limit', 'dynamics'):
+            el = joint.find(tag)
+            if el is not None:
+                joint.remove(el)
+        fixed_count += 1
+if fixed_count:
+    print(f"Converted {fixed_count} finger joints to fixed")
+
 tree.write(sys.argv[2], xml_declaration=True, encoding='unicode')
 PYEOF
 
@@ -67,6 +93,8 @@ echo "Resolving package:// URIs to absolute paths..."
 sed -i \
   -e "s|package://full_robot_description|$ROBOT_DESC_DIR/full_robot_description|g" \
   -e "s|package://hand_description|$ROBOT_DESC_DIR/hand_description|g" \
+  -e "s|package://imu_description|$ROBOT_DESC_DIR/imu_description|g" \
+  -e "s|package://camera_description|$ROBOT_DESC_DIR/camera_description|g" \
   "$FINAL_FILE"
 
 echo "Generated: $FINAL_FILE (mc_rtc URDF with absolute mesh paths)"
@@ -183,7 +211,7 @@ worldbody = mj_root.find('worldbody')
 # Create root body for urdf_base, positioned at standing height
 root_body = ET.Element('body')
 root_body.set('name', 'urdf_base')
-root_body.set('pos', '0 0 1.26')
+root_body.set('pos', '0 0 1.24')
 
 # Add inertial
 inertial = ET.SubElement(root_body, 'inertial')
@@ -222,15 +250,57 @@ for body in worldbody.iter('body'):
             site.set('size', '0.005')
             print(f"  Added site '{site_name}' to body '{bname}'")
 
-# --- Strip joint damping and frictionloss (G1 has none; these fight PD control) ---
+# --- Strip joint damping/frictionloss, add armature for numerical stability ---
 strip_count = 0
+armature_count = 0
 for body in worldbody.iter('body'):
     for jnt in body.findall('joint'):
         for attr in ('damping', 'frictionloss', 'actuatorfrcrange'):
             if attr in jnt.attrib:
                 del jnt.attrib[attr]
                 strip_count += 1
+        jnt_type = jnt.get('type', 'hinge')
+        if jnt_type == 'hinge':
+            # Armature regularizes the mass matrix — prevents NaN from near-singular inertias
+            jnt.set('armature', '0.01')
+            jnt.set('damping', '0.1')
+            armature_count += 1
 print(f"  Stripped {strip_count} damping/frictionloss/actuatorfrcrange attributes from joints")
+print(f"  Added armature=0.01 and damping=0.1 to {armature_count} hinge joints")
+
+# --- Disable self-collision using <contact><exclude> pairs ---
+# Collect all body names that have geoms
+body_names = set()
+for body in worldbody.iter('body'):
+    if body.findall('geom'):
+        bname = body.get('name')
+        if bname:
+            body_names.add(bname)
+
+# Add exclude pairs for all body combinations (disables self-collision)
+contact_sec = mj_root.find('contact')
+if contact_sec is None:
+    contact_sec = ET.SubElement(mj_root, 'contact')
+body_list = sorted(body_names)
+exclude_count = 0
+for i in range(len(body_list)):
+    for j in range(i + 1, len(body_list)):
+        ex = ET.SubElement(contact_sec, 'exclude')
+        ex.set('body1', body_list[i])
+        ex.set('body2', body_list[j])
+        exclude_count += 1
+print(f"  Added {exclude_count} contact exclude pairs (no self-collision)")
+
+# --- Set simulation options for stability ---
+option = mj_root.find('option')
+if option is None:
+    option = ET.SubElement(mj_root, 'option')
+option.set('timestep', '0.001')
+option.set('impratio', '10')       # stronger contact impulse ratio
+option.set('solver', 'Newton')
+option.set('iterations', '50')
+option.set('tolerance', '1e-10')
+print(f"  Set simulation options: timestep=0.001, impratio=10, solver=Newton")
 
 # --- Add motor actuators for every hinge joint (matching G1: name=joint_name) ---
 # mc_mujoco needs <motor> elements to control joints via PD gains
