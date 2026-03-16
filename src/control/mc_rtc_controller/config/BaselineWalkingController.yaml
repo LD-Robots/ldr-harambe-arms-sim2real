@@ -1,0 +1,132 @@
+# BaselineWalkingController config for Harambe
+StepByStep: true
+
+ObserverPipelines:
+  name: MainObserverPipeline
+  gui: true
+  observers:
+    - type: Encoder
+    - type: KinematicInertial
+      update: true
+      anchorFrame:
+        maxAnchorFrameDiscontinuity: 0.2
+
+# Disable wrench feedback (NoSensors mode) — pure position tracking for feet
+OverwriteConfigKeys: [NoSensors]
+
+OverwriteConfigList:
+  NoSensors:
+    FootManager:
+      impedanceGains:
+        SingleSupport:
+          damper:
+            linear: [100, 100, 100]
+            angular: [30, 30, 30]
+          spring:
+            linear: [500, 500, 500]
+            angular: [50, 50, 200]
+          wrench:
+            linear: [0, 0, 0]
+            angular: [0, 0, 0]
+        DoubleSupport:
+          damper:
+            linear: [100, 100, 300]
+            angular: [30, 30, 30]
+          spring:
+            linear: [500, 500, 0]
+            angular: [50, 50, 200]
+          wrench:
+            linear: [0, 0, 0]
+            angular: [0, 0, 0]
+        Swing:
+          damper:
+            linear: [100, 100, 100]
+            angular: [20, 20, 20]
+          spring:
+            linear: [500, 500, 500]
+            angular: [100, 100, 100]
+          wrench:
+            linear: [0, 0, 0]
+            angular: [0, 0, 0]
+
+    CentroidalManager:
+      useActualStateForMpc: false
+      enableZmpFeedback: false
+      useActualComForWrenchDist: false
+
+robots:
+  Harambe:
+    FootManager:
+      footstepDuration: 3.0
+      doubleSupportRatio: 0.85
+      deltaTransLimit: [0.08, 0.0, 2.0]
+      zmpOffset: [0.0, 0.0, 0.0]
+      midToFootTranss:
+        Left:
+          translation: [0, 0.18, 0]
+        Right:
+          translation: [0, -0.18, 0]
+      SwingTraj:
+        IndHorizontalVertical:
+          withdrawOffset: [0, 0, 0.003]
+          approachOffset: [0, 0, 0.003]
+          swingOffset: [0, 0, 0.003]
+          verticalTopOffset: [0, 0, 0.02]
+
+    PostureTask:
+      stiffness: 10
+      jointWeights:
+        left_hip_roll_joint_X8: 1.0
+        left_knee_joint_X8: 0.01
+        right_hip_roll_joint_X8: 1.0
+        right_knee_joint_X8: 0.01
+
+    CentroidalManager:
+      comZGainP: 500.0
+      comZGainD: 150.0
+      actualComOffset: [-0.01, 0.0, 0.0]
+      refComZ: 0.69
+      useActualStateForMpc: false
+      enableZmpFeedback: false
+      enableComZFeedback: true
+      dcmGainP: 2.0
+      zmpVelGain: 0.02
+      useTargetPoseForControlRobotAnchorFrame: true
+      useActualComForWrenchDist: false
+      wrenchDistConfig:
+        wrenchWeight:
+          linear: [1.0, 1.0, 1.0]
+          angular: [1.0, 1.0, 1.0]
+        regularWeight: 1e-8
+        ridgeForceMinMax: [3, 1000]
+      dcmEstimator:
+        enableDcmEstimator: false
+      method: PreviewControlZmp
+      horizonDuration: 2.0
+      horizonDt: 0.005
+
+    CoMTask:
+      activeJoints: [
+        "Root",
+        "left_hip_pitch_joint_X8", "left_hip_roll_joint_X8", "left_hip_yaw_joint_X8",
+        "left_knee_joint_X8", "left_ankle_pitch_joint_X4", "left_ankle_roll_joint_X4",
+        "right_hip_pitch_joint_X8", "right_hip_roll_joint_X8", "right_hip_yaw_joint_X8",
+        "right_knee_joint_X8", "right_ankle_pitch_joint_X4", "right_ankle_roll_joint_X4"]
+
+    BaseOrientationTask:
+      type: orientation
+      frame: urdf_simplified_torso
+      stiffness: 300.0
+      weight: 100.0
+
+    FootTaskList:
+      - type: firstOrderImpedance
+        foot: Left
+        frame: LeftFoot
+        cutoffPeriod: 0.05
+        weight: 1000.0
+      - type: firstOrderImpedance
+        foot: Right
+        frame: RightFoot
+        cutoffPeriod: 0.05
+        weight: 1000.0

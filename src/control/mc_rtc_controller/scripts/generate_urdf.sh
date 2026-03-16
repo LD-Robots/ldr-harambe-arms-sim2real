@@ -261,12 +261,19 @@ for body in worldbody.iter('body'):
                 strip_count += 1
         jnt_type = jnt.get('type', 'hinge')
         if jnt_type == 'hinge':
+            jnt_name = jnt.get('name', '')
             # Armature regularizes the mass matrix — prevents NaN from near-singular inertias
             jnt.set('armature', '0.01')
-            jnt.set('damping', '0.1')
+            # Damping: leg joints higher for stability, arms lower
+            if 'hip' in jnt_name or 'knee' in jnt_name:
+                jnt.set('damping', '10.0')
+            elif 'ankle' in jnt_name:
+                jnt.set('damping', '5.0')
+            else:
+                jnt.set('damping', '0.5')
             armature_count += 1
 print(f"  Stripped {strip_count} damping/frictionloss/actuatorfrcrange attributes from joints")
-print(f"  Added armature=0.01 and damping=0.1 to {armature_count} hinge joints")
+print(f"  Added armature and damping to {armature_count} hinge joints (legs=5.0, others=0.5)")
 
 # --- Disable self-collision using <contact><exclude> pairs ---
 # Collect all body names that have geoms
@@ -296,11 +303,39 @@ option = mj_root.find('option')
 if option is None:
     option = ET.SubElement(mj_root, 'option')
 option.set('timestep', '0.001')
-option.set('impratio', '10')       # stronger contact impulse ratio
+option.set('impratio', '10')
 option.set('solver', 'Newton')
 option.set('iterations', '50')
 option.set('tolerance', '1e-10')
 print(f"  Set simulation options: timestep=0.001, impratio=10, solver=Newton")
+
+# --- Add default geom friction (matching G1: 1.3 0.005 0.0001, condim=4) ---
+default_sec = mj_root.find('default')
+if default_sec is None:
+    default_sec = ET.SubElement(mj_root, 'default')
+default_geom = default_sec.find('geom')
+if default_geom is None:
+    default_geom = ET.SubElement(default_sec, 'geom')
+default_geom.set('friction', '1.3 0.005 0.0001')
+default_geom.set('condim', '4')
+print("  Set default geom friction=1.3, condim=4 (matching G1)")
+
+# --- Add box geom for foot contact (like G1 uses simple box, not mesh) ---
+foot_bodies = {'urdf_foot_assembly': 'LeftFootBox', 'urdf_foot_assembly_2': 'RightFootBox'}
+for body in worldbody.iter('body'):
+    bname = body.get('name')
+    if bname in foot_bodies:
+        box = ET.SubElement(body, 'geom')
+        box.set('name', foot_bodies[bname])
+        box.set('type', 'box')
+        box.set('size', '0.07 0.04 0.01')
+        box.set('pos', '0.04 0 -0.02')
+        box.set('friction', '1.0 0.1 0.01')
+        box.set('condim', '3')
+        box.set('contype', '1')
+        box.set('conaffinity', '1')
+        box.set('rgba', '0.3 0.8 0.3 0.3')
+        print(f"  Added foot contact box to {bname}")
 
 # --- Add motor actuators for every hinge joint (matching G1: name=joint_name) ---
 # mc_mujoco needs <motor> elements to control joints via PD gains
@@ -334,6 +369,55 @@ for stype, sname, ssite in sensors:
     el.set('name', sname)
     el.set('site', ssite)
     print(f"  Added {stype} sensor '{sname}'")
+
+# --- Set joint ref values from stance (sets qpos0 for MuJoCo resets) ---
+# Also add <key> element as a named keyframe for explicit reset.
+import json, os
+
+json_path = os.path.join(os.path.dirname(mj_path), '..', 'config', 'harambe.json')
+with open(json_path) as f:
+    robot_cfg = json.load(f)
+stance = robot_cfg.get('stance', {})
+default_att = robot_cfg.get('default_attitude', [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.24])
+
+# Build joint name -> value map
+stance_vals = {}
+for jname, val in stance.items():
+    if isinstance(val, list):
+        stance_vals[jname] = val[0]
+    else:
+        stance_vals[jname] = float(val)
+
+# Set ref attribute on each hinge joint (this sets model->qpos0)
+ref_count = 0
+joint_names = []
+for body in worldbody.iter('body'):
+    for jnt in body.findall('joint'):
+        jname = jnt.get('name')
+        if jnt.get('type', 'hinge') == 'hinge' and jname:
+            joint_names.append(jname)
+            if jname in stance_vals and stance_vals[jname] != 0.0:
+                jnt.set('ref', str(stance_vals[jname]))
+                ref_count += 1
+print(f"  Set joint ref (qpos0) on {ref_count} joints from stance")
+
+# Build qpos0 for keyframe: [x, y, z, qw, qx, qy, qz, joint1, joint2, ...]
+# default_attitude is [qw, qx, qy, qz, x, y, z] in mc_rtc format
+# MuJoCo freejoint qpos is [x, y, z, qw, qx, qy, qz]
+qw, qx, qy, qz = default_att[0], default_att[1], default_att[2], default_att[3]
+x, y, z = default_att[4], default_att[5], default_att[6]
+qpos_vals = [x, y, z, qw, qx, qy, qz]
+for jname in joint_names:
+    qpos_vals.append(stance_vals.get(jname, 0.0))
+
+qpos_str = ' '.join(str(v) for v in qpos_vals)
+keyframe_sec = mj_root.find('keyframe')
+if keyframe_sec is None:
+    keyframe_sec = ET.SubElement(mj_root, 'keyframe')
+key_el = ET.SubElement(keyframe_sec, 'key')
+key_el.set('name', 'home')
+key_el.set('qpos', qpos_str)
+print(f"  Added keyframe 'home' with {len(qpos_vals)} qpos values")
 
 ET.indent(mj_tree, space='  ')
 mj_tree.write(mj_path, xml_declaration=True, encoding='unicode')
