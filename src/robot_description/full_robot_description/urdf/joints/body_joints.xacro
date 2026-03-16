@@ -21,7 +21,7 @@
     <parent link="urdf_base"/>
     <child link="urdf_simplified_torso"/>
     <axis xyz="0 0 1"/>
-    <limit effort="100" velocity="100" lower="-1.57" upper="1.57"/>
+    <limit effort="100" velocity="100" lower="-2.6005" upper="2.60054"/>
     <dynamics damping="0.5" friction="0.1"/>
   </joint>
 
