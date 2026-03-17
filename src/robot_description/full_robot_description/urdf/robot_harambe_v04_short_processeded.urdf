@@ -1023,14 +1023,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="right_ankle_pitch_joint" type="revolute">
+  <joint name="right_ankle_roll_joint" type="revolute">
     <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0" />
     <parent link="urdf_ankle_assembly_2" />
     <child link="urdf_foot_assembly_2" />
     <axis xyz="1 0 0" />
     <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
   </joint>
-  <joint name="right_ankle_roll_joint" type="revolute">
+  <joint name="right_ankle_pitch_joint" type="revolute">
     <origin xyz="-4.02748e-07 0.059 -0.395" rpy="0 0 0" />
     <parent link="urdf_r_tibia_assembly" />
     <child link="urdf_ankle_assembly_2" />
