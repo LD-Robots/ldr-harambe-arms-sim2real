@@ -8,6 +8,9 @@
   <xacro:arg name="fixed_legs" default="false" />
   <xacro:arg name="only_left" default="false" />
 
+  <!-- Actuator properties macros -->
+  <xacro:include filename="$(find full_robot_description)/urdf/macros/actuator_properties.xacro" />
+
   <!-- Body (base + torso) -->
   <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
   <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
@@ -55,9 +58,9 @@
   <!-- IMU sensors (BNO055) -->
   <xacro:include filename="$(find imu_description)/urdf/bno055_imu.xacro" />
 
-  <!-- Pelvis IMU — raw sensor axes: x+=up, y+=right, z+=forward -->
-  <xacro:bno055_imu name="pelvis_imu" parent="urdf_simplified_torso" topic="/pelvis_imu/data" update_rate="100">
-    <origin xyz="0.0735 0.0 -0.17" rpy="0 ${pi/2} ${pi}"/>
+  <!-- Pelvis IMU — attached to pelvis (urdf_base), same world position as before -->
+  <xacro:bno055_imu name="pelvis_imu" parent="urdf_base" topic="/pelvis_imu/data" update_rate="100">
+    <origin xyz="0.1069 -0.0007 -0.4707" rpy="0 ${pi/2} ${pi}"/>
   </xacro:bno055_imu>
 
   <!-- Torso IMU — raw sensor axes: x+=up, y+=left, z+=backward -->

@@ -103,7 +103,7 @@
   <link name="urdf_l_tibia_assembly">
     <inertial>
       <origin xyz="0.00463897 -0.0449177 -0.190721" rpy="0 0 0"/>
-      <mass value="6.45981"/>
+      <mass value="2.4"/>
       <inertia ixx="0.0785879" ixy="0.000322141" ixz="0.00174711" iyy="0.0762229" iyz="-0.00887502" izz="0.0153456"/>
     </inertial>
     <visual>
