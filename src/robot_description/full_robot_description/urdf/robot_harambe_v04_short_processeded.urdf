@@ -804,7 +804,7 @@
     <limit effort="100" velocity="100" lower="-0.35" upper="3.14" />
   </joint>
   <joint name="left_hip_pitch_joint" type="revolute">
-    <origin xyz="0.0333787 0.076301 -0.467748" rpy="0 0 0" />
+    <origin xyz="0.0333787 0.072699 -0.467748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_hip_assembly" />
     <axis xyz="0 1 0" />
@@ -812,12 +812,12 @@
   </joint>
   <link name="urdf_hip_assembly_2">
     <inertial>
-      <origin xyz="-0.00420762 -0.0739982 6.23945e-06" rpy="0 0 0" />
+      <origin xyz="-0.00420762 -0.0689982 6.23945e-06" rpy="0 0 0" />
       <mass value="1.73" />
       <inertia ixx="0.00302301" ixy="-2.30858e-05" ixz="-4.5747e-08" iyy="0.00228746" iyz="-8.49179e-07" izz="0.00263533" />
     </inertial>
     <visual>
-      <origin xyz="0.00253653 -0.0570203 3.27638e-05" rpy="-3.14159 0 1.5708" />
+      <origin xyz="0.00253653 -0.0520203 3.27638e-05" rpy="-3.14159 0 1.5708" />
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/hip.stl" />
       </geometry>
@@ -826,13 +826,13 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0.00253653 -0.0570203 3.27638e-05" rpy="-3.14159 0 1.5708" />
+      <origin xyz="0.00253653 -0.0520203 3.27638e-05" rpy="-3.14159 0 1.5708" />
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/hip.stl" />
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.043 -0.078 0" rpy="-1.57079 0 -1.5708" />
+      <origin xyz="-0.043 -0.073 0" rpy="-1.57079 0 -1.5708" />
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl" />
       </geometry>
@@ -1031,7 +1031,7 @@
     <limit effort="100" velocity="100" lower="-0.79" upper="0.79" />
   </joint>
   <joint name="right_ankle_pitch_joint" type="revolute">
-    <origin xyz="-4.02748e-07 0.059 -0.395" rpy="0 0 0" />
+    <origin xyz="-4.02748e-07 0.051 -0.395" rpy="0 0 0" />
     <parent link="urdf_r_tibia_assembly" />
     <child link="urdf_ankle_assembly_2" />
     <axis xyz="0 1 0" />
@@ -1052,7 +1052,7 @@
     <limit effort="100" velocity="100" lower="-1.57" upper="1.57" />
   </joint>
   <joint name="right_hip_roll_joint" type="revolute">
-    <origin xyz="0.055 -0.078 0" rpy="0 0 0" />
+    <origin xyz="0.055 -0.073 0" rpy="0 0 0" />
     <parent link="urdf_hip_assembly_2" />
     <child link="urdf_r_upper_femur_assemby" />
     <axis xyz="1 0 0" />

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot>
   <joint name="left_hip_pitch_joint_X8" type="${leg_joint_type}">
-    <origin xyz="0.0333787 0.076301 -0.467748" rpy="0 0 0" />
+    <origin xyz="0.0333787 0.072699 -0.467748" rpy="0 0 0" />
     <parent link="urdf_base" />
     <child link="urdf_hip_assembly" />
     <axis xyz="0 1 0" />

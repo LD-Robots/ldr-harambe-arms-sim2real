@@ -9,7 +9,7 @@
     <dynamics damping="${X8_damping}" friction="${X8_friction}" />
   </joint>
   <joint name="right_hip_roll_joint_X8" type="${leg_joint_type}">
-    <origin xyz="0.055 -0.078 0" rpy="0 0 0" />
+    <origin xyz="0.055 -0.073 0" rpy="0 0 0" />
     <parent link="urdf_hip_assembly_2" />
     <child link="urdf_r_upper_femur_assemby" />
     <axis xyz="1 0 0" />
@@ -33,7 +33,7 @@
     <dynamics damping="${X8_damping}" friction="${X8_friction}" />
   </joint>
   <joint name="right_ankle_pitch_joint_X4" type="${leg_joint_type}">
-    <origin xyz="-4.02748e-07 0.059 -0.395" rpy="0 0 0" />
+    <origin xyz="-4.02748e-07 0.051 -0.395" rpy="0 0 0" />
     <parent link="urdf_r_tibia_assembly" />
     <child link="urdf_ankle_assembly_2" />
     <axis xyz="0 1 0" />
