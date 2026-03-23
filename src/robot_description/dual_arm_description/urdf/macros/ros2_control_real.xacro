@@ -15,9 +15,10 @@
             <xacro:property name="config_dir" value="ethercat_gravcomp"/>
         </xacro:if>
 
-        <!-- Full body — 25 DOF EtherCAT actuators (MyActuator RMD X V4) -->
-        <!-- Bus order: left arm (0-5) → right arm (6-11) → waist (12) → left leg (13-18) → right leg (19-24) -->
-        <ros2_control name="FullBodySystem" type="system">
+        <!-- EtherCAT actuators (MyActuator RMD X V4) -->
+        <!-- only_left=true: 6 DOF left arm only (bus 0-5) -->
+        <!-- only_left=false: full body 25 DOF (bus 0-23) -->
+        <ros2_control name="EthercatSystem" type="system">
             <hardware>
                 <plugin>ethercat_driver/EthercatDriver</plugin>
                 <param name="master_id">0</param>
@@ -124,6 +125,8 @@
                 </ec_module>
             </joint>
 
+            <xacro:unless value="$(arg only_left)">
+
             <!-- ════════════════════════════════════════════════════════════════ -->
             <!-- RIGHT ARM — 6 joints (bus 6-11)                                -->
             <!-- ════════════════════════════════════════════════════════════════ -->
@@ -223,6 +226,10 @@
                     <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_wrist_roll_X4.yaml</param>
                 </ec_module>
             </joint>
+
+            </xacro:unless>
+
+            <xacro:unless value="$(arg only_arms)">
 
             <!-- ════════════════════════════════════════════════════════════════ -->
             <!-- WAIST — 1 joint (bus 12)                                       -->
@@ -430,6 +437,8 @@
             </joint>
 
             <!-- TODO: Add right_ankle_pitch_joint (bus 24, X4) when actuator arrives -->
+
+            </xacro:unless>  <!-- only_arms -->
 
         </ros2_control>
 

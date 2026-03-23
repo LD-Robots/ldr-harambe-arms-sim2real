@@ -31,8 +31,7 @@ def generate_launch_description():
         PathJoinSubstitution([pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false",
         " gravcomp:=true",
-        " only_left:=false",
-        " fixed_legs:=false",
+        " only_arms:=true",
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -101,38 +100,6 @@ def generate_launch_description():
         output="screen",
     )
 
-    waist_effort_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "waist_effort_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "120",
-        ],
-        output="screen",
-    )
-
-    left_leg_effort_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "left_leg_effort_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "120",
-        ],
-        output="screen",
-    )
-
-    right_leg_effort_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "right_leg_effort_controller",
-            "--controller-manager", "/controller_manager",
-            "--controller-manager-timeout", "120",
-        ],
-        output="screen",
-    )
 
     # Gravity compensation node — computes gravity torques via PyKDL
     gravity_comp_node = Node(
@@ -157,9 +124,6 @@ def generate_launch_description():
             on_exit=[
                 left_arm_effort_spawner,
                 right_arm_effort_spawner,
-                waist_effort_spawner,
-                left_leg_effort_spawner,
-                right_leg_effort_spawner,
             ],
         )
     )

@@ -38,16 +38,22 @@ ACTUATORS = [
 # ICube ethercat_driver_ros2 config directory (relative to arm_real_bringup share)
 ETHERCAT_CONFIG_DIR = "config/ethercat"
 
-# Unit conversion constants (raw ±65535 = ±180° = ±π rad)
-RAW_PER_PI = 65535
+# Unit conversion constants
+# X6/X8: 17-bit output encoder (131072 counts/rev) → 2^16 = 65536 counts/π
+# X4:    18-bit output encoder (262144 counts/rev) → 2^17 = 131072 counts/π
+RAW_PER_PI = {
+    "X6": 65536,
+    "X8": 65536,
+    "X4": 131072,
+}
 
 
-def rad_to_raw(rad):
-    return int(rad * RAW_PER_PI / math.pi)
+def rad_to_raw(rad, motor="X6"):
+    return int(rad * RAW_PER_PI[motor] / math.pi)
 
 
-def raw_to_deg(raw):
-    return raw * 180.0 / RAW_PER_PI
+def raw_to_deg(raw, motor="X6"):
+    return raw * 180.0 / RAW_PER_PI[motor]
 
 
 def _compute_offset_from_sweep(act, real_limits):
@@ -68,20 +74,21 @@ def _compute_offset_from_sweep(act, real_limits):
     if rl["min"] is None or rl["max"] is None:
         return None, None, None, 0.0
 
+    motor = act.get("motor", "X6")
     real_center_raw = (rl["min"] + rl["max"]) / 2.0
     urdf_center_rad = (act["lower"] + act["upper"]) / 2.0
-    urdf_center_raw = rad_to_raw(urdf_center_rad)
+    urdf_center_raw = rad_to_raw(urdf_center_rad, motor)
     offset_raw = int(round(real_center_raw - urdf_center_raw))
 
     # Convert to ICube driver units:
     #   TxPDO: ros = factor * enc + offset_tpdo  (radians)
     #   RxPDO: enc = factor * ros + offset_rpdo  (raw)
-    offset_rad = offset_raw * math.pi / RAW_PER_PI
+    offset_rad = offset_raw * math.pi / RAW_PER_PI[motor]
     offset_tpdo_rad = -offset_rad
     direction = act.get("direction", 1)
     offset_rpdo_raw = direction * offset_raw
 
-    urdf_range_raw = rad_to_raw(act["upper"] - act["lower"])
+    urdf_range_raw = rad_to_raw(act["upper"] - act["lower"], motor)
     real_range_raw = rl["max"] - rl["min"]
     coverage = (real_range_raw / urdf_range_raw * 100.0) if urdf_range_raw > 0 else 0.0
 
@@ -235,17 +242,19 @@ class JointOffsetWindow(QMainWindow):
         for row, act in enumerate(ACTUATORS):
             joint = act["joint"]
 
+            motor = act.get("motor", "X6")
+
             if self._ros_node and joint in self._joint_state_data:
                 pos_rad = self._joint_state_data[joint].get("position", 0.0)
-                current_raw = rad_to_raw(pos_rad)
+                current_raw = rad_to_raw(pos_rad, motor)
             else:
                 # Demo: sinusoidal motion with per-joint phase offset
                 phase = row * 0.8
                 pos_deg = 30.0 * math.sin(self._demo_time * 0.5 + phase)
-                current_raw = int(pos_deg / 180.0 * RAW_PER_PI)
+                current_raw = int(pos_deg / 180.0 * RAW_PER_PI[motor])
 
             self._current_raw[joint] = current_raw
-            current_deg = raw_to_deg(current_raw)
+            current_deg = raw_to_deg(current_raw, motor)
 
             # Track real (observed) limits
             rl = self._real_limits[joint]
@@ -256,8 +265,8 @@ class JointOffsetWindow(QMainWindow):
 
             # Real limits display
             if rl["min"] is not None:
-                rl_lo = raw_to_deg(rl["min"])
-                rl_hi = raw_to_deg(rl["max"])
+                rl_lo = raw_to_deg(rl["min"], motor)
+                rl_hi = raw_to_deg(rl["max"], motor)
                 # Color-code: yellow if real range differs significantly from URDF
                 urdf_range = math.degrees(act["upper"] - act["lower"])
                 real_range = rl_hi - rl_lo
@@ -288,7 +297,7 @@ class JointOffsetWindow(QMainWindow):
                 self._set_cell(table, row, self.COL_OFFSET,
                                f"{tpdo:+.4f} rad", "#f9e2af")
             elif preview_raw is not None:
-                preview_rad = -preview_raw * math.pi / RAW_PER_PI
+                preview_rad = -preview_raw * math.pi / RAW_PER_PI[motor]
                 self._set_cell(table, row, self.COL_OFFSET,
                                f"({preview_rad:+.4f})", "#6c7086")
             else:
@@ -316,8 +325,9 @@ class JointOffsetWindow(QMainWindow):
 
         act = ACTUATORS[selected]
         joint = act["joint"]
+        motor = act.get("motor", "X6")
         current_raw = self._current_raw[joint]
-        current_deg = raw_to_deg(current_raw)
+        current_deg = raw_to_deg(current_raw, motor)
         locked = self._offsets[joint]
         preview_raw, _, _, coverage = _compute_offset_from_sweep(
             act, self._real_limits
@@ -325,7 +335,7 @@ class JointOffsetWindow(QMainWindow):
         if locked is not None:
             offset_str = f"{locked['tpdo']:+.4f} rad"
         elif preview_raw is not None:
-            preview_rad = -preview_raw * math.pi / RAW_PER_PI
+            preview_rad = -preview_raw * math.pi / RAW_PER_PI[motor]
             offset_str = f"({preview_rad:+.4f})"
         else:
             offset_str = "    ---"
@@ -371,7 +381,7 @@ class JointOffsetWindow(QMainWindow):
         self._log(
             f"Captured {joint}:  "
             f"tpdo={tpdo:+.5f} rad  rpdo={rpdo:+d}  "
-            f"(sweep {raw_to_deg(rl['min']):+.0f}..{raw_to_deg(rl['max']):+.0f} deg, "
+            f"(sweep {raw_to_deg(rl['min'], act.get('motor', 'X6')):+.0f}..{raw_to_deg(rl['max'], act.get('motor', 'X6')):+.0f} deg, "
             f"coverage {coverage:.0f}%)"
         )
 
@@ -441,8 +451,9 @@ class JointOffsetWindow(QMainWindow):
                 self._log(f"  # NOT CAPTURED")
 
             if rl["min"] is not None:
-                rl_lo = raw_to_deg(rl["min"])
-                rl_hi = raw_to_deg(rl["max"])
+                motor = act.get("motor", "X6")
+                rl_lo = raw_to_deg(rl["min"], motor)
+                rl_hi = raw_to_deg(rl["max"], motor)
                 self._log(
                     f"  # URDF: {urdf_lo:+.0f}..{urdf_hi:+.0f} deg  "
                     f"Real: {rl_lo:+.0f}..{rl_hi:+.0f} deg"

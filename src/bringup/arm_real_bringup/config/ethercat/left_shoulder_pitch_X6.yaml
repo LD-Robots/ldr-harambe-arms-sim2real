@@ -49,11 +49,11 @@ rpdo:
       #     X6 motor: ±20861.0 counts/rad
       #   offset: calibrated zero offset in raw encoder counts
       #     CHANGE THIS after recalibrating with demo_joint_offset tool
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20861.0, offset: 3932, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20860.756, offset: 3305, default: 3305}
 
       # [4 bytes] Target velocity (0x60FF) — velocity feedforward command
       #   Same factor magnitude as position. No offset needed.
-      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20861.0, default: 0}
+      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20860.756, default: 0}
 
       # [2 bytes] Target torque (0x6071) — torque command in 0.1% of rated torque
       #   factor: ±50.0 (sign matches motor direction)
@@ -82,11 +82,11 @@ tpdo:
       #     X6 motor: ±4.794e-5 rad/count (inverse of cmd factor)
       #   offset: calibrated zero offset in radians
       #     CHANGE THIS after recalibrating with demo_joint_offset tool
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.794e-5, offset: 0.188490}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.79369e-05, offset: 0.158431}
 
       # [4 bytes] Actual velocity (0x606C) — encoder velocity
       #   Same factor as position. No offset.
-      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.794e-5}
+      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.79369e-05}
 
       # [2 bytes] Actual torque (0x6077) — motor torque in 0.1% rated
       #   factor: ±0.02 converts to normalized fraction (sign matches direction)

@@ -259,8 +259,15 @@ def _get_urdf_string_for_limits(ros_node):
 
     return None
 
-# Unit conversion (raw ±65535 = ±180° = ±π rad)
-RAW_PER_PI = 65535
+# Unit conversion: encoder counts per π radians (180°), per motor type.
+# X6/X8: 17-bit output encoder → 2^16 = 65536 counts/π
+# X4:    18-bit output encoder → 2^17 = 131072 counts/π
+RAW_PER_PI = {
+    "X6": 65536,
+    "X8": 65536,
+    "X4": 131072,
+    "?":  65536,  # fallback for unknown motor type
+}
 
 # Catppuccin Mocha palette
 _BG = "#1e1e2e"
@@ -306,12 +313,12 @@ QSplitter::handle {{ background-color: {_BG3}; width: 3px; }}
 """
 
 
-def rad_to_raw(rad):
-    return int(rad * RAW_PER_PI / math.pi)
+def rad_to_raw(rad, motor="X6"):
+    return int(rad * RAW_PER_PI[motor] / math.pi)
 
 
-def raw_to_deg(raw):
-    return raw * 180.0 / RAW_PER_PI
+def raw_to_deg(raw, motor="X6"):
+    return raw * 180.0 / RAW_PER_PI[motor]
 
 
 def _compute_offset_from_sweep(act, real_limits):
@@ -328,12 +335,13 @@ def _compute_offset_from_sweep(act, real_limits):
     if rl["min"] is None or rl["max"] is None:
         return None, None, None, 0.0
 
+    motor = act.get("motor", "X6")
     real_center_raw = (rl["min"] + rl["max"]) / 2.0
     urdf_center_rad = (act["lower"] + act["upper"]) / 2.0
-    urdf_center_raw = rad_to_raw(urdf_center_rad)
+    urdf_center_raw = rad_to_raw(urdf_center_rad, motor)
     delta_raw = int(round(real_center_raw - urdf_center_raw))
 
-    delta_rad = delta_raw * math.pi / RAW_PER_PI
+    delta_rad = delta_raw * math.pi / RAW_PER_PI[motor]
     delta_tpdo_rad = -delta_rad
     direction = act.get("direction", 1)
     delta_rpdo_raw = direction * delta_raw
@@ -344,7 +352,7 @@ def _compute_offset_from_sweep(act, real_limits):
     offset_tpdo_rad = existing_tpdo + delta_tpdo_rad
     offset_rpdo_raw = existing_rpdo + delta_rpdo_raw
 
-    urdf_range_raw = rad_to_raw(act["upper"] - act["lower"])
+    urdf_range_raw = rad_to_raw(act["upper"] - act["lower"], motor)
     real_range_raw = rl["max"] - rl["min"]
     coverage = (real_range_raw / urdf_range_raw * 100.0) if urdf_range_raw > 0 else 0.0
 
@@ -948,9 +956,9 @@ class CalibrationWindow(QMainWindow):
             data = self._joint_state_data[joint]
             pos_rad = data.get("position", 0.0)
             current_deg = math.degrees(pos_rad)
-            current_raw = rad_to_raw(pos_rad)
-
             act = self._actuator_map.get(joint)
+            motor = act["motor"] if act else "X6"
+            current_raw = rad_to_raw(pos_rad, motor)
 
             # Live position (shown for all joints)
             self._set_cell(table, row, self.COL_CURRENT_DEG, f"{current_deg:+8.2f}")
@@ -969,8 +977,8 @@ class CalibrationWindow(QMainWindow):
 
                 # Real limits display
                 if rl["min"] is not None:
-                    rl_lo = raw_to_deg(rl["min"])
-                    rl_hi = raw_to_deg(rl["max"])
+                    rl_lo = raw_to_deg(rl["min"], motor)
+                    rl_hi = raw_to_deg(rl["max"], motor)
                     urdf_range = math.degrees(act["upper"] - act["lower"])
                     real_range = rl_hi - rl_lo
                     if real_range > 5.0 and abs(real_range - urdf_range) > 10.0:
@@ -1087,11 +1095,12 @@ class CalibrationWindow(QMainWindow):
             self._log(f"{joint}: no sweep data — move the joint first.")
             return
         rl = self._real_limits[joint]
+        motor = act.get("motor", "X6")
         self._offsets[joint] = {"tpdo": tpdo, "rpdo": rpdo, "raw": offset_raw}
         self._log(
             f"Captured {joint}:  "
             f"tpdo={tpdo:+.5f} rad  rpdo={rpdo:+d}  "
-            f"(sweep {raw_to_deg(rl['min']):+.0f}..{raw_to_deg(rl['max']):+.0f} deg, "
+            f"(sweep {raw_to_deg(rl['min'], motor):+.0f}..{raw_to_deg(rl['max'], motor):+.0f} deg, "
             f"coverage {coverage:.0f}%)"
         )
 
@@ -1157,8 +1166,9 @@ class CalibrationWindow(QMainWindow):
                 self._log("  # NOT CAPTURED")
 
             if rl["min"] is not None:
-                rl_lo = raw_to_deg(rl["min"])
-                rl_hi = raw_to_deg(rl["max"])
+                motor = act.get("motor", "X6")
+                rl_lo = raw_to_deg(rl["min"], motor)
+                rl_hi = raw_to_deg(rl["max"], motor)
                 self._log(
                     f"  # URDF: {urdf_lo:+.0f}..{urdf_hi:+.0f} deg  "
                     f"Real: {rl_lo:+.0f}..{rl_hi:+.0f} deg"

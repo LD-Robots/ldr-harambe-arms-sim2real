@@ -22,7 +22,7 @@ from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
 
-JOINT_NAMES = [
+DEFAULT_JOINT_NAMES = [
     "left_shoulder_pitch_joint_X6",
     "left_shoulder_roll_joint_X6",
     "left_shoulder_yaw_joint_X4",
@@ -43,13 +43,18 @@ class HomingSequence(Node):
             .get_parameter_value()
             .string_value
         )
+        self._joint_names = list(
+            self.declare_parameter("joint_names", DEFAULT_JOINT_NAMES)
+            .get_parameter_value()
+            .string_array_value
+        )
         self._max_velocity = (
             self.declare_parameter("max_velocity", 0.2)
             .get_parameter_value()
             .double_value
         )
         self._target_position = list(
-            self.declare_parameter("target_position", [0.0] * 6)
+            self.declare_parameter("target_position", [0.0] * len(self._joint_names))
             .get_parameter_value()
             .double_array_value
         )
@@ -77,7 +82,7 @@ class HomingSequence(Node):
         # State
         self._lock = threading.Lock()
         self._current_positions: Optional[List[float]] = None
-        self._joint_index = {name: i for i, name in enumerate(JOINT_NAMES)}
+        self._joint_index = {name: i for i, name in enumerate(self._joint_names)}
 
         # Subscription
         self._state_sub = self.create_subscription(
@@ -99,7 +104,7 @@ class HomingSequence(Node):
         if self._current_positions is not None:
             return  # Only need first valid reading
 
-        positions = [None] * len(JOINT_NAMES)
+        positions = [None] * len(self._joint_names)
         for name, pos in zip(msg.name, msg.position):
             if name in self._joint_index:
                 positions[self._joint_index[name]] = pos
@@ -177,14 +182,14 @@ class HomingSequence(Node):
         # Build trajectory goal — single point at target with zero end velocity
         point = JointTrajectoryPoint()
         point.positions = list(target)
-        point.velocities = [0.0] * len(JOINT_NAMES)
+        point.velocities = [0.0] * len(self._joint_names)
         duration_sec = int(duration)
         duration_nsec = int((duration - duration_sec) * 1e9)
         point.time_from_start = Duration(sec=duration_sec, nanosec=duration_nsec)
 
         goal = FollowJointTrajectory.Goal()
         goal.trajectory = JointTrajectory()
-        goal.trajectory.joint_names = list(JOINT_NAMES)
+        goal.trajectory.joint_names = list(self._joint_names)
         goal.trajectory.points = [point]
         goal.goal_time_tolerance = Duration(sec=5, nanosec=0)
 

@@ -38,6 +38,12 @@ DEFAULT_JOINTS = [
     "left_elbow_pitch_joint_X6",
     "left_wrist_yaw_joint_X4",
     "left_wrist_roll_joint_X4",
+    "right_shoulder_pitch_joint_X6",
+    "right_shoulder_roll_joint_X6",
+    "right_shoulder_yaw_joint_X4",
+    "right_elbow_pitch_joint_X6",
+    "right_wrist_yaw_joint_X4",
+    "right_wrist_roll_joint_X4",
 ]
 
 
@@ -205,8 +211,6 @@ class MotionRecorder(Node):
                     "speed_scale": 1.0,
                     "velocity_scaling": 0.3,
                     "acceleration_scaling": 0.3,
-                    "controller_name": "left_arm_group_controller",
-                    "planning_group": "left_arm",
                 },
                 "waypoints": self._waypoints,
             }
