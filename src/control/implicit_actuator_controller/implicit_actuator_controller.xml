@@ -1,0 +1,11 @@
+<library path="implicit_actuator_controller">
+  <class name="implicit_actuator_controller/ImplicitActuatorController"
+         type="implicit_actuator_controller::ImplicitActuatorController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      PD effort controller replicating Isaac Lab ImplicitActuator.
+      Runs torque = kp*(target-pos) - kd*vel at controller update rate.
+      Subscribes to ~/target_joint_positions for position targets.
+    </description>
+  </class>
+</library>

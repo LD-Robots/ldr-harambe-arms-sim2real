@@ -1,0 +1,133 @@
+# ImplicitActuatorController — replicates Isaac Lab ImplicitActuator in-process
+# PD at controller_manager update rate (200 Hz), zero DDS latency.
+# Deploy script publishes position targets to /whole_body_controller/target_joint_positions
+
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz — matches Isaac Lab sim_dt=0.005
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    whole_body_controller:
+      type: implicit_actuator_controller/ImplicitActuatorController
+
+
+whole_body_controller:
+  ros__parameters:
+    joints:
+      # HARDWARE_JOINT_ORDER — matches Isaac Lab training exactly
+      # Left arm (0-5)
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      # Right arm (6-11)
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      # Waist (12)
+      - waist_yaw_joint_X8
+      # Left leg (13-18)
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      # Right leg (19-24)
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+
+    # PD gains — exact from Isaac Lab locomotion_env_cfg.py ImplicitActuator
+    kp: [
+      # Left arm: X6=30, X4=30
+      30.0, 30.0, 30.0, 30.0, 30.0, 30.0,
+      # Right arm
+      30.0, 30.0, 30.0, 30.0, 30.0, 30.0,
+      # Waist: 150
+      150.0,
+      # Left leg: hip_pitch=200, hip_roll=150, hip_yaw=150, knee=200, ankle_pitch=200, ankle_roll=150
+      200.0, 150.0, 150.0, 200.0, 200.0, 150.0,
+      # Right leg
+      200.0, 150.0, 150.0, 200.0, 200.0, 150.0,
+    ]
+
+    ki: [
+      # Left arm: 0
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      # Right arm
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      # Waist: 0
+      0.0,
+      # Left leg: hip_pitch=10, hip_roll=0, hip_yaw=0, knee=10, ankle_pitch=20, ankle_roll=10
+      10.0, 0.0, 0.0, 10.0, 20.0, 10.0,
+      # Right leg
+      10.0, 0.0, 0.0, 10.0, 20.0, 10.0,
+    ]
+
+    kd: [
+      # Left arm: 8
+      8.0, 8.0, 8.0, 8.0, 8.0, 8.0,
+      # Right arm
+      8.0, 8.0, 8.0, 8.0, 8.0, 8.0,
+      # Waist: 8
+      8.0,
+      # Left leg: hip=10, knee=10, ankle_pitch=10, ankle_roll=8
+      10.0, 10.0, 10.0, 10.0, 10.0, 8.0,
+      # Right leg
+      10.0, 10.0, 10.0, 10.0, 10.0, 8.0,
+    ]
+
+    i_clamp: [
+      # Left arm: 0 (no I)
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      # Right arm
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      # Waist
+      0.0,
+      # Left leg: hip_pitch=1, hip_roll=0, hip_yaw=0, knee=1, ankle_pitch=1.5, ankle_roll=1
+      1.0, 0.0, 0.0, 1.0, 1.5, 1.0,
+      # Right leg
+      1.0, 0.0, 0.0, 1.0, 1.5, 1.0,
+    ]
+
+    # Effort limits — moderate profile from URDF (matches real hardware)
+    effort_limits: [
+      # Left arm: X6=23, X4=12.075
+      23.0, 23.0, 12.075, 23.0, 12.075, 12.075,
+      # Right arm
+      23.0, 23.0, 12.075, 23.0, 12.075, 12.075,
+      # Waist: X8=72
+      72.0,
+      # Left leg: X8=72, ankle_pitch=96.6 (linkage), ankle_roll=28.98 (linkage)
+      72.0, 72.0, 72.0, 72.0, 96.6, 28.98,
+      # Right leg
+      72.0, 72.0, 72.0, 72.0, 96.6, 28.98,
+    ]
+
+    # Max rate for target smoothing (rad/s)
+    max_position_rate: 2.0
+
+    # Default positions from training (init_state.joint_pos)
+    default_positions: [
+      # Left arm
+      0.2, 0.0, 0.0, 0.35, 0.0, 0.0,
+      # Right arm
+      0.2, 0.0, 0.0, 0.35, 0.0, 0.0,
+      # Waist
+      0.0,
+      # Left leg
+      -0.05, 0.0, 0.0, 0.15, -0.1, 0.0,
+      # Right leg
+      -0.05, 0.0, 0.0, 0.15, -0.1, 0.0,
+    ]
