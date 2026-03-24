@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <xacro:include filename="$(find full_robot_description)/urdf/macros/actuator_properties.xacro" />
+
   <xacro:macro name="full_robot_ros2_control_effort">
     <ros2_control name="harambe_ros2_control" type="system">
       <hardware>
@@ -9,9 +11,10 @@
 
       <!-- === BODY (waist) === -->
       <joint name="waist_yaw_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -20,9 +23,10 @@
 
       <!-- === LEFT ARM === -->
       <joint name="left_shoulder_pitch_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -30,9 +34,10 @@
       </joint>
 
       <joint name="left_shoulder_roll_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -40,9 +45,10 @@
       </joint>
 
       <joint name="left_shoulder_yaw_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -50,9 +56,10 @@
       </joint>
 
       <joint name="left_elbow_pitch_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -60,9 +67,10 @@
       </joint>
 
       <joint name="left_wrist_yaw_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -70,9 +78,10 @@
       </joint>
 
       <joint name="left_wrist_roll_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -81,9 +90,10 @@
 
       <!-- === RIGHT ARM === -->
       <joint name="right_shoulder_pitch_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -91,9 +101,10 @@
       </joint>
 
       <joint name="right_shoulder_roll_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -101,9 +112,10 @@
       </joint>
 
       <joint name="right_shoulder_yaw_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -111,9 +123,10 @@
       </joint>
 
       <joint name="right_elbow_pitch_joint_X6">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-20</param>
-          <param name="max">20</param>
+          <param name="min">-${X6_moderate_effort}</param>
+          <param name="max">${X6_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -121,9 +134,10 @@
       </joint>
 
       <joint name="right_wrist_yaw_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -131,9 +145,10 @@
       </joint>
 
       <joint name="right_wrist_roll_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${X4_moderate_effort}</param>
+          <param name="max">${X4_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -252,9 +267,10 @@
 
       <!-- === LEFT LEG === -->
       <joint name="left_hip_pitch_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -262,9 +278,10 @@
       </joint>
 
       <joint name="left_hip_roll_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -272,9 +289,10 @@
       </joint>
 
       <joint name="left_hip_yaw_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -282,9 +300,10 @@
       </joint>
 
       <joint name="left_knee_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -292,9 +311,10 @@
       </joint>
 
       <joint name="left_ankle_roll_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${ankle_roll_moderate_effort}</param>
+          <param name="max">${ankle_roll_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -302,9 +322,10 @@
       </joint>
 
       <joint name="left_ankle_pitch_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${ankle_pitch_moderate_effort}</param>
+          <param name="max">${ankle_pitch_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -313,9 +334,10 @@
 
       <!-- === RIGHT LEG === -->
       <joint name="right_hip_pitch_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -323,9 +345,10 @@
       </joint>
 
       <joint name="right_hip_roll_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -333,9 +356,10 @@
       </joint>
 
       <joint name="right_hip_yaw_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -343,9 +367,10 @@
       </joint>
 
       <joint name="right_knee_joint_X8">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-43</param>
-          <param name="max">43</param>
+          <param name="min">-${X8_moderate_effort}</param>
+          <param name="max">${X8_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -353,9 +378,10 @@
       </joint>
 
       <joint name="right_ankle_roll_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${ankle_roll_moderate_effort}</param>
+          <param name="max">${ankle_roll_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -363,9 +389,10 @@
       </joint>
 
       <joint name="right_ankle_pitch_joint_X4">
+        <command_interface name="position" />
         <command_interface name="effort">
-          <param name="min">-10.5</param>
-          <param name="max">10.5</param>
+          <param name="min">-${ankle_pitch_moderate_effort}</param>
+          <param name="max">${ankle_pitch_moderate_effort}</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
