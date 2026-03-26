@@ -15,9 +15,6 @@ install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-install(PROGRAMS scripts/implicit_actuator_adapter.py
-  DESTINATION lib/${PROJECT_NAME}
-)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
