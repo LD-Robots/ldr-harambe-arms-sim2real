@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="dual_arm_base">
 
+  <!-- Actuator properties (effort, velocity, damping, friction) -->
+  <xacro:include filename="$(find full_robot_description)/urdf/macros/actuator_properties.xacro" />
+
   <!-- Body (base + torso) -->
   <xacro:include filename="$(find full_robot_description)/urdf/links/body_links.xacro" />
   <xacro:include filename="$(find full_robot_description)/urdf/joints/body_joints.xacro" />
