@@ -27,6 +27,23 @@ def generate_launch_description():
         ])
     )
 
+    # Set GZ_SIM_SYSTEM_PLUGIN_PATH so Gazebo can find custom plugins
+    install_dir_policy_plugin = get_package_prefix('harambe_gz_policy_plugin')
+    plugin_lib_dir = os.path.join(install_dir_policy_plugin, 'lib')
+    gz_plugin_path = SetEnvironmentVariable(
+        name='GZ_SIM_SYSTEM_PLUGIN_PATH',
+        value=plugin_lib_dir
+    )
+
+    # ONNX Runtime library path
+    workspace_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))))
+    onnx_lib_dir = os.path.join(workspace_dir, 'third_party', 'onnxruntime', 'lib')
+    onnx_ld_path = SetEnvironmentVariable(
+        name='LD_LIBRARY_PATH',
+        value=':'.join([plugin_lib_dir, onnx_lib_dir, os.environ.get('LD_LIBRARY_PATH', '')])
+    )
+
     # Launch arguments
     world_arg = DeclareLaunchArgument(
         'world',
@@ -37,7 +54,13 @@ def generate_launch_description():
     control_mode_arg = DeclareLaunchArgument(
         'control_mode',
         default_value='position',
-        description='Control mode: position or effort'
+        description='Control mode: position, effort, gz_pid, or gz_policy'
+    )
+
+    onnx_path_arg = DeclareLaunchArgument(
+        'onnx_path',
+        default_value='',
+        description='Path to ONNX policy (for gz_policy mode)'
     )
 
     # Launch Gazebo Harmonic
@@ -57,6 +80,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'control_mode': LaunchConfiguration('control_mode'),
+            'onnx_path': LaunchConfiguration('onnx_path'),
         }.items()
     )
 
@@ -89,8 +113,11 @@ def generate_launch_description():
 
     return LaunchDescription([
         gz_resource_path,
+        gz_plugin_path,
+        onnx_ld_path,
         world_arg,
         control_mode_arg,
+        onnx_path_arg,
         gazebo,
         clock_bridge,
         spawn_robot,

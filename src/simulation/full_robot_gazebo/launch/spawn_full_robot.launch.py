@@ -1,10 +1,29 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, TimerAction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command, PythonExpression
+from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+
+
+# All 25 joints in HARDWARE_JOINT_ORDER
+ALL_JOINTS = [
+    "left_shoulder_pitch_joint_X6", "left_shoulder_roll_joint_X6",
+    "left_shoulder_yaw_joint_X4", "left_elbow_pitch_joint_X6",
+    "left_wrist_yaw_joint_X4", "left_wrist_roll_joint_X4",
+    "right_shoulder_pitch_joint_X6", "right_shoulder_roll_joint_X6",
+    "right_shoulder_yaw_joint_X4", "right_elbow_pitch_joint_X6",
+    "right_wrist_yaw_joint_X4", "right_wrist_roll_joint_X4",
+    "waist_yaw_joint_X8",
+    "left_hip_pitch_joint_X8", "left_hip_roll_joint_X8",
+    "left_hip_yaw_joint_X8", "left_knee_joint_X8",
+    "left_ankle_pitch_joint_X4", "left_ankle_roll_joint_X4",
+    "right_hip_pitch_joint_X8", "right_hip_roll_joint_X8",
+    "right_hip_yaw_joint_X8", "right_knee_joint_X8",
+    "right_ankle_pitch_joint_X4", "right_ankle_roll_joint_X4",
+]
 
 
 def generate_launch_description():
@@ -16,23 +35,32 @@ def generate_launch_description():
     )
     control_mode_arg = DeclareLaunchArgument(
         "control_mode", default_value="position",
-        description="Control mode: position or effort"
+        description="Control mode: position, effort, effort_implicit_actuators, or gz_pid"
+    )
+    onnx_path_arg = DeclareLaunchArgument(
+        "onnx_path", default_value="",
+        description="Path to ONNX policy model (for gz_policy mode)"
     )
     x_arg = DeclareLaunchArgument("x", default_value="0.0", description="X position")
     y_arg = DeclareLaunchArgument("y", default_value="0.0", description="Y position")
-    z_arg = DeclareLaunchArgument("z", default_value="1.26", description="Z position")
+    z_arg = DeclareLaunchArgument("z", default_value="1.25", description="Z position")
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     control_mode = LaunchConfiguration("control_mode")
+    onnx_path = LaunchConfiguration("onnx_path")
     x_pos = LaunchConfiguration("x")
     y_pos = LaunchConfiguration("y")
     z_pos = LaunchConfiguration("z")
 
-    # Robot description from XACRO (with control_mode arg)
+    is_gz_native = PythonExpression(["'", control_mode, "' in ('gz_pid', 'gz_policy')"])
+    is_ros2_control = PythonExpression(["'", control_mode, "' not in ('gz_pid', 'gz_policy')"])
+
+    # Robot description from XACRO
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([pkg_full_robot_description, "urdf", "full_robot_gazebo.xacro"]),
         " control_mode:=", control_mode,
+        " onnx_path:=", onnx_path,
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -54,14 +82,12 @@ def generate_launch_description():
         arguments=[
             "-name", "harambe",
             "-topic", "robot_description",
-            "-x", x_pos,
-            "-y", y_pos,
-            "-z", z_pos,
+            "-x", x_pos, "-y", y_pos, "-z", z_pos,
         ],
         output="screen",
     )
 
-    # Controller spawners - chained sequentially via OnProcessExit events
+    # ========== ros2_control mode (position/effort/effort_implicit_actuators) ==========
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -73,9 +99,9 @@ def generate_launch_description():
             "--service-call-timeout", "60",
         ],
         output="screen",
+        condition=IfCondition(is_ros2_control),
     )
 
-    # Single whole_body_controller for RL policy deployment
     whole_body_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -87,9 +113,9 @@ def generate_launch_description():
             "--service-call-timeout", "60",
         ],
         output="screen",
+        condition=IfCondition(is_ros2_control),
     )
 
-    # Chain: spawn_entity -> (5s) -> JSB -> whole_body_controller
     start_jsb_after_spawn = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=spawn_entity,
@@ -104,15 +130,41 @@ def generate_launch_description():
         )
     )
 
+    # ========== gz_pid mode: bridge Gazebo joint topics to ROS 2 ==========
+    # Bridge joint commands: ROS 2 Float64 → Gazebo Double (per joint)
+    # Bridge joint states: Gazebo JointState → ROS 2 JointState
+    gz_joint_bridge_args = []
+    for jname in ALL_JOINTS:
+        # ROS 2 → Gazebo: position command per joint
+        gz_joint_bridge_args.append(
+            f"/joint_cmd/{jname}@std_msgs/msg/Float64]gz.msgs.Double"
+        )
+    # Gazebo → ROS 2: joint states
+    gz_joint_bridge_args.append(
+        "/joint_states_gz@sensor_msgs/msg/JointState[gz.msgs.Model"
+    )
+
+    gz_joint_bridge = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        name="gz_joint_bridge",
+        arguments=gz_joint_bridge_args,
+        output="screen",
+        condition=IfCondition(is_gz_native),
+    )
+
     return LaunchDescription([
         # Launch arguments
-        use_sim_time_arg, control_mode_arg, x_arg, y_arg, z_arg,
+        use_sim_time_arg, control_mode_arg, onnx_path_arg, x_arg, y_arg, z_arg,
 
-        # RSP first, then spawn entity
+        # RSP + spawn (always)
         robot_state_publisher,
         spawn_entity,
 
-        # Sequential controller chain (triggered by events)
+        # ros2_control chain (position/effort modes)
         start_jsb_after_spawn,
         start_whole_body_after_jsb,
+
+        # gz_pid mode: Gazebo-native joint controllers + bridge
+        gz_joint_bridge,
     ])

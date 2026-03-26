@@ -25,3 +25,5 @@
 
 # YOLO tracking crops
 object_crops/
+
+/third_party/**
