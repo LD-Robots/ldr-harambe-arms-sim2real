@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="dual_arm_description">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="left_arm_group">
+        <chain base_link="urdf_simplified_torso" tip_link="urdf_l_wrist_assembly"/>
+    </group>
+    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
+    <group_state name="home" group="left_arm_group">
+        <joint name="left_elbow_pitch_joint_X6" value="0"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="0"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0"/>
+        <joint name="left_wrist_roll_joint_X4" value="0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0"/>
+    </group_state>
+    <group_state name="ready" group="left_arm_group">
+        <joint name="left_elbow_pitch_joint_X6" value="-1.1393"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="0.0773"/>
+        <joint name="left_shoulder_roll_joint_X6" value="-0.0052"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.533"/>
+        <joint name="left_wrist_roll_joint_X4" value="0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0"/>
+    </group_state>
+    <group_state name="hello" group="left_arm_group">
+        <joint name="left_elbow_pitch_joint_X6" value="-0.8151"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="0"/>
+        <joint name="left_shoulder_roll_joint_X6" value="1.889"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="2.0465"/>
+        <joint name="left_wrist_roll_joint_X4" value="0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0"/>
+    </group_state>
+    <group_state name="waiting" group="left_arm_group">
+        <joint name="left_elbow_pitch_joint_X6" value="-1.1564"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="0.2053"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.5067"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="-0.8522"/>
+        <joint name="left_wrist_roll_joint_X4" value="0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0"/>
+    </group_state>
+    <group_state name="stop" group="left_arm_group">
+        <joint name="left_elbow_pitch_joint_X6" value="-0.6957"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="-1.2282"/>
+        <joint name="left_shoulder_roll_joint_X6" value="-0.0564"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.6613"/>
+        <joint name="left_wrist_roll_joint_X4" value="-0.785"/>
+        <joint name="left_wrist_yaw_joint_X4" value="1.6417"/>
+    </group_state>
+    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
+    <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="urdf_base"/>
+    <!--PASSIVE JOINT: Purpose: this element is used to mark joints that are not actuated-->
+    <passive_joint name="left_hip_pitch_joint"/>
+    <passive_joint name="left_hip_roll_joint"/>
+    <passive_joint name="left_hip_yaw_joint"/>
+    <passive_joint name="left_knee_joint"/>
+    <passive_joint name="left_ankle_pitch_joint"/>
+    <passive_joint name="right_hip_pitch_joint"/>
+    <passive_joint name="right_hip_yaw_joint"/>
+    <passive_joint name="left_ankle_roll_joint"/>
+    <passive_joint name="right_hip_roll_joint"/>
+    <passive_joint name="right_knee_joint"/>
+    <passive_joint name="right_ankle_roll_joint"/>
+    <passive_joint name="right_ankle_pitch_joint"/>
+    <passive_joint name="right_shoulder_pitch_joint_X6"/>
+    <passive_joint name="right_shoulder_roll_joint_X6"/>
+    <passive_joint name="right_shoulder_yaw_joint_X4"/>
+    <passive_joint name="right_elbow_pitch_joint_X6"/>
+    <passive_joint name="right_wrist_yaw_joint_X4"/>
+    <passive_joint name="right_wrist_roll_joint_X4"/>
+    <passive_joint name="waist_yaw_joint"/>
+    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_ankle_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_base" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_foot_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_hip_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_l_tibia_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_base" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_foot_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_hip_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_r_tibia_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_ankle_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_foot_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_foot_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_hip_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_base" link2="urdf_hip_assembly_2" reason="Adjacent"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_base" link2="urdf_simplified_torso" reason="Adjacent"/>
+    <disable_collisions link1="urdf_foot_assembly" link2="urdf_hip_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly_2" link2="urdf_hip_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly_2" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly_2" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_foot_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_hip_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_femur_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_tibia_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Adjacent"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_hip_assembly_2" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_elbow_assembly" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_l_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_l_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_l_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_l_wrist_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_lower_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_shoulder_assembly" link2="urdf_simplified_torso" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_tibia_assembly" link2="urdf_lower_femur_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_upper_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_lower_femur_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_arm_assembly" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_lower_femur_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_femur_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_l_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_upper_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_l_wrist_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_lower_femur_assembly_2" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_r_elbow_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_tibia_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_lower_femur_assembly_2" link2="urdf_r_upper_femur_assemby" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_lower_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_elbow_assembly" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_r_lower_forearm_assembly" link2="urdf_r_shoulder_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_lower_forearm_assembly" link2="urdf_r_upper_arm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_lower_forearm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_lower_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_arm_assembly" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_shoulder_assembly" link2="urdf_simplified_torso" reason="Adjacent"/>
+    <disable_collisions link1="urdf_r_tibia_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_upper_femur_assemby" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_arm_assembly" link2="urdf_simplified_torso" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_femur_assemby" link2="urdf_r_upper_forearm_assembly" reason="Never"/>
+    <disable_collisions link1="urdf_r_upper_forearm_assembly" link2="urdf_r_wrist_assembly" reason="Never"/>
+</robot>

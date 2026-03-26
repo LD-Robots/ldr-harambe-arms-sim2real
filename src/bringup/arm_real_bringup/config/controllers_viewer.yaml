@@ -1,0 +1,18 @@
+# Read-only position viewer — joint_state_broadcaster only, no motion controller
+controller_manager:
+  ros__parameters:
+    update_rate: 100   # Hz — matches EthercatDriver control_frequency (readonly)
+
+    diagnostics:
+      threshold:
+        periodicity:
+          mean_error:
+            warn: 5.0
+            error: 10.0
+          standard_deviation:
+            warn: 5.0
+            error: 10.0
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      publish_rate: 100

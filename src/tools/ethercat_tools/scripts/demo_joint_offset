@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from ethercat_tools.demo_joint_offset.main import main
+main()

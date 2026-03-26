@@ -30,6 +30,24 @@ install(PROGRAMS
   RENAME full_system_launcher
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/ethercat_monitor.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME ethercat_monitor
+)
+
+install(PROGRAMS
+  src/${PROJECT_NAME}/joint_state_monitor.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME joint_state_monitor
+)
+
+install(PROGRAMS
+  src/${PROJECT_NAME}/joint_state_tui.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME joint_state_tui
+)
+
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
 )

@@ -22,6 +22,9 @@ setup(
             'joint_monitor = arm_gui_tools.joint_monitor:main',
             'full_system_launcher = arm_gui_tools.full_system_launcher:main',
             'power_monitor_gui = arm_gui_tools.power_monitor_gui:main',
+            'ethercat_monitor = arm_gui_tools.ethercat_monitor:main',
+            'joint_state_monitor = arm_gui_tools.joint_state_monitor:main',
+            'joint_state_tui = arm_gui_tools.joint_state_tui:main',
         ],
     },
 )

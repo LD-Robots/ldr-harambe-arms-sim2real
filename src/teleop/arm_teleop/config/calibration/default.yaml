@@ -24,75 +24,75 @@ joints:
   # Left arm
   left_shoulder_pitch_joint_X6:
     neutral_angle: 0.0
-    human_min: -3.02
-    human_max: 1.69
-    robot_min: -3.02
-    robot_max: 1.69
+    human_min: -3.0194
+    human_max: 1.69296
+    robot_min: -3.0194
+    robot_max: 1.69296
   left_shoulder_roll_joint_X6:
     neutral_angle: 0.0
-    human_min: -0.21
-    human_max: 2.93
-    robot_min: -0.21
-    robot_max: 2.93
+    human_min: -0.2094
+    human_max: 2.93215
+    robot_min: -0.2094
+    robot_max: 2.93215
   left_shoulder_yaw_joint_X4:
     neutral_angle: 0.0
-    human_min: -1.75
-    human_max: 2.97
-    robot_min: -1.75
-    robot_max: 2.97
+    human_min: -1.7453
+    human_max: 2.96705
+    robot_min: -1.7453
+    robot_max: 2.96705
   left_elbow_pitch_joint_X6:
     neutral_angle: 0.0
-    human_min: -1.31
-    human_max: 1.83
-    robot_min: -1.31
-    robot_max: 1.83
+    human_min: -1.3089
+    human_max: 1.8326
+    robot_min: -1.3089
+    robot_max: 1.8326
   left_wrist_yaw_joint_X4:
     neutral_angle: 0.0
-    human_min: -2.36
-    human_max: 2.36
-    robot_min: -2.36
-    robot_max: 2.36
+    human_min: -2.3561
+    human_max: 2.35619
+    robot_min: -2.3561
+    robot_max: 2.35619
   left_wrist_roll_joint_X4:
     neutral_angle: 0.0
-    human_min: -1.57
-    human_max: 1.57
-    robot_min: -1.57
-    robot_max: 1.57
+    human_min: -1.5707
+    human_max: 1.57079
+    robot_min: -1.5707
+    robot_max: 1.57079
 
   # Right arm
   right_shoulder_pitch_joint_X6:
     neutral_angle: 0.0
-    human_min: -3.02
-    human_max: 1.69
-    robot_min: -3.02
-    robot_max: 1.69
+    human_min: -3.0194
+    human_max: 1.69296
+    robot_min: -3.0194
+    robot_max: 1.69296
   right_shoulder_roll_joint_X6:
     neutral_angle: 0.0
-    human_min: -2.93
-    human_max: 0.21
-    robot_min: -2.93
-    robot_max: 0.21
+    human_min: -2.9321
+    human_max: 0.20943
+    robot_min: -2.9321
+    robot_max: 0.20943
   right_shoulder_yaw_joint_X4:
     neutral_angle: 0.0
-    human_min: -2.97
-    human_max: 1.75
-    robot_min: -2.97
-    robot_max: 1.75
+    human_min: -2.9670
+    human_max: 1.74532
+    robot_min: -2.9670
+    robot_max: 1.74532
   right_elbow_pitch_joint_X6:
     neutral_angle: 0.0
-    human_min: -1.31
-    human_max: 1.83
-    robot_min: -1.31
-    robot_max: 1.83
+    human_min: -1.3089
+    human_max: 1.8326
+    robot_min: -1.3089
+    robot_max: 1.8326
   right_wrist_yaw_joint_X4:
     neutral_angle: 0.0
-    human_min: -2.36
-    human_max: 2.36
-    robot_min: -2.36
-    robot_max: 2.36
+    human_min: -2.3561
+    human_max: 2.35619
+    robot_min: -2.3561
+    robot_max: 2.35619
   right_wrist_roll_joint_X4:
     neutral_angle: 0.0
-    human_min: -1.57
-    human_max: 1.57
-    robot_min: -1.57
-    robot_max: 1.57
+    human_min: -1.5707
+    human_max: 1.57079
+    robot_min: -1.5707
+    robot_max: 1.57079

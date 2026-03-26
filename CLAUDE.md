@@ -89,13 +89,14 @@ Both share the same underlying `JointTrajectoryController`.
 | `planning/` | arm_moveit_config, dual_arm_moveit_config, arm_gripper_moveit_config, arm_hand_moveit_config, arm_mtc | MoveIt 2 configs and MTC tasks |
 | `simulation/` | arm_gazebo, dual_arm_gazebo | Gazebo worlds and spawn launch files |
 | `hardware_interface/` | arm_hardware, gripper_hardware, hand_hardware | Legacy placeholders |
-| `hardware_interface/` | myactuator_ethercat, myactuator_hardware, arm_ethercat_safety | EtherCAT driver, ros2_control plugin, safety monitor |
+| `hardware_interface/` | arm_ethercat_safety | Safety monitor for real hardware |
+| `ethercat_driver_ros2/` | ethercat_driver, ethercat_generic_plugins, ethercat_interface | ICube EtherCAT framework (external) |
 | `bringup/` | arm_system_bringup, arm_real_bringup | Sim bringup and real hardware bringup |
 | `teleop/` | arm_teleop | Keyboard, joystick, and Cartesian teleop |
-| `tools/` | arm_gui_tools, diagnostic_tools, dualsense_tools | GUI launcher, monitoring, gamepad input |
+| `tools/` | arm_gui_tools, dualsense_tools, ethercat_tools | GUI launcher, EtherCAT diagnostics, gamepad input |
 | `applications/` | *(empty — future demos)* | |
 
-All packages use `ament_cmake`. Python is the primary language for nodes and launch files; C++ is used for MTC nodes (`arm_mtc/src/`), the joint teleop node, and the EtherCAT driver stack.
+All packages use `ament_cmake`. Python is the primary language for nodes and launch files; C++ is used for MTC nodes (`arm_mtc/src/`), the joint teleop node, and the safety monitor node.
 
 ### Key Configuration Files
 
@@ -129,16 +130,17 @@ Located in `src/simulation/arm_gazebo/worlds/`: `lab-ldr.sdf` (default), `lab2.s
 
 ## EtherCAT Real Hardware
 
-### Package Architecture (4 layers)
+### Architecture (3 layers)
 
-1. **`myactuator_ethercat`** — Pure C++ EtherLab driver library (no ROS dependency). CiA 402 state machine, PDO types matching ESI exactly, unit conversions.
-2. **`myactuator_hardware`** — ros2_control `SystemInterface` plugin. Bridges EtherCAT to `controller_manager`. Plugin class: `myactuator_hardware::MyActuatorSystem`.
-3. **`arm_ethercat_safety`** — Safety monitoring node: watchdog, e-stop, joint limits, CiA 402 fault detection.
-4. **`arm_real_bringup`** — Launch files and configs for real hardware. Uses `ros2_control_node` instead of Gazebo plugin.
+1. **`ethercat_driver_ros2`** (ICube Robotics) — Generic EtherCAT framework providing `ethercat_driver/EthercatDriver` ros2_control `SystemInterface` plugin and `EcCiA402Drive` per-joint modules. Handles EtherLab IgH master communication, CiA 402 state machine, PDO exchange.
+2. **`arm_ethercat_safety`** — Independent safety monitoring node: watchdog, e-stop, joint limits, CiA 402 fault detection. Subscribes to `/joint_states`, publishes `/safety/status` + `/diagnostics`.
+3. **`arm_real_bringup`** — Launch files and per-joint EtherCAT YAML slave configs for real hardware.
 
 ### URDF Switching
 
-`dual_arm.urdf.xacro use_sim:=false` loads `dual_arm_real.xacro` with the EtherCAT hardware plugin. `use_sim:=true` loads `dual_arm_gazebo.xacro` with Gazebo (unchanged).
+`dual_arm.urdf.xacro use_sim:=false` loads `ros2_control_real.xacro` with the `ethercat_driver/EthercatDriver` plugin. Each joint exports three command interfaces (`position`, `effort`, `mode_of_operation`) and has an `<ec_module>` referencing a per-joint YAML slave config via `EcCiA402Drive`. `use_sim:=true` loads Gazebo (unchanged).
+
+An additional `readonly:=true` xacro arg selects read-only slave configs (`ethercat_readonly/`) that keep drives in SWITCH_ON_DISABLED state.
 
 ### Launching Real Hardware
 
@@ -146,24 +148,113 @@ Located in `src/simulation/arm_gazebo/worlds/`: `lab-ldr.sdf` (default), `lab2.s
 # Pre-flight check
 bash $(ros2 pkg prefix arm_real_bringup)/share/arm_real_bringup/scripts/check_ethercat.sh
 
-# Launch
+# Full control — CSP mode (position), enables drives, 100 Hz
 ros2 launch arm_real_bringup arm_real.launch.py
+
+# Gravity-compensated recording — CST mode (torque), enables drives, 100 Hz
+ros2 launch arm_real_bringup recording.launch.py
+
+# Read-only position viewer (drives stay disabled, 100 Hz)
+ros2 launch arm_real_bringup position_viewer.launch.py
 ```
 
 ### Key EtherCAT Configs
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `left_arm_actuators.yaml` | `myactuator_hardware/config/` | Per-joint slave position, motor type (X4/X6), direction, offset |
-| `myactuator_rmd_x_v4.yaml` | `myactuator_ethercat/config/` | Device constants, PDO indices, unit conversion factors |
-| `controllers.yaml` | `arm_real_bringup/config/` | Real hardware controllers (1 kHz update rate) |
+| `left_*_X[4|6].yaml` (25 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config (single source of truth): PDO mapping, factors, offsets, mode_of_operation interface |
+| `ethercat_readonly/` | *(generated at build time)* | Auto-generated from `ethercat/` with `auto_state_transitions: false` (read-only) |
+| `ethercat_gravcomp/` | *(generated at build time)* | Auto-generated from `ethercat/` with `mode_of_operation: 10` (CST torque) |
+| `controllers.yaml` | `arm_real_bringup/config/` | Unified controllers: JTC (position), effort, mode_controller (100 Hz) |
+| `controllers_viewer.yaml` | `arm_real_bringup/config/` | Read-only viewer (JSB only, 100 Hz) |
 | `safety_limits.yaml` | `arm_ethercat_safety/config/` | Per-joint position/velocity/torque safety limits |
-| `MT-Device-250702.xml` | `myactuator_ethercat/esi/` | ESI file for MyActuator RMD X V4 |
+| `ros2_control_real.xacro` | `dual_arm_description/urdf/macros/` | URDF hardware plugin definition (position + effort + mode_of_operation) |
+
+### Motor Specs & Calibration
+
+**Encoder resolution:** raw ±65535 = ±180° → `position_factor = π/65535 ≈ 4.794e-5 rad/count` (20,861 counts/rad)
+
+**Gear ratios:** X6 = 19.612:1, X4 = 36:1
+
+**Conversion factors by motor type:**
+
+| Motor | Position cmd factor | Position state factor | Velocity factor | Torque cmd/state |
+|-------|--------------------|-----------------------|-----------------|------------------|
+| X6 | 20861.0 counts/rad | 4.794e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
+| X4 | 41722.0 counts/rad | 2.397e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
+
+X4 position factor is 2x X6 due to the higher gear ratio (36 vs 19.612).
+
+**Calibrated zero offsets** (from `arm_real_bringup/config/ethercat/`):
+
+| Joint | Motor | Bus Pos | Dir | Cmd Offset (raw) | State Offset (rad) |
+|-------|-------|---------|-----|-------------------|---------------------|
+| left_shoulder_pitch_X6 | X6 | 0 | -1 | 3892 | 0.186573 |
+| left_shoulder_roll_X6 | X6 | 1 | -1 | -652 | -0.031255 |
+| left_shoulder_yaw_X4 | X4 | 2 | -1 | 28044 | 0.672181 |
+| left_elbow_pitch_X6 | X6 | 3 | -1 | 3328 | 0.159536 |
+| left_wrist_yaw_X4 | X4 | 4 | -1 | 262 | 0.006280 |
+| left_wrist_roll_X4 | X4 | 5 | +1 | -4 | 0.000096 |
+
+Offsets are encoded in each per-joint YAML slave config as `offset` fields on the RxPDO/TxPDO position channels. Direction reversal is done by negating the `factor` values. Use `demo_joint_offset` tool from `ethercat_tools` to recalibrate.
+
+### Per-Joint Slave Config Format
+
+Each YAML file in `arm_real_bringup/config/ethercat/` defines: vendor/product ID, DC sync, SDO initialization, RxPDO channels (command interfaces with factors and offsets), TxPDO channels (state interfaces with factors and offsets). Direction reversal is achieved by negating all factors. The mode_of_operation PDO channel (0x6060) is exposed as a `command_interface: mode_of_operation` for runtime mode switching. See `docs/ETHERCAT.md` for the full annotated example.
+
+### Dynamic Mode Switching (CSP ↔ CST)
+
+CiA 402 modes are switched at runtime without restarting. Three ros2_control controllers claim **different** interfaces on the same joints (no conflicts):
+
+| Controller | Interface | Purpose | Startup State |
+|------------|-----------|---------|---------------|
+| `left_arm_group_controller` | position | JointTrajectoryController for CSP | active |
+| `left_arm_effort_controller` | effort | JointGroupEffortController for CST | inactive |
+| `mode_controller` | mode_of_operation | ForwardCommandController to set CiA 402 mode | active |
+
+**Switch to CST (torque/gravity comp):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_group_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
+ros2 control switch_controllers --activate left_arm_effort_controller
+```
+
+**Switch back to CSP (position control):**
+```bash
+ros2 control switch_controllers --deactivate left_arm_effort_controller
+ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [8,8,8,8,8,8]}"
+ros2 control switch_controllers --activate left_arm_group_controller
+```
+
+Mode values: **8** = CSP (Cyclic Synchronous Position), **9** = CSV (Cyclic Synchronous Velocity), **10** = CST (Cyclic Synchronous Torque).
+
+The existing `EcCiA402Drive::processData()` handles mode switching automatically — when the drive reports CST mode via TxPDO (0x6061), position commands are overridden with `last_position_` to prevent jumps.
 
 ### MyActuator Protocol Reference
 
 - **PDO layout**: RxPDO 0x1600 (16 bytes: control_word, target_position, target_velocity, target_torque, max_torque, mode, padding), TxPDO 0x1A00 (16 bytes: status_word, position_actual, velocity_actual, torque_actual, error_code, mode_display, padding)
 - **Position**: raw ±65535 = ±180° → `rad = raw × (π / 65535)`
-- **CiA 402 enable**: 0x0006 → 0x0007 → 0x000F (verify status at each step)
-- **CRITICAL**: Set target_position = actual_position BEFORE enabling to prevent joint jumps
+- **CiA 402 enable**: Handled automatically by `EcCiA402Drive` when `auto_state_transitions: true`. Sequence: 0x0006 → 0x0007 → 0x000F. Sets target_position = actual_position before enabling to prevent joint jumps.
 - Full protocol docs in `docs/myActuator/`
+- ESI file: `docs/myActuator/esi/MT-Device-250702.xml`
+
+## Monitoring & Diagnostic Tools
+
+### EtherCAT Tools (`ethercat_tools` package)
+
+| Command | Purpose |
+|---------|---------|
+| `demo_ethercat_status` | Real-time EtherCAT master + 6 slave status (CiA 402 state, PDO data, safety) |
+| `demo_joint_state` | Joint state monitor with auto SIM/REAL detection |
+| `demo_joint_offset` | Absolute encoder zero-offset calibration tool |
+
+### GUI Tools (`arm_gui_tools` package)
+
+| Command | Purpose |
+|---------|---------|
+| `ros2 run arm_gui_tools full_system_launcher` | Full system GUI launcher |
+| `ros2 run arm_gui_tools ethercat_monitor` | Full EtherCAT diagnostics (real hardware, subscribes to /diagnostics) |
+| `ros2 run arm_gui_tools joint_state_monitor` | Lightweight joint table (ROS or DEMO) |
+| `ros2 run arm_gui_tools joint_state_tui` | Terminal dashboard with Rich (multi-tab, keyboard controls) |
+
+All tools support three modes: **DEMO** (offline, simulated data), **SIM** (Gazebo /joint_states only), **REAL** (EtherCAT topics present). Mode is auto-detected. Detailed docs in `docs/TOOLS.md`.

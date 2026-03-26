@@ -10,6 +10,7 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
+#include "controller_manager_msgs/srv/switch_controller.hpp"
 
 #include "arm_ethercat_safety/watchdog.hpp"
 #include "arm_ethercat_safety/estop_handler.hpp"
@@ -43,6 +44,8 @@ public:
 private:
   void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
   void safety_check_timer_callback();
+  void deactivate_controller();
+  void activate_controller();
 
   // Subscribers
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
@@ -64,6 +67,12 @@ private:
   std::unique_ptr<JointLimitMonitor> joint_limit_monitor_;
   std::unique_ptr<FaultHandler> fault_handler_;
 
+  // Controller management
+  rclcpp::Client<controller_manager_msgs::srv::SwitchController>::SharedPtr switch_controller_client_;
+  std::string controller_name_;
+  bool controller_deactivated_{false};
+
+  bool first_joint_state_received_{false};
   bool system_safe_{true};
 };
 

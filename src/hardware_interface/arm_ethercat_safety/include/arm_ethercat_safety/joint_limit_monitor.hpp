@@ -2,6 +2,7 @@
 #define ARM_ETHERCAT_SAFETY__JOINT_LIMIT_MONITOR_HPP_
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace arm_ethercat_safety
@@ -47,7 +48,9 @@ public:
   void configure(const std::vector<JointLimits> & limits);
 
   /// Check all joints against limits. Returns violations (empty = all OK).
+  /// Joint names from the message are used to look up the correct limits.
   std::vector<Violation> check(
+    const std::vector<std::string> & names,
     const std::vector<double> & positions,
     const std::vector<double> & velocities,
     const std::vector<double> & efforts);
@@ -59,7 +62,7 @@ public:
   const std::vector<Violation> & get_violations() const;
 
 private:
-  std::vector<JointLimits> limits_;
+  std::unordered_map<std::string, JointLimits> limits_;
   std::vector<Violation> violations_;
 };
 

@@ -9,6 +9,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>moveit_kinematics</exec_depend>
   <exec_depend>moveit_planners</exec_depend>
@@ -28,6 +29,10 @@
   <exec_depend>moveit_task_constructor_core</exec_depend>
   <exec_depend>moveit_task_constructor_msgs</exec_depend>
   <exec_depend>moveit_task_constructor_capabilities</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
