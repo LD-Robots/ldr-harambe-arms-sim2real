@@ -22,6 +22,7 @@ install(
     scripts/demo_joint_offset
     scripts/demo_joint_state
     scripts/joint_calibration
+    scripts/current_monitor
   DESTINATION lib/${PROJECT_NAME}
 )
 

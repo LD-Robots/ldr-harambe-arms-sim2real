@@ -25,6 +25,7 @@ setup(
             'ethercat_monitor = arm_gui_tools.ethercat_monitor:main',
             'joint_state_monitor = arm_gui_tools.joint_state_monitor:main',
             'joint_state_tui = arm_gui_tools.joint_state_tui:main',
+            'actuator_status = arm_gui_tools.actuator_status:main',
         ],
     },
 )

@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""
+Monitor estimated current consumption from /joint_states effort values.
+
+Uses full motor datasheet parameters for accurate estimation:
+  - Module torque constant (Kt) for mechanical→phase current
+  - Efficiency factor for electrical current draw
+  - No-load current baseline
+  - Input voltage for power calculation
+  - Rated/peak current limits for utilization display
+
+Usage:
+    ros2 run ethercat_tools current_monitor
+    ros2 run ethercat_tools current_monitor --rate 2.0
+    ros2 run ethercat_tools current_monitor --topic /joint_states
+"""
+
+import argparse
+import threading
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import JointState
+
+# Full motor specs from MyActuator RMD X V4 datasheets
+MOTOR_SPECS = {
+    "X4": {
+        "kt": 1.9,               # Module torque constant (Nm/A)
+        "no_load_current": 0.9,   # No-load input current (A)
+        "efficiency": 0.631,      # Rated efficiency
+        "voltage": 24,            # Input voltage (V)
+        "rated_current": 6.1,     # Rated phase current (A rms)
+        "peak_current": 21.5,     # Peak phase current (A rms)
+        "rated_torque": 10.5,     # Rated torque (Nm)
+        "peak_torque": 34.0,      # Peak torque (Nm)
+    },
+    "X6": {
+        "kt": 2.1,
+        "no_load_current": 0.9,
+        "efficiency": 0.727,
+        "voltage": 48,
+        "rated_current": 9.5,
+        "peak_current": 29.1,
+        "rated_torque": 20.0,
+        "peak_torque": 60.0,
+    },
+    "X8": {
+        "kt": 2.4,
+        "no_load_current": 1.6,
+        "efficiency": 0.790,
+        "voltage": 48,
+        "rated_current": 17.6,
+        "peak_current": 43.8,
+        "rated_torque": 43.0,
+        "peak_torque": 120.0,
+    },
+}
+
+# ANSI color codes
+_GREEN = "\033[32m"
+_YELLOW = "\033[33m"
+_RED = "\033[31m"
+_RESET = "\033[0m"
+_BOLD = "\033[1m"
+
+
+def _color_util(pct):
+    """Color-code utilization percentage."""
+    if pct >= 100.0:
+        return f"{_RED}{_BOLD}{pct:>6.1f}%{_RESET}"
+    elif pct >= 80.0:
+        return f"{_YELLOW}{pct:>6.1f}%{_RESET}"
+    else:
+        return f"{_GREEN}{pct:>6.1f}%{_RESET}"
+
+ARM_JOINTS = [
+    "left_shoulder_pitch_joint_X6",
+    "left_shoulder_roll_joint_X6",
+    "left_shoulder_yaw_joint_X4",
+    "left_elbow_pitch_joint_X6",
+    "left_wrist_yaw_joint_X4",
+    "left_wrist_roll_joint_X4",
+    "right_shoulder_pitch_joint_X6",
+    "right_shoulder_roll_joint_X6",
+    "right_shoulder_yaw_joint_X4",
+    "right_elbow_pitch_joint_X6",
+    "right_wrist_yaw_joint_X4",
+    "right_wrist_roll_joint_X4",
+]
+
+
+def motor_type(joint_name):
+    """Extract motor type suffix (X4, X6, X8) from joint name."""
+    for suffix in ("X8", "X6", "X4"):
+        if joint_name.endswith(suffix):
+            return suffix
+    return None
+
+
+class CurrentMonitor(Node):
+
+    def __init__(self, args):
+        super().__init__("current_monitor")
+        self._joints = ARM_JOINTS
+        self._joint_set = set(self._joints)
+        self._rate = args.rate
+
+        self._lock = threading.Lock()
+        self._latest_effort = {}
+
+        self.create_subscription(JointState, args.topic, self._cb, 10)
+        self.create_timer(1.0 / self._rate, self._print_cb)
+
+        self.get_logger().info(
+            f"Monitoring {len(self._joints)} joints on {args.topic} "
+            f"(print rate: {self._rate} Hz)"
+        )
+
+    def _cb(self, msg):
+        efforts = {}
+        for name, effort in zip(msg.name, msg.effort):
+            if name in self._joint_set:
+                efforts[name] = effort
+        if efforts:
+            with self._lock:
+                self._latest_effort.update(efforts)
+
+    def _print_cb(self):
+        with self._lock:
+            snapshot = dict(self._latest_effort)
+
+        if not snapshot:
+            return
+
+        print("\033[2J\033[H")  # clear screen
+        header = (
+            f"{'Joint':<35} {'Effort':>8} {'Phase I':>8} {'Est I':>8} "
+            f"{'Power':>8} {'Util':>8}"
+        )
+        print(header)
+        print(f"{'':35} {'(Nm)':>8} {'(A)':>8} {'(A)':>8} {'(W)':>8} {'(%)':>8}")
+        print("-" * 77)
+
+        total_power = 0.0
+        power_by_rail = {}  # voltage -> total amps on that rail
+        for joint in self._joints:
+            effort = snapshot.get(joint, 0.0)
+            mt = motor_type(joint)
+            spec = MOTOR_SPECS.get(mt, MOTOR_SPECS["X6"])
+
+            # Phase current from torque constant
+            i_phase = abs(effort) / spec["kt"]
+            # Efficiency-adjusted electrical current + no-load baseline
+            i_est = i_phase / spec["efficiency"] + spec["no_load_current"]
+            # Power draw
+            power = i_est * spec["voltage"]
+            # Utilization vs rated current
+            util_pct = i_est / spec["rated_current"] * 100.0
+
+            total_power += power
+            rail_v = spec["voltage"]
+            power_by_rail[rail_v] = power_by_rail.get(rail_v, 0.0) + i_est
+
+            short = joint.replace("_joint", "").replace("left_", "L ").replace("right_", "R ")
+            print(
+                f"{short:<35} {effort:>+8.2f} {i_phase:>8.3f} {i_est:>8.3f} "
+                f"{power:>8.1f} {_color_util(util_pct)}"
+            )
+
+        print("-" * 77)
+        # Summary per voltage rail
+        for rail_v in sorted(power_by_rail):
+            rail_amps = power_by_rail[rail_v]
+            rail_power = rail_amps * rail_v
+            print(f"  {rail_v}V rail: {rail_amps:>7.2f} A  {rail_power:>7.1f} W")
+        print(f"  {'Total power:':>16} {total_power:>7.1f} W")
+        print()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Monitor motor current from joint efforts")
+    parser.add_argument("--topic", default="/joint_states", help="Joint state topic")
+    parser.add_argument("--rate", type=float, default=1.0, help="Print rate in Hz (default: 1)")
+    args = parser.parse_args()
+
+    rclpy.init()
+    node = CurrentMonitor(args)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
