@@ -162,8 +162,9 @@ ros2 launch arm_real_bringup position_viewer.launch.py
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config: PDO mapping, factors, offsets, mode_of_operation interface |
-| `left_*_X[4|6].yaml` (6 files) | `arm_real_bringup/config/ethercat_readonly/` | Same but `auto_state_transitions: false` (read-only) |
+| `left_*_X[4|6].yaml` (25 files) | `arm_real_bringup/config/ethercat/` | Per-joint slave config (single source of truth): PDO mapping, factors, offsets, mode_of_operation interface |
+| `ethercat_readonly/` | *(generated at build time)* | Auto-generated from `ethercat/` with `auto_state_transitions: false` (read-only) |
+| `ethercat_gravcomp/` | *(generated at build time)* | Auto-generated from `ethercat/` with `mode_of_operation: 10` (CST torque) |
 | `controllers.yaml` | `arm_real_bringup/config/` | Unified controllers: JTC (position), effort, mode_controller (100 Hz) |
 | `controllers_viewer.yaml` | `arm_real_bringup/config/` | Read-only viewer (JSB only, 100 Hz) |
 | `safety_limits.yaml` | `arm_ethercat_safety/config/` | Per-joint position/velocity/torque safety limits |
