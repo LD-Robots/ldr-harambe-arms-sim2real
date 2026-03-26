@@ -15,7 +15,7 @@
       <link name="${prefix}hand_base_link">
         <inertial>
           <origin xyz="-0.0025264 -0.066047 0.0019598" rpy="0 0 0"/>
-          <mass value="0.14143"/>
+          <mass value="0.52560"/>
           <inertia ixx="0.00012281" ixy="2.1711E-06" ixz="1.7709E-06" iyy="8.3832E-05" iyz="-1.6551E-06" izz="7.6663E-05"/>
         </inertial>
         <visual>

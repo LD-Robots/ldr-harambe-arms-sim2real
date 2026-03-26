@@ -101,14 +101,59 @@ def generate_launch_description():
     )
 
 
-    # Gravity compensation node — computes gravity torques via PyKDL
-    gravity_comp_node = Node(
+    # Gravity compensation nodes — one per arm, computes gravity torques via PyKDL
+    # tip_link includes hand_base_link so hand mass (~576g) is compensated
+    # Tune comp_scale / torque_offset at runtime:
+    #   ros2 param set /gravity_comp_left torque_offset "[0.3, 0.0, 0.0, 0.0, 0.0, 0.0]"
+    gravity_comp_left = Node(
         package="arm_real_bringup",
         executable="gravity_comp_node.py",
-        name="gravity_comp_node",
+        name="gravity_comp_left",
         output="screen",
         parameters=[{
+            "joint_names": [
+                "left_shoulder_pitch_joint_X6",
+                "left_shoulder_roll_joint_X6",
+                "left_shoulder_yaw_joint_X4",
+                "left_elbow_pitch_joint_X6",
+                "left_wrist_yaw_joint_X4",
+                "left_wrist_roll_joint_X4",
+            ],
+            "joint_motor_types": ["X6", "X6", "X4", "X6", "X4", "X4"],
+            "root_link": "urdf_simplified_torso",
+            "tip_link": "left_hand_base_link",
+            "controller_topic": "/left_arm_effort_controller/commands",
             "publish_rate": 100.0,
+            "comp_scale": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            "torque_offset": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        }],
+    )
+
+    # Right arm: 3 joints have effort/position factor sign mismatch in EtherCAT configs
+    # (shoulder_roll, shoulder_yaw, wrist_yaw have negative position factor but positive
+    #  effort factor). comp_scale = -1.0 corrects the gravity torque direction for these.
+    gravity_comp_right = Node(
+        package="arm_real_bringup",
+        executable="gravity_comp_node.py",
+        name="gravity_comp_right",
+        output="screen",
+        parameters=[{
+            "joint_names": [
+                "right_shoulder_pitch_joint_X6",
+                "right_shoulder_roll_joint_X6",
+                "right_shoulder_yaw_joint_X4",
+                "right_elbow_pitch_joint_X6",
+                "right_wrist_yaw_joint_X4",
+                "right_wrist_roll_joint_X4",
+            ],
+            "joint_motor_types": ["X6", "X6", "X4", "X6", "X4", "X4"],
+            "root_link": "urdf_simplified_torso",
+            "tip_link": "right_hand_base_link",
+            "controller_topic": "/right_arm_effort_controller/commands",
+            "publish_rate": 100.0,
+            #                    pitch  roll   yaw    pitch  yaw    roll
+            "comp_scale":       [1.0,  -1.0,  -1.0,  1.0,  -1.0,  1.0],
+            "torque_offset": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         }],
     )
 
@@ -131,7 +176,7 @@ def generate_launch_description():
     start_gravcomp_after_effort = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=left_arm_effort_spawner,
-            on_exit=[gravity_comp_node],
+            on_exit=[gravity_comp_left, gravity_comp_right],
         )
     )
 

@@ -4,7 +4,7 @@ Gravity compensation node for kinesthetic teaching.
 
 Computes gravity torques from the URDF using PyKDL and publishes them
 to the effort controller, allowing the arm to "float" while the user
-physically guides it.
+physically guides it.  Fully parameterized — launch one instance per arm.
 
 Requires:
   - PyKDL (python3-pykdl)
@@ -12,8 +12,8 @@ Requires:
   - /robot_description topic published by robot_state_publisher
   - effort controller active (e.g. left_arm_effort_controller)
 
-Usage:
-    ros2 run arm_real_bringup gravity_comp_node.py
+Usage (launch two instances — one per arm):
+    See recording.launch.py
 
 Torque conversion (N·m → effort units):
     effort * 50 = raw PDO = per-mille of rated current (10A)
@@ -23,17 +23,22 @@ Torque conversion (N·m → effort units):
       X6: Kt=2.1 Nm/A → 1.0 effort = 0.5A * 2.1 = 1.05 Nm
       X4: Kt=1.9 Nm/A → 1.0 effort = 0.5A * 1.9 = 0.95 Nm
 
-    Default torque_scale converts N·m → effort:
-      X6 joints: 1/1.05 ≈ 0.952
-      X4 joints: 1/0.95 ≈ 1.053
-
 Parameters:
-    torque_scale: Per-joint N·m → effort conversion (default: computed from Kt)
-    max_torque: Per-joint effort clamp (default: 10.0/8.0 = ~10.5/7.6 Nm)
-    publish_rate: Hz (default: 100)
-    controller_topic: Effort controller command topic
-    root_link: KDL chain root (default: urdf_simplified_torso)
-    tip_link: KDL chain tip (default: urdf_l_wrist_assembly)
+    joint_names:       Joint names (string array, required)
+    joint_motor_types: Motor type per joint — "X6" or "X4" (string array, required)
+    root_link:         KDL chain root (default: urdf_simplified_torso)
+    tip_link:          KDL chain tip (required — e.g. left_hand_base_link)
+    controller_topic:  Effort controller command topic (required)
+    torque_scale:      Per-joint N·m → effort (default: derived from motor types)
+    max_torque:        Per-joint effort clamp (default: 15/10/8/10/8/8)
+    comp_scale:        Per-joint multiplier on KDL torque (default: 1.0 each)
+    torque_offset:     Per-joint additive offset in effort units (default: 0.0 each)
+    publish_rate:      Hz (default: 100)
+    log_interval:      Seconds between periodic log prints (default: 2.0)
+
+Runtime tuning (all array params):
+    ros2 param set /gravity_comp_left torque_offset "[0.3, 0.0, 0.0, 0.0, 0.0, 0.0]"
+    ros2 param set /gravity_comp_left comp_scale "[1.1, 1.0, 1.0, 1.0, 1.0, 1.0]"
 """
 
 import threading
@@ -42,6 +47,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray, String
 
@@ -60,38 +66,34 @@ except ImportError as e:
     KDL_AVAILABLE = False
     KDL_IMPORT_ERROR = str(e)
 
-JOINT_NAMES = [
-    "left_shoulder_pitch_joint_X6",
-    "left_shoulder_roll_joint_X6",
-    "left_shoulder_yaw_joint_X4",
-    "left_elbow_pitch_joint_X6",
-    "left_wrist_yaw_joint_X4",
-    "left_wrist_roll_joint_X4",
-]
-
-# Short names for logging
-JOINT_SHORT = ["sh_pitch", "sh_roll", "sh_yaw", "el_pitch", "wr_yaw", "wr_roll"]
-
 # Motor specs — "Module Torque Constant" is at the OUTPUT (gear ratio already included)
 #   Proof: X6 rated_torque=20Nm / rated_current=9.5A = 2.1 Nm/A ✓
 #   effort 1.0 = 0.5A (raw PDO 50 = 5% of 10A rated)
 MOTOR_KT = {"X6": 2.1, "X4": 1.9}  # Nm/A at output (after gearbox)
 
-# Joint motor type mapping (order matches JOINT_NAMES)
-JOINT_MOTOR_TYPE = ["X6", "X6", "X4", "X6", "X4", "X4"]
-
-# Nm per 1.0 effort for each joint (Kt is already at output, no gear ratio needed)
-#   X6: 0.5A * 2.1 = 1.05 Nm/effort
-#   X4: 0.5A * 1.9 = 0.95 Nm/effort
-NM_PER_EFFORT = [0.5 * MOTOR_KT[mt] for mt in JOINT_MOTOR_TYPE]
-
-# Default torque_scale: N·m → effort (inverse of NM_PER_EFFORT)
-DEFAULT_TORQUE_SCALE = [1.0 / npe for npe in NM_PER_EFFORT]
-
 # Default per-joint safety clamp in effort units
 # shoulder_pitch needs up to ~13 effort at horizontal extension
-# X6: effort 1.0 = 1.05 Nm, X4: effort 1.0 = 0.95 Nm
 DEFAULT_MAX_TORQUE = [15.0, 10.0, 8.0, 10.0, 8.0, 8.0]
+
+
+def _make_short_name(joint_name):
+    """Derive a short logging name from a full joint name.
+
+    e.g. 'left_shoulder_pitch_joint_X6' -> 'sh_pitch'
+    """
+    # Strip side prefix and motor suffix
+    name = joint_name
+    for prefix in ("left_", "right_"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+            break
+    for suffix in ("_joint_X6", "_joint_X4", "_joint_X8", "_joint"):
+        if name.endswith(suffix):
+            name = name[:-len(suffix)]
+            break
+    # Abbreviate common words
+    name = name.replace("shoulder", "sh").replace("elbow", "el").replace("wrist", "wr")
+    return name
 
 
 def urdf_pose_to_kdl_frame(pose):
@@ -216,13 +218,57 @@ class GravityCompNode(Node):
             )
             raise RuntimeError("Missing KDL dependencies")
 
-        # Parameters
+        # --- Required parameters (joint config) ---
+        self._joint_names = list(
+            self.declare_parameter("joint_names", rclpy.Parameter.Type.STRING_ARRAY)
+            .get_parameter_value().string_array_value
+        )
+        if not self._joint_names:
+            self.get_logger().fatal("Parameter 'joint_names' is required (string array)")
+            raise RuntimeError("Missing required parameter: joint_names")
+
+        joint_motor_types = list(
+            self.declare_parameter("joint_motor_types", rclpy.Parameter.Type.STRING_ARRAY)
+            .get_parameter_value().string_array_value
+        )
+        if not joint_motor_types or len(joint_motor_types) != len(self._joint_names):
+            self.get_logger().fatal(
+                f"Parameter 'joint_motor_types' must have {len(self._joint_names)} elements"
+            )
+            raise RuntimeError("Missing/invalid parameter: joint_motor_types")
+
+        n = len(self._joint_names)
+
+        # Validate motor types
+        for mt in joint_motor_types:
+            if mt not in MOTOR_KT:
+                self.get_logger().fatal(
+                    f"Unknown motor type '{mt}'. Valid: {list(MOTOR_KT.keys())}"
+                )
+                raise RuntimeError(f"Unknown motor type: {mt}")
+
+        # Derive conversion factors from motor types
+        self._nm_per_effort = [0.5 * MOTOR_KT[mt] for mt in joint_motor_types]
+        default_torque_scale = [1.0 / npe for npe in self._nm_per_effort]
+
+        # Derive short names for logging
+        self._joint_short = [_make_short_name(name) for name in self._joint_names]
+
+        # --- Tunable parameters ---
         self._torque_scale = list(
-            self.declare_parameter("torque_scale", DEFAULT_TORQUE_SCALE)
+            self.declare_parameter("torque_scale", default_torque_scale)
             .get_parameter_value().double_array_value
         )
         self._max_torque = list(
-            self.declare_parameter("max_torque", DEFAULT_MAX_TORQUE)
+            self.declare_parameter("max_torque", DEFAULT_MAX_TORQUE[:n])
+            .get_parameter_value().double_array_value
+        )
+        self._comp_scale = list(
+            self.declare_parameter("comp_scale", [1.0] * n)
+            .get_parameter_value().double_array_value
+        )
+        self._torque_offset = list(
+            self.declare_parameter("torque_offset", [0.0] * n)
             .get_parameter_value().double_array_value
         )
         self._publish_rate = (
@@ -232,31 +278,42 @@ class GravityCompNode(Node):
         self._controller_topic = (
             self.declare_parameter(
                 "controller_topic",
-                "/left_arm_effort_controller/commands"
+                rclpy.Parameter.Type.STRING
             ).get_parameter_value().string_value
         )
+        if not self._controller_topic:
+            self.get_logger().fatal("Parameter 'controller_topic' is required")
+            raise RuntimeError("Missing required parameter: controller_topic")
+
         self._root_link = (
             self.declare_parameter("root_link", "urdf_simplified_torso")
             .get_parameter_value().string_value
         )
         self._tip_link = (
-            self.declare_parameter("tip_link", "urdf_l_wrist_assembly")
+            self.declare_parameter("tip_link", rclpy.Parameter.Type.STRING)
             .get_parameter_value().string_value
         )
+        if not self._tip_link:
+            self.get_logger().fatal("Parameter 'tip_link' is required")
+            raise RuntimeError("Missing required parameter: tip_link")
+
         self._log_interval = (
             self.declare_parameter("log_interval", 2.0)
             .get_parameter_value().double_value
         )
 
+        # Runtime parameter callback for tuning
+        self.add_on_set_parameters_callback(self._on_param_change)
+
         # State
-        self._joint_index = {name: i for i, name in enumerate(JOINT_NAMES)}
+        self._joint_index = {name: i for i, name in enumerate(self._joint_names)}
         self._lock = threading.Lock()
         self._current_positions = None
         self._kdl_chain = None
         self._gravity_solver = None
         self._enabled = False
         self._last_log_time = 0.0
-        self._clamp_count = [0] * len(JOINT_NAMES)
+        self._clamp_count = [0] * n
         self._publish_count = 0
 
         # Subscribe to /robot_description to get URDF
@@ -284,6 +341,23 @@ class GravityCompNode(Node):
         period = 1.0 / self._publish_rate
         self._timer = self.create_timer(period, self._publish_gravity_torques)
 
+    def _on_param_change(self, params):
+        """Allow runtime tuning of compensation parameters."""
+        n = len(self._joint_names)
+        for param in params:
+            if param.name in ("torque_offset", "comp_scale", "torque_scale", "max_torque"):
+                val = list(param.value)
+                if len(val) != n:
+                    return SetParametersResult(
+                        successful=False,
+                        reason=f"'{param.name}' must have {n} elements, got {len(val)}"
+                    )
+                setattr(self, f"_{param.name}", val)
+                self.get_logger().info(
+                    f"Updated {param.name}: [{', '.join(f'{v:.4f}' for v in val)}]"
+                )
+        return SetParametersResult(successful=True)
+
     def _urdf_callback(self, msg):
         """Process URDF string and build KDL chain."""
         if self._kdl_chain is not None:
@@ -307,10 +381,31 @@ class GravityCompNode(Node):
             )
             return
 
+        n = len(self._joint_names)
+        if chain.getNrOfJoints() != n:
+            self.get_logger().error(
+                f"KDL chain has {chain.getNrOfJoints()} joints but "
+                f"{n} joint_names were provided. Check tip_link/joint_names."
+            )
+            return
+
+        # Log chain segments with masses
         self.get_logger().info(
-            f"KDL chain built: {chain.getNrOfJoints()} joints, "
+            f"KDL chain: {chain.getNrOfJoints()} joints, "
             f"{chain.getNrOfSegments()} segments"
         )
+        total_mass = 0.0
+        for i in range(chain.getNrOfSegments()):
+            seg = chain.getSegment(i)
+            inertia = seg.getInertia()
+            m = inertia.getMass()
+            total_mass += m
+            jtype = seg.getJoint().getTypeName()
+            self.get_logger().info(
+                f"  [{i}] {seg.getName():<35} "
+                f"mass={m:.4f} kg  joint={jtype}"
+            )
+        self.get_logger().info(f"  Total chain mass: {total_mass:.4f} kg")
 
         # Gravity vector (pointing down in world frame)
         gravity = PyKDL.Vector(0, 0, -9.81)
@@ -320,15 +415,18 @@ class GravityCompNode(Node):
 
         max_str = ", ".join(f"{v:.2f}" for v in self._max_torque)
         scale_str = ", ".join(f"{v:.5f}" for v in self._torque_scale)
-        n = len(JOINT_NAMES)
-        max_nm = [self._max_torque[i] * NM_PER_EFFORT[i] for i in range(n)]
+        comp_str = ", ".join(f"{v:.3f}" for v in self._comp_scale)
+        offset_str = ", ".join(f"{v:.3f}" for v in self._torque_offset)
+        max_nm = [self._max_torque[i] * self._nm_per_effort[i] for i in range(n)]
         max_nm_str = ", ".join(f"{v:.1f}" for v in max_nm)
         self.get_logger().info(
             f"Gravity compensation ACTIVE.\n"
             f"  Chain: {self._root_link} -> {self._tip_link}\n"
-            f"  Joints: {chain.getNrOfJoints()}\n"
+            f"  Joints: {', '.join(self._joint_short)}\n"
             f"  Rate: {self._publish_rate} Hz\n"
             f"  Scale (Nm->effort): [{scale_str}]\n"
+            f"  Comp scale: [{comp_str}]\n"
+            f"  Torque offset: [{offset_str}]\n"
             f"  Max effort: [{max_str}]\n"
             f"  Max torque: [{max_nm_str}] Nm\n"
             f"  Topic: {self._controller_topic}"
@@ -340,7 +438,8 @@ class GravityCompNode(Node):
 
     def _joint_state_cb(self, msg):
         """Extract current joint positions."""
-        positions = [None] * len(JOINT_NAMES)
+        n = len(self._joint_names)
+        positions = [None] * n
         for name, pos in zip(msg.name, msg.position):
             if name in self._joint_index:
                 positions[self._joint_index[name]] = pos
@@ -361,7 +460,7 @@ class GravityCompNode(Node):
                 return
             positions = list(self._current_positions)
 
-        n_joints = len(JOINT_NAMES)
+        n_joints = len(self._joint_names)
 
         # Build KDL joint array
         q = PyKDL.JntArray(n_joints)
@@ -375,13 +474,14 @@ class GravityCompNode(Node):
             self.get_logger().warn(f"JntToGravity failed with code: {result}")
             return
 
-        # Apply scaling (N·m -> effort units) and per-joint safety clamp
+        # Apply comp_scale, torque_scale, offset, and per-joint safety clamp
+        # Formula: effort = (kdl_nm * comp_scale) * torque_scale + torque_offset
         msg = Float64MultiArray()
         raw_nm = []
         sent_effort = []
         for i in range(n_joints):
             nm = gravity_torques[i]
-            effort = nm * self._torque_scale[i]
+            effort = (nm * self._comp_scale[i]) * self._torque_scale[i] + self._torque_offset[i]
             limit = self._max_torque[i] if i < len(self._max_torque) else 0.5
             clamped = max(-limit, min(limit, effort))
             if abs(clamped) < abs(effort):
@@ -403,10 +503,10 @@ class GravityCompNode(Node):
                 f"{'Effort':>8} {'Max':>6} {'Clamp':>6}"
             )
             for i in range(n_joints):
-                sent_nm = sent_effort[i] * NM_PER_EFFORT[i]
+                sent_nm = sent_effort[i] * self._nm_per_effort[i]
                 clamp_flag = " *" if self._clamp_count[i] > 0 else ""
                 lines.append(
-                    f"  {JOINT_SHORT[i]:<12} "
+                    f"  {self._joint_short[i]:<12} "
                     f"{raw_nm[i]:>+9.3f} "
                     f"{sent_nm:>+9.3f} "
                     f"{sent_effort[i]:>+8.4f} "
@@ -441,7 +541,7 @@ def main():
         # Publish zero torques on shutdown
         try:
             msg = Float64MultiArray()
-            msg.data = [0.0] * len(JOINT_NAMES)
+            msg.data = [0.0] * len(node._joint_names)
             node._pub.publish(msg)
             node.get_logger().info("Zero torques sent.")
         except Exception:
