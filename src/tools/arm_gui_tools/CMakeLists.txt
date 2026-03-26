@@ -48,6 +48,12 @@ install(PROGRAMS
   RENAME joint_state_tui
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/actuator_status.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME actuator_status
+)
+
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
 )

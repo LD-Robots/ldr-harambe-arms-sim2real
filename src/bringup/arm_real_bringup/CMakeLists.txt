@@ -61,6 +61,7 @@ install(DIRECTORY scripts/
 install(PROGRAMS
   scripts/homing_sequence.py
   scripts/gravity_comp_node.py
+  scripts/startup_monitor_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
