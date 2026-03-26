@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================
+       Actuator properties for LD Robots Harambe
+       Source: product_parameters_pages_4_6_8.pdf + linkage calculations
+
+       Profiles:
+         rated     = continuous rated torque/velocity
+         moderate  = rated + 15%
+         peak      = maximum torque (short burst)
+       ============================================================ -->
+
+  <!-- ==================== X4-36 (direct) ==================== -->
+  <xacro:property name="X4_rated_effort"      value="10.5" />
+  <xacro:property name="X4_moderate_effort"    value="12.075" />
+  <xacro:property name="X4_peak_effort"        value="34" />
+  <xacro:property name="X4_rated_velocity"     value="8.69" />
+  <xacro:property name="X4_noload_velocity"    value="11.62" />
+  <xacro:property name="X4_friction"           value="1.14" />
+  <xacro:property name="X4_damping"            value="0.114" />
+
+  <!-- ==================== X6-60 (direct) ==================== -->
+  <xacro:property name="X6_rated_effort"       value="20" />
+  <xacro:property name="X6_moderate_effort"    value="23" />
+  <xacro:property name="X6_peak_effort"        value="60" />
+  <xacro:property name="X6_rated_velocity"     value="16.02" />
+  <xacro:property name="X6_noload_velocity"    value="18.43" />
+  <xacro:property name="X6_friction"           value="1.6" />
+  <xacro:property name="X6_damping"            value="0.16" />
+
+  <!-- ==================== X8-120 (direct) ==================== -->
+  <xacro:property name="X8_rated_effort"       value="43" />
+  <!-- X8 moderate set to 60% peak (72 Nm) for hip roll:
+       cyclic gait duty ~30-50% keeps thermal average near rated,
+       allowing sustained walking ~15-30 min without overheating -->
+  <xacro:property name="X8_moderate_effort"    value="72" />
+  <xacro:property name="X8_peak_effort"        value="120" />
+  <xacro:property name="X8_rated_velocity"     value="13.3" />
+  <xacro:property name="X8_noload_velocity"    value="16.54" />
+  <xacro:property name="X8_friction"           value="3.21" />
+  <xacro:property name="X8_damping"            value="0.321" />
+
+  <!-- ==================== Ankle Linkage =====================
+       2x X4 motors with eccentric-pushrod mechanism
+       Eccentric radius:      25 mm
+       Rod lengths:           250 mm / 170 mm
+       Pitch lever arm:       100 mm (ball joint to ankle center)
+       Roll lever arm:        30 mm (±30 mm from center, 60 mm between rods)
+       ========================================================= -->
+
+  <!-- Ankle Pitch (both motors same direction, lever arm = 100mm)
+       τ = 2 × (τ_motor / r_exc) × d_pitch = 2 × (τ / 0.025) × 0.1 -->
+  <xacro:property name="ankle_pitch_rated_effort"     value="84" />
+  <xacro:property name="ankle_pitch_moderate_effort"   value="96.6" />
+  <xacro:property name="ankle_pitch_peak_effort"       value="272" />
+  <xacro:property name="ankle_pitch_rated_velocity"    value="2.17" />
+
+  <!-- Ankle Roll (motors opposite direction, lever arm = 30mm)
+       τ = 2 × (τ_motor / r_exc) × d_roll = 2 × (τ / 0.025) × 0.03 -->
+  <xacro:property name="ankle_roll_rated_effort"      value="25.2" />
+  <xacro:property name="ankle_roll_moderate_effort"    value="28.98" />
+  <xacro:property name="ankle_roll_peak_effort"        value="81.6" />
+  <xacro:property name="ankle_roll_rated_velocity"     value="7.24" />
+
+</robot>

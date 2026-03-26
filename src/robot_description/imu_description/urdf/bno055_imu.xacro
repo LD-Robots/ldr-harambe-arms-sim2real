@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    BNO055 IMU macro for ROS 2 Jazzy + Gazebo Harmonic.
+
+    Parameters:
+      name       - sensor name prefix (e.g. "torso_imu")
+      parent     - parent link to attach to
+      topic      - ROS 2 topic for IMU data (default: /imu/data)
+      update_rate - sensor update rate in Hz (default: 100)
+      *origin    - mounting pose block
+
+    Usage:
+      <xacro:bno055_imu name="torso_imu" parent="urdf_simplified_torso" topic="/imu/data" update_rate="100">
+        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      </xacro:bno055_imu>
+  -->
+  <xacro:macro name="bno055_imu" params="name parent topic:=/imu/data update_rate:=100 *origin">
+
+    <!-- Base frame (mounting point) with red debug sphere -->
+    <link name="${name}_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <sphere radius="0.002"/>
+        </geometry>
+        <material name="${name}_red">
+          <color rgba="1.0 0.0 0.0 1.0"/>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="${name}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+
+    <!-- Sensor body with mesh and inertia from BNO055 datasheet -->
+    <link name="${name}_sensor">
+      <inertial>
+        <mass value="0.0042339"/>
+        <origin xyz="0.0 0.0 -0.00374258" rpy="0 0 0"/>
+        <inertia ixx="0.00000019023" ixy="0.0" ixz="-0.00000002"
+                 iyy="0.00000024665" iyz="0.0"
+                 izz="0.00000027669"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://imu_description/meshes/low_res_bno055_imu.stl"/>
+        </geometry>
+        <material name="${name}_dark_grey">
+          <color rgba="0.2 0.2 0.2 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://imu_description/meshes/low_res_bno055_imu.stl"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- Offset mesh so _link is at PCB center (adjust X to fine-tune) -->
+    <joint name="${name}_sensor_joint" type="fixed">
+      <parent link="${name}_link"/>
+      <child link="${name}_sensor"/>
+      <origin xyz="0 0 0.003" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Gazebo Harmonic IMU sensor -->
+    <gazebo reference="${name}_sensor">
+      <sensor name="${name}" type="imu">
+        <always_on>true</always_on>
+        <update_rate>${update_rate}</update_rate>
+        <topic>${topic}</topic>
+        <imu>
+          <angular_velocity>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.0002</stddev></noise></z>
+          </angular_velocity>
+          <linear_acceleration>
+            <x><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></x>
+            <y><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></y>
+            <z><noise type="gaussian"><mean>0.0</mean><stddev>0.017</stddev></noise></z>
+          </linear_acceleration>
+        </imu>
+      </sensor>
+    </gazebo>
+
+  </xacro:macro>
+
+</robot>

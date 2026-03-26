@@ -1,0 +1,100 @@
+# Effort controller configuration for Harambe full humanoid robot
+# whole_body_controller uses JointTrajectoryController with effort command interface
+# and PD gains matching Isaac Lab ImplicitActuator (PD at controller rate = 200 Hz).
+# Accepts position targets, computes torque = kp*(target-pos) - kd*vel internally.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz — matches policy rate, reduces CPU load
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    whole_body_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+whole_body_controller:
+  ros__parameters:
+    joints:
+      # HARDWARE_JOINT_ORDER — matches Isaac Lab training exactly
+      # Left arm (0-5)
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      # Right arm (6-11)
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      # Waist (12)
+      - waist_yaw_joint_X8
+      # Left leg (13-18)
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      # Right leg (19-24)
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+
+    command_interfaces:
+      - effort
+
+    state_interfaces:
+      - position
+      - velocity
+
+    allow_nonzero_velocity_at_trajectory_end: true
+    allow_integration_in_goal_trajectories: true
+    open_loop_control: false
+
+    constraints:
+      stopped_velocity_tolerance: 0.0  # don't check stop condition
+      goal_time: 0.0                   # don't enforce goal time
+
+    # PD gains per joint — from Isaac Lab locomotion_env_cfg.py ImplicitActuator
+    # torque = p * (target - pos) - d * vel (computed at 200 Hz by controller)
+    gains:
+      # PD gains from Isaac Lab locomotion_env_cfg.py ImplicitActuator (200 Hz)
+      # Left arm: X6 kp=30, kd=8 | X4 kp=30, kd=8
+      left_shoulder_pitch_joint_X6: {p: 30.0, d: 8.0, i: 0.0}
+      left_shoulder_roll_joint_X6:  {p: 30.0, d: 8.0, i: 0.0}
+      left_shoulder_yaw_joint_X4:   {p: 30.0, d: 8.0, i: 0.0}
+      left_elbow_pitch_joint_X6:    {p: 30.0, d: 8.0, i: 0.0}
+      left_wrist_yaw_joint_X4:      {p: 30.0, d: 8.0, i: 0.0}
+      left_wrist_roll_joint_X4:     {p: 30.0, d: 8.0, i: 0.0}
+      # Right arm: same
+      right_shoulder_pitch_joint_X6: {p: 30.0, d: 8.0, i: 0.0}
+      right_shoulder_roll_joint_X6:  {p: 30.0, d: 8.0, i: 0.0}
+      right_shoulder_yaw_joint_X4:   {p: 30.0, d: 8.0, i: 0.0}
+      right_elbow_pitch_joint_X6:    {p: 30.0, d: 8.0, i: 0.0}
+      right_wrist_yaw_joint_X4:      {p: 30.0, d: 8.0, i: 0.0}
+      right_wrist_roll_joint_X4:     {p: 30.0, d: 8.0, i: 0.0}
+      # Waist: X8 kp=150, kd=8
+      waist_yaw_joint_X8:            {p: 150.0, d: 8.0, i: 0.0}
+      # Left leg: hip_pitch=200/10, hip_roll=150/10, hip_yaw=150/10, knee=200/10, ankle=80/6
+      left_hip_pitch_joint_X8:       {p: 200.0, d: 10.0, i: 10.0, i_clamp: 30.0}
+      left_hip_roll_joint_X8:        {p: 150.0, d: 10.0, i: 0.0}
+      left_hip_yaw_joint_X8:         {p: 150.0, d: 10.0, i: 0.0}
+      left_knee_joint_X8:            {p: 200.0, d: 10.0, i: 10.0, i_clamp: 30.0}
+      left_ankle_pitch_joint_X4:     {p: 200.0, d: 10.0, i: 20.0, i_clamp: 30.0}
+      left_ankle_roll_joint_X4:      {p: 150.0, d: 8.0, i: 10.0, i_clamp: 20.0}
+      # Right leg: same
+      right_hip_pitch_joint_X8:      {p: 200.0, d: 10.0, i: 10.0, i_clamp: 30.0}
+      right_hip_roll_joint_X8:       {p: 150.0, d: 10.0, i: 0.0}
+      right_hip_yaw_joint_X8:        {p: 150.0, d: 10.0, i: 0.0}
+      right_knee_joint_X8:           {p: 200.0, d: 10.0, i: 10.0, i_clamp: 30.0}
+      right_ankle_pitch_joint_X4:    {p: 200.0, d: 10.0, i: 20.0, i_clamp: 30.0}
+      right_ankle_roll_joint_X4:     {p: 150.0, d: 8.0, i: 10.0, i_clamp: 20.0}
