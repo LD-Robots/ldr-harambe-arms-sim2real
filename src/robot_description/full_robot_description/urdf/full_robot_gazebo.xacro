@@ -88,19 +88,7 @@
     <xacro:full_robot_ros2_control_effort />
   </xacro:if>
 
-  <!-- ros2_control: effort_implicit_actuators mode (PD handled by ImplicitActuatorAdapter node) -->
-  <xacro:if value="${'$(arg control_mode)' == 'effort_implicit_actuators'}">
-    <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_effort.xacro" />
-    <xacro:full_robot_ros2_control_effort />
-  </xacro:if>
-
-  <!-- gz_pid mode: Gazebo-native JointPositionController per joint (no ros2_control) -->
-  <xacro:if value="${'$(arg control_mode)' == 'gz_pid'}">
-    <xacro:include filename="$(find full_robot_description)/urdf/macros/gz_joint_position_controllers.xacro" />
-    <xacro:gz_all_joint_position_controllers />
-  </xacro:if>
-
-  <!-- gz_policy mode: ONNX policy plugin with PD + velocity limiting (no ros2_control) -->
+  <!-- gz_policy mode: ONNX policy plugin with PD + friction comp + velocity limiting -->
   <xacro:if value="${'$(arg control_mode)' == 'gz_policy'}">
     <!-- Default positions set by plugin at Configure (joints spawn at 0, PD moves to default) -->
     <gazebo>

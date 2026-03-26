@@ -35,7 +35,7 @@ def generate_launch_description():
     )
     control_mode_arg = DeclareLaunchArgument(
         "control_mode", default_value="position",
-        description="Control mode: position, effort, effort_implicit_actuators, or gz_pid"
+        description="Control mode: position, effort, or gz_policy"
     )
     onnx_path_arg = DeclareLaunchArgument(
         "onnx_path", default_value="",
@@ -52,8 +52,8 @@ def generate_launch_description():
     y_pos = LaunchConfiguration("y")
     z_pos = LaunchConfiguration("z")
 
-    is_gz_native = PythonExpression(["'", control_mode, "' in ('gz_pid', 'gz_policy')"])
-    is_ros2_control = PythonExpression(["'", control_mode, "' not in ('gz_pid', 'gz_policy')"])
+    is_gz_native = PythonExpression(["'", control_mode, "' == 'gz_policy'"])
+    is_ros2_control = PythonExpression(["'", control_mode, "' != 'gz_policy'"])
 
     # Robot description from XACRO
     robot_description_content = Command([
@@ -130,9 +130,7 @@ def generate_launch_description():
         )
     )
 
-    # ========== gz_pid mode: bridge Gazebo joint topics to ROS 2 ==========
-    # Bridge joint commands: ROS 2 Float64 → Gazebo Double (per joint)
-    # Bridge joint states: Gazebo JointState → ROS 2 JointState
+    # ========== gz_policy mode: bridge Gazebo joint states to ROS 2 ==========
     gz_joint_bridge_args = []
     for jname in ALL_JOINTS:
         # ROS 2 → Gazebo: position command per joint
