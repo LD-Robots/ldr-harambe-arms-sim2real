@@ -59,9 +59,9 @@ def generate_launch_description():
         }.items()
     )
 
-    # Spawn at z=1.0: urdf_base is the waist area with all links extending
-    # downward (arms to z=-0.83, legs to z=-0.6). z=1.0 keeps the lowest
-    # point at z~0.17, safely above the ground plane (208 collision bodies
+    # Spawn at z=1.215: urdf_base is the waist area with all links extending
+    # downward (arms to z=-0.83, legs to z=-0.6). z=1.215 keeps the lowest
+    # point at z~0.385, safely above the ground plane (208 collision bodies
     # inside the ground was causing DART physics to stall).
     spawn_robot_node = Node(
         package='ros_gz_sim',
@@ -72,7 +72,7 @@ def generate_launch_description():
             '-topic', 'robot_description',
             '-x', '0.0',
             '-y', '0.0',
-            '-z', '1.26',
+            '-z', '1.215',
             '-Y', '0.0'
         ],
         output='screen'
