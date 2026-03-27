@@ -7,7 +7,7 @@
        6 actuated joints + 6 mimic joints + 5 tip fixed joints
        Collision geometry uses box primitives (OBJ meshes lack normals for DART) -->
 
-  <xacro:macro name="inspire_hand_left" params="parent prefix:=left_ mount_x:=0.0 mount_y:=0.07 mount_z:=-0.03 mount_roll:=0.0 mount_pitch:=0.0 mount_yaw:=3.14159">
+  <xacro:macro name="inspire_hand_left" params="parent prefix:=left_ mount_x:=0.0 mount_y:=0.0 mount_z:=-0.0 mount_roll:=0.0 mount_pitch:=0.0 mount_yaw:=0">
 
     <!-- Attach hand_base_link directly to parent (replaces dummy base link) -->
     <joint name="${prefix}hand_base_joint" type="fixed">

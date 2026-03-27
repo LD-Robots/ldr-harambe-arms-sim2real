@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/src/bringup/arm_real_bringup",
+    "urdf-visualizer.packages": {
+        "full_robot_description": "${workspaceFolder}/src/robot_description/full_robot_description",
+        "hand_description": "${workspaceFolder}/src/robot_description/hand_description"
+    }
+}
