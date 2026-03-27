@@ -56,6 +56,10 @@ void HarambePolicyPlugin::Configure(
   if (sdf->HasElement("action_scale")) action_scale_ = sdf->Get<double>("action_scale");
   if (sdf->HasElement("clip_actions")) clip_actions_ = sdf->Get<double>("clip_actions");
   if (sdf->HasElement("warmup_steps")) warmup_steps_ = sdf->Get<int>("warmup_steps");
+  if (sdf->HasElement("policy_debug")) {
+    std::string val = sdf->Get<std::string>("policy_debug");
+    policy_debug_ = (val == "true" || val == "1");
+  }
 
   // Velocity commands
   commands_.resize(3, 0.0f);
@@ -164,6 +168,16 @@ void HarambePolicyPlugin::Configure(
       break;
     }
   }
+
+  // Init debug publisher (only if policy_debug enabled)
+  if (policy_debug_) {
+    // Layout: [efforts(25) | targets(25) | positions(25) | velocities(25) | actions(25) | obs(87)] = 212
+    debug_pub_ = gz_node_.Advertise<gz::msgs::Float_V>("/policy/debug");
+    gzmsg << "HarambePolicyPlugin: Debug publishing enabled on /policy/debug" << std::endl;
+  }
+  last_efforts_.resize(num_joints_, 0.0);
+  last_positions_.resize(num_joints_, 0.0);
+  last_velocities_.resize(num_joints_, 0.0);
 
   initialized_ = true;
   gzmsg << "HarambePolicyPlugin: Ready! decimation=" << decimation_
@@ -483,6 +497,8 @@ void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
 
     double pos = posComp->Data()[0];
     double vel = velComp->Data()[0];
+    last_positions_[i] = pos;
+    last_velocities_[i] = vel;
     double target = target_pos_[i];
     double kp = joints_[i].kp;
     double kd = joints_[i].kd;
@@ -516,6 +532,9 @@ void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
       torque = effort_limit;
     }
 
+    // Store for debug publishing
+    last_efforts_[i] = torque;
+
     // Apply force
     auto forceComp = ecm.Component<gz::sim::components::JointForceCmd>(joints_[i].entity);
     if (forceComp) {
@@ -523,6 +542,24 @@ void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
     } else {
       ecm.CreateComponent(joints_[i].entity, gz::sim::components::JointForceCmd({torque}));
     }
+  }
+
+  // Publish all policy data on single topic at policy rate (50 Hz)
+  if (policy_debug_ && step_counter_ % decimation_ == 0) {
+    gz::msgs::Float_V msg;
+    for (size_t i = 0; i < num_joints_; ++i)
+      msg.add_data(static_cast<float>(last_efforts_[i]));
+    for (size_t i = 0; i < num_joints_; ++i)
+      msg.add_data(static_cast<float>(target_pos_[i]));
+    for (size_t i = 0; i < num_joints_; ++i)
+      msg.add_data(static_cast<float>(last_positions_[i]));
+    for (size_t i = 0; i < num_joints_; ++i)
+      msg.add_data(static_cast<float>(last_velocities_[i]));
+    for (size_t i = 0; i < num_joints_; ++i)
+      msg.add_data(prev_action_[i]);
+    for (size_t i = 0; i < obs_.size(); ++i)
+      msg.add_data(obs_[i]);
+    debug_pub_.Publish(msg);
   }
 }
 

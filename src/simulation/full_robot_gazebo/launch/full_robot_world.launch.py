@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, SetEnvironmentVariable
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
@@ -63,6 +64,12 @@ def generate_launch_description():
         description='Path to ONNX policy (for gz_policy mode)'
     )
 
+    policy_debug_arg = DeclareLaunchArgument(
+        'policy_debug',
+        default_value='false',
+        description='Enable policy debug topics (efforts, targets, positions, etc.)'
+    )
+
     # Launch Gazebo Harmonic
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -81,6 +88,7 @@ def generate_launch_description():
         launch_arguments={
             'control_mode': LaunchConfiguration('control_mode'),
             'onnx_path': LaunchConfiguration('onnx_path'),
+            'policy_debug': LaunchConfiguration('policy_debug'),
         }.items()
     )
 
@@ -111,6 +119,25 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Policy debug: GZ Float_V -> ROS Float32Array -> custom PolicyDebug msg
+    policy_gz_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='policy_gz_bridge',
+        arguments=['/policy/debug@ros_gz_interfaces/msg/Float32Array[gz.msgs.Float_V'],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('policy_debug')),
+    )
+
+    # Republisher: Float32Array -> harambe_msgs/PolicyDebug on /policy/state
+    policy_republisher = Node(
+        package='harambe_gz_policy_plugin',
+        executable='policy_debug_bridge.py',
+        name='policy_debug_republisher',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('policy_debug')),
+    )
+
     return LaunchDescription([
         gz_resource_path,
         gz_plugin_path,
@@ -118,9 +145,12 @@ def generate_launch_description():
         world_arg,
         control_mode_arg,
         onnx_path_arg,
+        policy_debug_arg,
         gazebo,
         clock_bridge,
         spawn_robot,
         pelvis_imu_bridge,
         torso_imu_bridge,
+        policy_gz_bridge,
+        policy_republisher,
     ])

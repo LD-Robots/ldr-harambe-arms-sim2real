@@ -4,6 +4,7 @@
   <!-- Control mode: "position", "effort", "gz_pid", or "gz_policy" -->
   <xacro:arg name="control_mode" default="position" />
   <xacro:arg name="onnx_path" default="" />
+  <xacro:arg name="policy_debug" default="false" />
 
   <!-- Full robot: all joints active (not fixed) -->
   <xacro:arg name="fixed_legs" default="false" />
@@ -98,6 +99,7 @@
         <action_scale>0.25</action_scale>
         <clip_actions>5.0</clip_actions>
         <warmup_steps>0</warmup_steps>
+        <policy_debug>$(arg policy_debug)</policy_debug>
         <cmd_vel_x>0.0</cmd_vel_x>
         <imu_link>urdf_base</imu_link>
 

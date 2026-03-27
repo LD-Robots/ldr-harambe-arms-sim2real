@@ -41,6 +41,10 @@ def generate_launch_description():
         "onnx_path", default_value="",
         description="Path to ONNX policy model (for gz_policy mode)"
     )
+    policy_debug_arg = DeclareLaunchArgument(
+        "policy_debug", default_value="false",
+        description="Enable policy debug topic publishing"
+    )
     x_arg = DeclareLaunchArgument("x", default_value="0.0", description="X position")
     y_arg = DeclareLaunchArgument("y", default_value="0.0", description="Y position")
     z_arg = DeclareLaunchArgument("z", default_value="1.25", description="Z position")
@@ -48,6 +52,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     control_mode = LaunchConfiguration("control_mode")
     onnx_path = LaunchConfiguration("onnx_path")
+    policy_debug = LaunchConfiguration("policy_debug")
     x_pos = LaunchConfiguration("x")
     y_pos = LaunchConfiguration("y")
     z_pos = LaunchConfiguration("z")
@@ -61,6 +66,7 @@ def generate_launch_description():
         PathJoinSubstitution([pkg_full_robot_description, "urdf", "full_robot_gazebo.xacro"]),
         " control_mode:=", control_mode,
         " onnx_path:=", onnx_path,
+        " policy_debug:=", policy_debug,
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -153,7 +159,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Launch arguments
-        use_sim_time_arg, control_mode_arg, onnx_path_arg, x_arg, y_arg, z_arg,
+        use_sim_time_arg, control_mode_arg, onnx_path_arg, policy_debug_arg, x_arg, y_arg, z_arg,
 
         # RSP + spawn (always)
         robot_state_publisher,

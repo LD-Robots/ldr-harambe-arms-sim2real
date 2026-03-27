@@ -5,6 +5,7 @@
 #include <gz/sim/Model.hh>
 #include <gz/transport/Node.hh>
 #include <gz/msgs/twist.pb.h>
+#include <gz/msgs/float_v.pb.h>
 #include <onnxruntime_cxx_api.h>
 
 #include <kdl/tree.hpp>
@@ -96,6 +97,13 @@ private:
 
   // Velocity command subscriber
   gz::transport::Node gz_node_;
+
+  // Debug publisher: single topic with all policy data (enabled by <policy_debug>true</policy_debug>)
+  bool policy_debug_ = false;
+  gz::transport::Node::Publisher debug_pub_;
+  std::vector<double> last_efforts_;
+  std::vector<double> last_positions_;
+  std::vector<double> last_velocities_;
 
   void RunPolicyInference();
   void BuildObservation(gz::sim::EntityComponentManager &ecm);

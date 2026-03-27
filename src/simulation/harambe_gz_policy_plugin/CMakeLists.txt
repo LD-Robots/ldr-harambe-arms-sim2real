@@ -42,4 +42,8 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION lib
 )
 
+install(PROGRAMS scripts/policy_debug_bridge.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
