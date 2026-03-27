@@ -32,6 +32,92 @@ from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
+
+# Known body groups: each maps joint names to a controller and MoveIt planning group.
+# Joints are matched by name from the motion file — groups with no matching joints
+# are skipped automatically.
+BODY_GROUPS = {
+    "left_arm": {
+        "controller": "left_arm_group_controller",
+        "planning_group": "left_arm",
+        "joint_names": [
+            "left_shoulder_pitch_joint_X6",
+            "left_shoulder_roll_joint_X6",
+            "left_shoulder_yaw_joint_X4",
+            "left_elbow_pitch_joint_X6",
+            "left_wrist_yaw_joint_X4",
+            "left_wrist_roll_joint_X4",
+        ],
+    },
+    "right_arm": {
+        "controller": "right_arm_group_controller",
+        "planning_group": "right_arm",
+        "joint_names": [
+            "right_shoulder_pitch_joint_X6",
+            "right_shoulder_roll_joint_X6",
+            "right_shoulder_yaw_joint_X4",
+            "right_elbow_pitch_joint_X6",
+            "right_wrist_yaw_joint_X4",
+            "right_wrist_roll_joint_X4",
+        ],
+    },
+    "waist": {
+        "controller": "waist_controller",
+        "planning_group": "waist",
+        "joint_names": [
+            "waist_yaw_joint_X8",
+        ],
+    },
+    "left_leg": {
+        "controller": "left_leg_group_controller",
+        "planning_group": "left_leg",
+        "joint_names": [
+            "left_hip_pitch_joint_X8",
+            "left_hip_roll_joint_X8",
+            "left_hip_yaw_joint_X8",
+            "left_knee_joint_X8",
+            "left_ankle_pitch_joint_X4",
+            "left_ankle_roll_joint_X4",
+        ],
+    },
+    "right_leg": {
+        "controller": "right_leg_group_controller",
+        "planning_group": "right_leg",
+        "joint_names": [
+            "right_hip_pitch_joint_X8",
+            "right_hip_roll_joint_X8",
+            "right_hip_yaw_joint_X8",
+            "right_knee_joint_X8",
+            "right_ankle_roll_joint_X4",
+            # right_ankle_pitch_joint_X4 — not connected yet (bus 24)
+        ],
+    },
+}
+
+
+def _detect_groups(joint_names):
+    """Detect which body groups are present in the motion file's joint list.
+
+    Returns a dict of group_key -> {controller, planning_group, joint_names, indices}
+    where indices are positions in the motion file's joint_names list.
+    """
+    joint_set = set(joint_names)
+    joint_to_idx = {name: i for i, name in enumerate(joint_names)}
+    groups = {}
+
+    for key, group_def in BODY_GROUPS.items():
+        matched = [j for j in group_def["joint_names"] if j in joint_set]
+        if matched:
+            groups[key] = {
+                "controller": group_def["controller"],
+                "planning_group": group_def["planning_group"],
+                "joint_names": matched,
+                "indices": [joint_to_idx[j] for j in matched],
+            }
+
+    return groups
+
+
 class MotionPlayer(Node):
 
     def __init__(self, args):
@@ -61,45 +147,32 @@ class MotionPlayer(Node):
         if args.speed is None:
             self._speed = playback.get("speed_scale", 1.0)
 
-        # Detect dual-arm: split joints into left/right arm groups
-        left_indices = [i for i, n in enumerate(joint_names) if n.startswith("left_")]
-        right_indices = [i for i, n in enumerate(joint_names) if n.startswith("right_")]
-        self._is_dual = len(left_indices) > 0 and len(right_indices) > 0
-
-        if self._is_dual:
-            self._arm_groups = {
-                "left": {
-                    "controller": "left_arm_group_controller",
-                    "planning_group": "left_arm",
-                    "joint_names": [joint_names[i] for i in left_indices],
-                    "indices": left_indices,
-                },
-                "right": {
-                    "controller": "right_arm_group_controller",
-                    "planning_group": "right_arm",
-                    "joint_names": [joint_names[i] for i in right_indices],
-                    "indices": right_indices,
-                },
-            }
-            self.get_logger().info(
-                f"Dual-arm mode: left ({len(left_indices)} joints), "
-                f"right ({len(right_indices)} joints)"
-            )
-        else:
-            controller = args.controller or playback.get(
-                "controller_name", "left_arm_group_controller"
-            )
-            planning_group = args.planning_group or playback.get(
-                "planning_group", "left_arm"
-            )
+        # Detect body groups from joint names in the motion file
+        if args.controller:
+            # CLI override: treat all joints as a single group
             self._arm_groups = {
                 "single": {
-                    "controller": controller,
-                    "planning_group": planning_group,
+                    "controller": args.controller,
+                    "planning_group": args.planning_group or "left_arm",
                     "joint_names": list(joint_names),
                     "indices": list(range(len(joint_names))),
                 },
             }
+        else:
+            self._arm_groups = _detect_groups(joint_names)
+            if not self._arm_groups:
+                self.get_logger().error(
+                    "No known body groups found in motion file joint names. "
+                    "Use --controller to specify a controller manually."
+                )
+                self._motion = None
+                return
+
+            for key, group in self._arm_groups.items():
+                self.get_logger().info(
+                    f"  {key}: {len(group['joint_names'])} joints "
+                    f"-> {group['controller']}"
+                )
 
         # Joint state subscriber for preflight check
         self._joint_names = joint_names

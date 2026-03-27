@@ -69,7 +69,7 @@ except ImportError as e:
 # Motor specs — "Module Torque Constant" is at the OUTPUT (gear ratio already included)
 #   Proof: X6 rated_torque=20Nm / rated_current=9.5A = 2.1 Nm/A ✓
 #   effort 1.0 = 0.5A (raw PDO 50 = 5% of 10A rated)
-MOTOR_KT = {"X6": 2.1, "X4": 1.9}  # Nm/A at output (after gearbox)
+MOTOR_KT = {"X6": 2.1, "X4": 1.9, "X8": 2.4}  # Nm/A at output (after gearbox)
 
 # Default per-joint safety clamp in effort units
 # shoulder_pitch needs up to ~13 effort at horizontal extension

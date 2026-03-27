@@ -1,25 +1,27 @@
 from launch import LaunchDescription
-from launch.actions import TimerAction, IncludeLaunchDescription
-from launch.substitutions import Command, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument, TimerAction, IncludeLaunchDescription, OpaqueFunction
+from launch.substitutions import Command, PathJoinSubstitution, LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 
-def generate_launch_description():
-    """Read-only position viewer using ICube ethercat_driver_ros2.
+def _launch_setup(context):
+    """Resolve robot_group and build nodes accordingly."""
+    robot_group = LaunchConfiguration("robot_group").perform(context)
 
-    Launches ros2_control with the EthercatDriver plugin but drives stay
-    disabled (auto_state_transitions: false in readonly configs).
-    Only joint_state_broadcaster is spawned — no motion controller.
-
-    Usage:
-        ros2 launch arm_real_bringup position_viewer.launch.py
-    """
     pkg_dual_arm_description = FindPackageShare("dual_arm_description")
     pkg_arm_real_bringup = FindPackageShare("arm_real_bringup")
     pkg_arm_ethercat_safety = FindPackageShare("arm_ethercat_safety")
+
+    # Map robot_group → xacro args
+    if robot_group == "arms":
+        xacro_extra = " only_arms:=true"
+    elif robot_group == "arms_waist":
+        xacro_extra = " only_arms:=false fixed_legs:=true"
+    else:  # "legs" or "full"
+        xacro_extra = " only_arms:=false fixed_legs:=false"
 
     # Robot description — real hardware URDF with readonly EtherCAT configs
     robot_description_content = Command([
@@ -27,7 +29,7 @@ def generate_launch_description():
         PathJoinSubstitution([pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false",
         " readonly:=true",
-        " only_arms:=true",
+        xacro_extra,
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -81,7 +83,7 @@ def generate_launch_description():
     )
 
     # Joint State Publisher — fills in default values for non-EtherCAT joints
-    # (hands, right arm) so robot_state_publisher can compute full TF tree
+    # (hands, etc.) so robot_state_publisher can compute full TF tree
     joint_state_publisher = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
@@ -101,18 +103,41 @@ def generate_launch_description():
     )
 
     # Safety monitor — monitors joint limits, provides e-stop service
-    # Controller deactivation will gracefully skip (no left_arm_controller in readonly)
     safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([pkg_arm_ethercat_safety, "launch", "safety_monitor.launch.py"])
         )
     )
 
-    return LaunchDescription([
+    return [
         robot_state_publisher,
         ros2_control_node,
         joint_state_broadcaster_spawner,
         joint_state_publisher,
         safety_launch,
         rviz,
+    ]
+
+
+def generate_launch_description():
+    """Read-only position viewer using ICube ethercat_driver_ros2.
+
+    Launches ros2_control with the EthercatDriver plugin but drives stay
+    disabled (auto_state_transitions: false in readonly configs).
+    Only joint_state_broadcaster is spawned — no motion controller.
+
+    Usage:
+        ros2 launch arm_real_bringup position_viewer.launch.py
+        ros2 launch arm_real_bringup position_viewer.launch.py robot_group:=full
+        ros2 launch arm_real_bringup position_viewer.launch.py robot_group:=legs
+        ros2 launch arm_real_bringup position_viewer.launch.py robot_group:=arms_waist
+    """
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            "robot_group",
+            default_value="arms",
+            choices=["arms", "arms_waist", "legs", "full"],
+            description="Which body groups to include: arms, arms_waist, legs, or full",
+        ),
+        OpaqueFunction(function=_launch_setup),
     ])

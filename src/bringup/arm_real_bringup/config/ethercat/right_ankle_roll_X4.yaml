@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# ICube EtherCAT slave config — right_ankle_roll_joint
+# ICube EtherCAT slave config — right_ankle_roll_joint_X4
 # Motor: MyActuator RMD X4 V4 (gear ratio 36:1)
 # Bus position: 23 (slave #24th on the EtherCAT bus)
 # Direction: +1 (uncalibrated — run demo_joint_offset to determine correct sign)
@@ -47,7 +47,7 @@ rpdo:
       #   factor: radians → raw encoder counts. Positive = uncalibrated direction.
       #     X4 motor: ±41722.0 counts/rad
       #   offset: calibrated zero offset in raw encoder counts (0 = uncalibrated)
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: 41722.0, offset: 9819, default: 0}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: 41722.0, offset: 14167, default: 0}
 
       # [4 bytes] Target velocity (0x60FF) — velocity feedforward command
       #   Same factor magnitude as position. No offset needed.
@@ -79,7 +79,7 @@ tpdo:
       #   factor: raw encoder counts → radians. Positive = uncalibrated direction.
       #     X4 motor: ±2.397e-5 rad/count
       #   offset: calibrated zero offset in radians (0 = uncalibrated)
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 2.397e-5, offset: -0.470699}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: 2.397e-5, offset: -0.339561}
 
       # [4 bytes] Actual velocity (0x606C) — encoder velocity
       #   Same factor as position. No offset.

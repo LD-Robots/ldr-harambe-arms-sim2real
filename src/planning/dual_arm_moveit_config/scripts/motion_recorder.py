@@ -31,13 +31,15 @@ except ImportError:
     import yaml
     from yaml import Dumper
 
-DEFAULT_JOINTS = [
+LEFT_ARM_JOINTS = [
     "left_shoulder_pitch_joint_X6",
     "left_shoulder_roll_joint_X6",
     "left_shoulder_yaw_joint_X4",
     "left_elbow_pitch_joint_X6",
     "left_wrist_yaw_joint_X4",
     "left_wrist_roll_joint_X4",
+]
+RIGHT_ARM_JOINTS = [
     "right_shoulder_pitch_joint_X6",
     "right_shoulder_roll_joint_X6",
     "right_shoulder_yaw_joint_X4",
@@ -45,6 +47,35 @@ DEFAULT_JOINTS = [
     "right_wrist_yaw_joint_X4",
     "right_wrist_roll_joint_X4",
 ]
+WAIST_JOINTS = [
+    "waist_yaw_joint_X8",
+]
+LEFT_LEG_JOINTS = [
+    "left_hip_pitch_joint_X8",
+    "left_hip_roll_joint_X8",
+    "left_hip_yaw_joint_X8",
+    "left_knee_joint_X8",
+    "left_ankle_pitch_joint_X4",
+    "left_ankle_roll_joint_X4",
+]
+RIGHT_LEG_JOINTS = [
+    "right_hip_pitch_joint_X8",
+    "right_hip_roll_joint_X8",
+    "right_hip_yaw_joint_X8",
+    "right_knee_joint_X8",
+    "right_ankle_roll_joint_X4",
+    # right_ankle_pitch_joint_X4 — not connected yet (bus 24)
+]
+
+ROBOT_GROUPS = {
+    "arms": LEFT_ARM_JOINTS + RIGHT_ARM_JOINTS,
+    "arms_waist": LEFT_ARM_JOINTS + RIGHT_ARM_JOINTS + WAIST_JOINTS,
+    "legs": WAIST_JOINTS + LEFT_LEG_JOINTS + RIGHT_LEG_JOINTS,
+    "full": (LEFT_ARM_JOINTS + RIGHT_ARM_JOINTS + WAIST_JOINTS
+             + LEFT_LEG_JOINTS + RIGHT_LEG_JOINTS),
+}
+
+DEFAULT_JOINTS = ROBOT_GROUPS["arms"]
 
 
 class CompactListDumper(Dumper):
@@ -54,7 +85,7 @@ class CompactListDumper(Dumper):
 
 def _represent_list(dumper, data):
     """Use flow style for short lists of numbers (waypoint positions)."""
-    if all(isinstance(x, (int, float)) for x in data) and len(data) <= 12:
+    if all(isinstance(x, (int, float)) for x in data) and len(data) <= 25:
         return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
     return dumper.represent_sequence("tag:yaml.org,2002:seq", data)
 
@@ -303,8 +334,12 @@ def parse_args():
         help="Joint state topic (default: /joint_states)"
     )
     parser.add_argument(
-        "--joints", nargs="+", default=DEFAULT_JOINTS,
-        help="Joint names to record"
+        "--robot-group", choices=list(ROBOT_GROUPS.keys()), default=None,
+        help="Predefined joint group: arms, arms_waist, legs, or full"
+    )
+    parser.add_argument(
+        "--joints", nargs="+", default=None,
+        help="Custom joint names to record (overrides --robot-group)"
     )
     parser.add_argument(
         "-d", "--description", default="",
@@ -312,6 +347,14 @@ def parse_args():
     )
 
     args = parser.parse_args()
+
+    # Resolve joints: --joints > --robot-group > default (arms)
+    if args.joints is not None:
+        pass  # explicit joint list takes priority
+    elif args.robot_group is not None:
+        args.joints = ROBOT_GROUPS[args.robot_group]
+    else:
+        args.joints = DEFAULT_JOINTS
 
     # Default output path
     if args.output is None:

@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# ICube EtherCAT slave config — right_ankle_pitch_joint
+# ICube EtherCAT slave config — right_ankle_pitch_joint_X4
 # Motor: MyActuator RMD X4 V4 (gear ratio 36:1)
 # Bus position: 24 (slave #25th on the EtherCAT bus)
 # Direction: +1 (uncalibrated — run demo_joint_offset to determine correct sign)

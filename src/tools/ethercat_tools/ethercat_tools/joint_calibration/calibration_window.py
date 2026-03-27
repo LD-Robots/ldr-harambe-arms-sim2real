@@ -143,19 +143,14 @@ def _discover_actuators_from_configs():
                 existing_tpdo = float(m.group(1).strip())
 
             # If no joint name from comment, infer from filename + URDF convention
-            # Arm joints have motor suffix: left_shoulder_pitch_X6 -> left_shoulder_pitch_joint_X6
-            # Leg/waist joints don't: left_hip_pitch_X8 -> left_hip_pitch_joint
+            # e.g. left_shoulder_pitch_X6 -> left_shoulder_pitch_joint_X6
             if joint_name is None:
                 base = stem
                 for suffix in ("_X4", "_X6", "_X8"):
                     if base.endswith(suffix):
                         base = base[: -len(suffix)]
                         break
-                # Check if this is an arm joint (has motor suffix in URDF name)
-                if "shoulder" in base or "elbow" in base or "wrist" in base:
-                    joint_name = f"{base}_joint_{motor}"
-                else:
-                    joint_name = f"{base}_joint"
+                joint_name = f"{base}_joint_{motor}"
 
         except Exception:
             continue

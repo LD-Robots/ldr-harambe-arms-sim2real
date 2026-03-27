@@ -17,6 +17,7 @@ Usage:
 
 import argparse
 import threading
+from collections import OrderedDict
 
 import rclpy
 from rclpy.node import Node
@@ -73,20 +74,7 @@ def _color_util(pct):
     else:
         return f"{_GREEN}{pct:>6.1f}%{_RESET}"
 
-ARM_JOINTS = [
-    "left_shoulder_pitch_joint_X6",
-    "left_shoulder_roll_joint_X6",
-    "left_shoulder_yaw_joint_X4",
-    "left_elbow_pitch_joint_X6",
-    "left_wrist_yaw_joint_X4",
-    "left_wrist_roll_joint_X4",
-    "right_shoulder_pitch_joint_X6",
-    "right_shoulder_roll_joint_X6",
-    "right_shoulder_yaw_joint_X4",
-    "right_elbow_pitch_joint_X6",
-    "right_wrist_yaw_joint_X4",
-    "right_wrist_roll_joint_X4",
-]
+GROUP_ORDER = ["L Arm", "R Arm", "Waist", "L Leg", "R Leg"]
 
 
 def motor_type(joint_name):
@@ -97,12 +85,38 @@ def motor_type(joint_name):
     return None
 
 
+def classify_joint(name):
+    """Classify a joint into a body group by parsing its name.
+
+    Returns group string (e.g. 'L Arm') or None for non-motor joints.
+    """
+    if not motor_type(name):
+        return None
+
+    if name.startswith("left_"):
+        side = "L"
+    elif name.startswith("right_"):
+        side = "R"
+    else:
+        side = ""
+
+    if any(kw in name for kw in ("shoulder", "elbow", "wrist")):
+        return f"{side} Arm"
+    elif any(kw in name for kw in ("hip", "knee", "ankle")):
+        return f"{side} Leg"
+    elif "waist" in name:
+        return "Waist"
+
+    return None
+
+
 class CurrentMonitor(Node):
 
     def __init__(self, args):
         super().__init__("current_monitor")
-        self._joints = ARM_JOINTS
-        self._joint_set = set(self._joints)
+        self._joints = None  # discovered from first /joint_states message
+        self._joint_set = None
+        self._groups = None  # OrderedDict of group_name -> [joint_names]
         self._rate = args.rate
 
         self._lock = threading.Lock()
@@ -112,11 +126,32 @@ class CurrentMonitor(Node):
         self.create_timer(1.0 / self._rate, self._print_cb)
 
         self.get_logger().info(
-            f"Monitoring {len(self._joints)} joints on {args.topic} "
+            f"Waiting for joint discovery on {args.topic} "
             f"(print rate: {self._rate} Hz)"
         )
 
     def _cb(self, msg):
+        # One-time discovery from first message
+        if self._joints is None:
+            groups = OrderedDict((g, []) for g in GROUP_ORDER)
+            for name in msg.name:
+                group = classify_joint(name)
+                if group is not None and group in groups:
+                    groups[group].append(name)
+
+            self._groups = OrderedDict(
+                (g, joints) for g, joints in groups.items() if joints
+            )
+            self._joints = [j for joints in self._groups.values() for j in joints]
+            self._joint_set = set(self._joints)
+
+            self.get_logger().info(
+                f"Discovered {len(self._joints)} motor joints: "
+                + ", ".join(
+                    f"{g}({len(js)})" for g, js in self._groups.items()
+                )
+            )
+
         efforts = {}
         for name, effort in zip(msg.name, msg.effort):
             if name in self._joint_set:
@@ -129,7 +164,7 @@ class CurrentMonitor(Node):
         with self._lock:
             snapshot = dict(self._latest_effort)
 
-        if not snapshot:
+        if not snapshot or self._joints is None:
             return
 
         print("\033[2J\033[H")  # clear screen
@@ -139,35 +174,49 @@ class CurrentMonitor(Node):
         )
         print(header)
         print(f"{'':35} {'(Nm)':>8} {'(A)':>8} {'(A)':>8} {'(W)':>8} {'(%)':>8}")
-        print("-" * 77)
+        print("=" * 77)
 
         total_power = 0.0
         power_by_rail = {}  # voltage -> total amps on that rail
-        for joint in self._joints:
-            effort = snapshot.get(joint, 0.0)
-            mt = motor_type(joint)
-            spec = MOTOR_SPECS.get(mt, MOTOR_SPECS["X6"])
 
-            # Phase current from torque constant
-            i_phase = abs(effort) / spec["kt"]
-            # Efficiency-adjusted electrical current + no-load baseline
-            i_est = i_phase / spec["efficiency"] + spec["no_load_current"]
-            # Power draw
-            power = i_est * spec["voltage"]
-            # Utilization vs rated current
-            util_pct = i_est / spec["rated_current"] * 100.0
+        for group_name, group_joints in self._groups.items():
+            print(f"{_BOLD}── {group_name} ──{_RESET}")
+            group_power = 0.0
+            group_current = 0.0
 
-            total_power += power
-            rail_v = spec["voltage"]
-            power_by_rail[rail_v] = power_by_rail.get(rail_v, 0.0) + i_est
+            for joint in group_joints:
+                effort = snapshot.get(joint, 0.0)
+                mt = motor_type(joint)
+                spec = MOTOR_SPECS.get(mt, MOTOR_SPECS["X6"])
 
-            short = joint.replace("_joint", "").replace("left_", "L ").replace("right_", "R ")
+                # Phase current from torque constant
+                i_phase = abs(effort) / spec["kt"]
+                # Efficiency-adjusted electrical current + no-load baseline
+                i_est = i_phase / spec["efficiency"] + spec["no_load_current"]
+                # Power draw
+                power = i_est * spec["voltage"]
+                # Utilization vs rated current
+                util_pct = i_est / spec["rated_current"] * 100.0
+
+                total_power += power
+                group_power += power
+                group_current += i_est
+                rail_v = spec["voltage"]
+                power_by_rail[rail_v] = power_by_rail.get(rail_v, 0.0) + i_est
+
+                short = joint.replace("_joint", "").replace("left_", "L ").replace("right_", "R ")
+                print(
+                    f"  {short:<33} {effort:>+8.2f} {i_phase:>8.3f} {i_est:>8.3f} "
+                    f"{power:>8.1f} {_color_util(util_pct)}"
+                )
+
+            # Group subtotal
             print(
-                f"{short:<35} {effort:>+8.2f} {i_phase:>8.3f} {i_est:>8.3f} "
-                f"{power:>8.1f} {_color_util(util_pct)}"
+                f"  {'':33} {'':>8} {'':>8} {group_current:>8.3f} "
+                f"{group_power:>8.1f}"
             )
 
-        print("-" * 77)
+        print("=" * 77)
         # Summary per voltage rail
         for rail_v in sorted(power_by_rail):
             rail_amps = power_by_rail[rail_v]
