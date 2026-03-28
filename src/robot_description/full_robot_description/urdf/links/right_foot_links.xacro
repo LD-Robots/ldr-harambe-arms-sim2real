@@ -6,27 +6,27 @@
   <!-- ================================================================== -->
   <link name="urdf_hip_assembly_2">
     <inertial>
-      <origin xyz="-0.00420762 -0.0689982 6.23945e-06" rpy="0 0 0"/>
-      <mass value="1.73"/>
-      <inertia ixx="0.00302301" ixy="-2.30858e-05" ixz="-4.5747e-08" iyy="0.00228746" iyz="-8.49179e-07" izz="0.00263533"/>
+      <origin xyz="-0.00387043 -0.0602754 3.33254e-05" rpy="0 0 0"/>
+      <mass value="1.829"/>
+      <inertia ixx="0.00318486" ixy="1.248e-05" ixz="-2.39579e-07" iyy="0.00257781" iyz="-3.95097e-06" izz="0.00266816"/>
     </inertial>
     <visual>
-      <origin xyz="0.00253653 -0.0520203 3.27638e-05" rpy="-3.14159 0 1.5708"/>
+      <origin xyz="0.03 -0.062 0" rpy="-1.5708 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/hip.stl"/>
       </geometry>
       <material name="hip_2_material">
-        <color rgba="0.0627451 0.266667 0.490196 1"/>
+        <color rgba="0.498039 0.498039 0.498039 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="0.00253653 -0.0520203 3.27638e-05" rpy="-3.14159 0 1.5708"/>
+      <origin xyz="0.03 -0.062 0" rpy="-1.5708 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/hip.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.043 -0.073 0" rpy="-1.57079 0 -1.5708"/>
+      <origin xyz="-0.043 -0.062 0" rpy="1.5708 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
@@ -38,12 +38,12 @@
 
   <link name="urdf_r_upper_femur_assemby">
     <inertial>
-      <origin xyz="-0.0457092 -0.000405162 -0.147963" rpy="0 0 0"/>
+      <origin xyz="-0.0457109 -0.000406025 -0.147969" rpy="0 0 0"/>
       <mass value="1.912"/>
-      <inertia ixx="0.00513139" ixy="-1.24596e-06" ixz="-0.000930579" iyy="0.00557422" iyz="5.18318e-05" izz="0.00336736"/>
+      <inertia ixx="0.00512969" ixy="-1.22901e-06" ixz="-0.000930002" iyy="0.00557257" iyz="5.18759e-05" izz="0.00336728"/>
     </inertial>
     <visual>
-      <origin xyz="-0.0257733 -0.00151464 -0.111761" rpy="0 0 -1.5708"/>
+      <origin xyz="-0.0257799 -0.00151624 -0.111785" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/r_upper_femur.stl"/>
       </geometry>
@@ -52,13 +52,13 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="-0.0257733 -0.00151464 -0.111761" rpy="0 0 -1.5708"/>
+      <origin xyz="-0.0257799 -0.00151624 -0.111785" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/r_upper_femur.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.053 4.55477e-07 -0.124" rpy="3.14159 0 -1.5708"/>
+      <origin xyz="-0.053 -1.478e-09 -0.124" rpy="3.14159 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
@@ -70,12 +70,12 @@
 
   <link name="urdf_lower_femur_assembly_2">
     <inertial>
-      <origin xyz="1.0389e-08 0.00357383 -0.103307" rpy="0 0 0"/>
+      <origin xyz="9.05521e-10 0.00357383 -0.101307" rpy="0 0 0"/>
       <mass value="1.817"/>
-      <inertia ixx="0.00383469" ixy="-2.5e-11" ixz="2.1291e-08" iyy="0.00421827" iyz="0.00019709" izz="0.00258541"/>
+      <inertia ixx="0.00383469" ixy="-1.04286e-09" ixz="2.0768e-08" iyy="0.00421827" iyz="0.00019709" izz="0.00258541"/>
     </inertial>
     <visual>
-      <origin xyz="-5.752e-09 -0.00389134 -0.070766" rpy="0 0 1.5708"/>
+      <origin xyz="4.57402e-09 -0.00389134 -0.068766" rpy="0 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/lower_femur.stl"/>
       </geometry>
@@ -84,13 +84,13 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="-5.752e-09 -0.00389134 -0.070766" rpy="0 0 1.5708"/>
+      <origin xyz="4.57402e-09 -0.00389134 -0.068766" rpy="0 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/lower_femur.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0.043 -0.113" rpy="0 -1.57079 1.5708"/>
+      <origin xyz="-1.14104e-07 0.043 -0.111" rpy="0 -1.57079 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x8_p20_120_unified.stl"/>
       </geometry>
@@ -102,12 +102,12 @@
 
   <link name="urdf_r_tibia_assembly">
     <inertial>
-      <origin xyz="0.00463902 0.0449175 -0.190727" rpy="0 0 0"/>
-      <mass value="2.4"/>
-      <inertia ixx="0.0785959" ixy="-0.000322085" ixz="0.00175009" iyy="0.0762312" iyz="0.0088755" izz="0.0153456"/>
+      <origin xyz="0.0144959 0.0488304 -0.199574" rpy="0 0 0"/>
+      <mass value="2.215"/>
+      <inertia ixx="0.0205486" ixy="-0.000222584" ixz="0.00144134" iyy="0.0209705" iyz="0.00195651" izz="0.00479841"/>
     </inertial>
     <visual>
-      <origin xyz="0.0537498 0.055 -0.16" rpy="-3.14159 -0.0523563 -1.5708"/>
+      <origin xyz="0.05375 0.055 -0.16" rpy="3.14159 0.0174563 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_spacer_x4.stl"/>
       </geometry>
@@ -116,7 +116,7 @@
       </material>
     </visual>
     <visual>
-      <origin xyz="0.0844997 0.0363483 -0.326658" rpy="0 0.0698163 -1.5708"/>
+      <origin xyz="0.0845 0.0268696 -0.324206" rpy="0 -0.0349063 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/m6_threaded_bar_225mm.stl"/>
       </geometry>
@@ -125,7 +125,7 @@
       </material>
     </visual>
     <visual>
-      <origin xyz="0.0537498 0.055 -0.235" rpy="0 -0.0698163 1.5708"/>
+      <origin xyz="0.05375 0.055 -0.235" rpy="0 0.0349063 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_spacer_x4.stl"/>
       </geometry>
@@ -134,7 +134,7 @@
       </material>
     </visual>
     <visual>
-      <origin xyz="0.000678616 0.0431372 -0.186264" rpy="0 0 -1.5708"/>
+      <origin xyz="0.000678806 0.0431372 -0.186264" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_r_tibia_assembly.stl"/>
       </geometry>
@@ -143,13 +143,13 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0.000678616 0.0431372 -0.186264" rpy="0 0 -1.5708"/>
+      <origin xyz="0.000678806 0.0431372 -0.186264" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/urdf_r_tibia_assembly.stl"/>
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.0180002 0.055 -0.16" rpy="-1.5708 0 -1.5708"/>
+      <origin xyz="-0.018 0.055 -0.16" rpy="-1.5708 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x4_p36_36_unified.stl"/>
       </geometry>
@@ -158,7 +158,7 @@
       </material>
     </visual>
     <visual>
-      <origin xyz="0.0844997 0.0732859 -0.288767" rpy="0 -0.0523563 -1.5708"/>
+      <origin xyz="0.0845 0.0822237 -0.287178" rpy="0 0.0174563 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/m6_threaded_bar_300mm.stl"/>
       </geometry>
@@ -167,7 +167,7 @@
       </material>
     </visual>
     <visual>
-      <origin xyz="-0.0180002 0.055 -0.235" rpy="1.5708 0 1.5708"/>
+      <origin xyz="-0.018 0.055 -0.235" rpy="1.57079 0 1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x4_p36_36_unified.stl"/>
       </geometry>
@@ -177,37 +177,37 @@
     </visual>
   </link>
 
-  <link name="urdf_ankle_assembly_2">
+  <link name="udrf_ankle_assembly_2">
     <inertial>
-      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 0"/>
+      <origin xyz="0 -0.004 -0.0125426" rpy="0 0 0"/>
       <mass value="0.0818219"/>
-      <inertia ixx="1.69449e-05" ixy="1.82098e-26" ixz="-4.4909e-12" iyy="2.15245e-05" iyz="8.34767e-27" izz="1.25404e-05"/>
+      <inertia ixx="1.69449e-05" ixy="-2.22156e-26" ixz="4.29315e-17" iyy="2.15245e-05" iyz="3.73894e-27" izz="1.25404e-05"/>
     </inertial>
     <visual>
-      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
+      <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/visual/urdf_ankle_assembly.stl"/>
+        <mesh filename="package://full_robot_description/meshes/visual/udrf_ankle_assembly.stl"/>
       </geometry>
-      <material name="urdf_ankle_assembly_2_material">
+      <material name="udrf_ankle_assembly_2_material">
         <color rgba="0.615686 0.811765 0.929412 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="-1.27886e-08 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
+      <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708"/>
       <geometry>
-        <mesh filename="package://full_robot_description/meshes/collision/urdf_ankle_assembly.stl"/>
+        <mesh filename="package://full_robot_description/meshes/collision/udrf_ankle_assembly.stl"/>
       </geometry>
     </collision>
   </link>
 
   <link name="urdf_foot_assembly_2">
     <inertial>
-      <origin xyz="0.0427639 1.55004e-07 -0.0209668" rpy="0 0 0"/>
-      <mass value="0.504"/>
-      <inertia ixx="0.000361698" ixy="3.1409e-11" ixz="-5.90887e-06" iyy="0.00202397" iyz="-1.98822e-09" izz="0.00229243"/>
+      <origin xyz="0.0436027 8.11114e-08 -0.0200314" rpy="0 0 0"/>
+      <mass value="0.309"/>
+      <inertia ixx="0.000232433" ixy="-1.58776e-11" ixz="-9.83566e-06" iyy="0.00121361" iyz="-6.57666e-10" izz="0.00137693"/>
     </inertial>
     <visual>
-      <origin xyz="0.0427639 1.53975e-07 -0.0209668" rpy="0 0 -1.5708"/>
+      <origin xyz="0.0436027 7.24764e-08 -0.0200314" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_foot_assembly.stl"/>
       </geometry>
@@ -216,7 +216,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0.0427639 1.53975e-07 -0.0209668" rpy="0 0 -1.5708"/>
+      <origin xyz="0.0436027 7.24764e-08 -0.0200314" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/urdf_foot_assembly.stl"/>
       </geometry>

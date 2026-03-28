@@ -47,7 +47,7 @@ def generate_launch_description():
     )
     x_arg = DeclareLaunchArgument("x", default_value="0.0", description="X position")
     y_arg = DeclareLaunchArgument("y", default_value="0.0", description="Y position")
-    z_arg = DeclareLaunchArgument("z", default_value="1.25", description="Z position")
+    z_arg = DeclareLaunchArgument("z", default_value="1.215", description="Z position")
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     control_mode = LaunchConfiguration("control_mode")
