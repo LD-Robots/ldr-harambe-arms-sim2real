@@ -823,7 +823,7 @@
       </material>
     </visual>
   </link>
-  <link name="udrf_ankle_assembly">
+  <link name="urdf_ankle_assembly">
     <inertial>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 0" />
       <mass value="0.0818219" />
@@ -832,16 +832,16 @@
     <visual>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708" />
       <geometry>
-        <mesh filename="package://meshes/visual/udrf_ankle_assembly.stl" />
+        <mesh filename="package://meshes/visual/urdf_ankle_assembly.stl" />
       </geometry>
-      <material name="udrf_ankle_assembly_material">
+      <material name="urdf_ankle_assembly_material">
         <color rgba="0.615686 0.811765 0.929412 1" />
       </material>
     </visual>
     <collision>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708" />
       <geometry>
-        <mesh filename="package://meshes/collision/udrf_ankle_assembly.stl" />
+        <mesh filename="package://meshes/collision/urdf_ankle_assembly.stl" />
       </geometry>
     </collision>
   </link>
@@ -870,13 +870,13 @@
   <joint name="left_ankle_pitch_joint_X4" type="revolute">
     <origin xyz="0 -0.051 -0.395" rpy="0 0 0" />
     <parent link="urdf_l_tibia_assembly" />
-    <child link="udrf_ankle_assembly" />
+    <child link="urdf_ankle_assembly" />
     <axis xyz="0 1 0" />
     <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398" />
   </joint>
   <joint name="left_ankle_roll_joint_X4" type="revolute">
     <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0" />
-    <parent link="udrf_ankle_assembly" />
+    <parent link="urdf_ankle_assembly" />
     <child link="urdf_foot_assembly" />
     <axis xyz="1 0 0" />
     <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398" />
@@ -1078,7 +1078,7 @@
       </material>
     </visual>
   </link>
-  <link name="udrf_ankle_assembly_2">
+  <link name="urdf_ankle_assembly_2">
     <inertial>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 0" />
       <mass value="0.0818219" />
@@ -1087,16 +1087,16 @@
     <visual>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708" />
       <geometry>
-        <mesh filename="package://meshes/visual/udrf_ankle_assembly.stl" />
+        <mesh filename="package://meshes/visual/urdf_ankle_assembly.stl" />
       </geometry>
-      <material name="udrf_ankle_assembly_2_material">
+      <material name="urdf_ankle_assembly_2_material">
         <color rgba="0.615686 0.811765 0.929412 1" />
       </material>
     </visual>
     <collision>
       <origin xyz="0 -0.004 -0.0125426" rpy="0 0 -1.5708" />
       <geometry>
-        <mesh filename="package://meshes/collision/udrf_ankle_assembly.stl" />
+        <mesh filename="package://meshes/collision/urdf_ankle_assembly.stl" />
       </geometry>
     </collision>
   </link>
@@ -1125,13 +1125,13 @@
   <joint name="right_ankle_roll_joint_X4" type="revolute">
     <origin xyz="0 0.059 -0.395" rpy="0 0 0" />
     <parent link="urdf_r_tibia_assembly" />
-    <child link="udrf_ankle_assembly_2" />
+    <child link="urdf_ankle_assembly_2" />
     <axis xyz="1 0 0" />
     <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398" />
   </joint>
   <joint name="right_ankle_pitch_joint_X4" type="revolute">
     <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0" />
-    <parent link="udrf_ankle_assembly_2" />
+    <parent link="urdf_ankle_assembly_2" />
     <child link="urdf_foot_assembly_2" />
     <axis xyz="0 1 0" />
     <limit effort="10" velocity="10" lower="-0.785398" upper="0.785398" />
