@@ -208,28 +208,6 @@ void HarambePolicyPlugin::PreUpdate(
   if (step_counter_ % decimation_ == 0) {
     BuildObservation(ecm);
 
-    // TEST: Replace ENTIRE obs with normalizer mean from training.
-    // If this produces reasonable actions, the problem is purely obs mismatch.
-    // Mean from model_16500.pt actor_obs_normalizer._mean
-    static const float norm_mean[87] = {
-      0.014560f,0.002344f,-0.020510f,0.007439f,-0.073306f,0.019766f,
-      0.098973f,0.007896f,-0.983043f,0.052877f,0.000000f,0.000588f,
-      0.004244f,0.000819f,0.028119f,0.007895f,-0.005145f,0.025967f,
-      0.003376f,0.000595f,-0.022207f,0.005684f,0.003184f,-0.025144f,
-      0.013423f,-0.156746f,0.009333f,0.009215f,-0.019751f,0.078313f,
-      0.001897f,-0.121752f,0.002539f,0.010357f,-0.099289f,0.122456f,
-      0.007407f,0.030737f,0.018185f,-0.000567f,-0.014012f,0.000053f,
-      -0.000357f,0.024137f,-0.012236f,0.000139f,-0.015583f,0.000010f,
-      0.000103f,-0.022809f,0.162343f,-0.020397f,-0.005266f,-0.099728f,
-      -0.080329f,0.066473f,0.189450f,-0.017626f,-0.000434f,-0.136484f,
-      -0.086309f,0.051259f,-1.289845f,1.301810f,0.221760f,-0.944547f,
-      -0.550033f,0.620776f,-1.059761f,-1.246093f,0.466370f,-0.885992f,
-      0.124125f,0.033217f,-0.024503f,-0.005407f,0.483497f,-0.168474f,
-      -1.067385f,-0.111955f,-0.615379f,0.162255f,-0.312931f,-0.092159f,
-      -0.676582f,0.191935f,0.044751f
-    };
-    // No obs override — use real Gazebo observations
-
     // Active policy after both ramp and warmup complete
     if (step_counter_ >= ramp_steps && policy_step_ >= warmup_steps_) {
       RunPolicyInference();
@@ -240,59 +218,11 @@ void HarambePolicyPlugin::PreUpdate(
 
     if (policy_step_ == warmup_steps_ + 1) {
       gzmsg << "HarambePolicyPlugin: Warmup complete, policy active!" << std::endl;
-      float min_a = *std::min_element(prev_action_.begin(), prev_action_.end());
-      float max_a = *std::max_element(prev_action_.begin(), prev_action_.end());
-      float min_t = *std::min_element(target_pos_.begin(), target_pos_.end());
-      float max_t = *std::max_element(target_pos_.begin(), target_pos_.end());
-      gzmsg << "  First action range: [" << min_a << ", " << max_a
-            << "] target range: [" << min_t << ", " << max_t << "]" << std::endl;
-
-      // ONE-TIME: compare TorchScript output for Isaac Lab obs vs Gazebo obs
-      // Isaac Lab step 3 — full dynamics, vel non-zero, prev_action non-zero
-      std::vector<float> il_obs = {
-        0.007458f,0.093524f,-0.049077f,0.129523f,0.051964f,-0.160343f,-0.001306f,-0.008643f,-0.999962f,
-        0.0f,0.0f,0.0f,
-        -0.027079f,0.085381f,-0.043764f,0.039680f,0.055820f,-0.066059f,
-        0.053917f,0.012628f,0.068283f,0.033938f,-0.024699f,-0.033329f,
-        0.005063f,
-        0.059609f,-0.046991f,-0.080975f,-0.045286f,-0.009825f,0.030576f,
-        -0.029107f,0.023486f,-0.041580f,0.015669f,0.013662f,-0.039199f,
-        0.552648f,-0.427787f,0.000252f,-0.002744f,0.000318f,-0.000485f,
-        -0.765485f,0.162634f,0.000458f,0.534313f,0.000199f,-0.000073f,
-        0.082681f,0.267782f,-0.236424f,0.000630f,-0.454495f,-0.245530f,
-        -0.088054f,-0.361539f,-0.219966f,0.376734f,0.589851f,-0.544534f,
-        0.171338f,
-        -2.006419f,-1.771927f,-0.095952f,-3.563867f,-1.569299f,3.644118f,
-        -3.786095f,-0.200554f,0.074973f,-3.382048f,1.168368f,0.318866f,
-        -1.239805f,0.737682f,1.178721f,2.757662f,-1.306519f,0.606112f,
-        -0.215659f,-1.037031f,-1.457611f,1.631150f,-3.866488f,2.683407f,-0.826728f
-      };  // 87 values from Isaac Lab FULL_OBS_87 step 3
-      // Run ONNX on both IL and GZ obs for comparison
-      auto run_onnx = [&](std::vector<float>& input) -> std::vector<float> {
-        std::array<int64_t, 2> shape = {1, 87};
-        auto tensor = Ort::Value::CreateTensor<float>(
-            ort_mem_info_, input.data(), input.size(), shape.data(), shape.size());
-        const char* in_n[] = {"obs"};
-        const char* out_n[] = {"actions"};
-        auto out = ort_session_->Run(Ort::RunOptions{nullptr}, in_n, &tensor, 1, out_n, 1);
-        float* d = out[0].GetTensorMutableData<float>();
-        return std::vector<float>(d, d + 25);
-      };
-      auto il_act = run_onnx(il_obs);
-      auto gz_act = run_onnx(obs_);
-
-      const char* jnames[] = {"l_sh_p","l_sh_r","l_sh_y","l_elb","l_wr_y","l_wr_r",
-        "r_sh_p","r_sh_r","r_sh_y","r_elb","r_wr_y","r_wr_r","waist",
-        "l_hip_p","l_hip_r","l_hip_y","l_knee","l_ank_p","l_ank_r",
-        "r_hip_p","r_hip_r","r_hip_y","r_knee","r_ank_p","r_ank_r"};
-      gzmsg << "=== ONNX: ISAAC vs GAZEBO ===" << std::endl;
-      for (int i = 0; i < 25; ++i) {
-        gzmsg << "  " << jnames[i]
-              << " IL=" << il_act[i] << " GZ=" << gz_act[i]
-              << " diff=" << (il_act[i] - gz_act[i]) << std::endl;
-      }
     }
   }
+
+  // Isaac Lab uses HOLD: target is applied instantly and held constant
+  // throughout the decimation period (no interpolation).
 
   // PD control at every physics step
   ApplyPDControl(ecm);
@@ -324,41 +254,45 @@ void HarambePolicyPlugin::PreUpdate(
 // ============================================================================
 void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
 {
-  // base_lin_vel (3)
-  if (imu_entity_ != gz::sim::kNullEntity) {
-    auto linVelComp = ecm.Component<gz::sim::components::LinearVelocity>(imu_entity_);
-    if (linVelComp) {
-      auto v = linVelComp->Data();
-      obs_[0] = static_cast<float>(v.X());
-      obs_[1] = static_cast<float>(v.Y());
-      obs_[2] = static_cast<float>(v.Z());
-    } else {
-      obs_[0] = obs_[1] = obs_[2] = 0.0f;
-    }
-  } else {
-    obs_[0] = obs_[1] = obs_[2] = 0.0f;
-  }
-
-  // base_ang_vel (3) and projected_gravity (3)
+  // All base observations must be in BODY frame to match Isaac Lab:
+  //   base_lin_vel = root_lin_vel_b (body frame)
+  //   base_ang_vel = root_ang_vel_b (body frame)
+  //   projected_gravity = projected_gravity_b (body frame)
+  // Gazebo components give world-frame values, so we rotate them.
   if (imu_entity_ != gz::sim::kNullEntity) {
     auto worldPose = gz::sim::worldPose(imu_entity_, ecm);
     auto q = worldPose.Rot();
 
+    // base_lin_vel (3): world -> body frame
+    auto linVelComp = ecm.Component<gz::sim::components::LinearVelocity>(imu_entity_);
+    if (linVelComp) {
+      auto v_world = linVelComp->Data();
+      auto v_body = q.RotateVectorReverse(v_world);
+      obs_[0] = static_cast<float>(v_body.X());
+      obs_[1] = static_cast<float>(v_body.Y());
+      obs_[2] = static_cast<float>(v_body.Z());
+    } else {
+      obs_[0] = obs_[1] = obs_[2] = 0.0f;
+    }
+
+    // base_ang_vel (3): world -> body frame
+    auto angVelComp = ecm.Component<gz::sim::components::AngularVelocity>(imu_entity_);
+    if (angVelComp) {
+      auto w_world = angVelComp->Data();
+      auto w_body = q.RotateVectorReverse(w_world);
+      obs_[3] = static_cast<float>(w_body.X());
+      obs_[4] = static_cast<float>(w_body.Y());
+      obs_[5] = static_cast<float>(w_body.Z());
+    } else {
+      obs_[3] = obs_[4] = obs_[5] = 0.0f;
+    }
+
+    // projected_gravity (3): world -> body frame (already correct)
     auto grav_world = gz::math::Vector3d(0, 0, -1);
     auto grav_body = q.RotateVectorReverse(grav_world);
     obs_[6] = static_cast<float>(grav_body.X());
     obs_[7] = static_cast<float>(grav_body.Y());
     obs_[8] = static_cast<float>(grav_body.Z());
-
-    auto angVelComp = ecm.Component<gz::sim::components::AngularVelocity>(imu_entity_);
-    if (angVelComp) {
-      auto w = angVelComp->Data();
-      obs_[3] = static_cast<float>(w.X());
-      obs_[4] = static_cast<float>(w.Y());
-      obs_[5] = static_cast<float>(w.Z());
-    } else {
-      obs_[3] = obs_[4] = obs_[5] = 0.0f;
-    }
   }
 
   // commands (3)
@@ -384,37 +318,6 @@ void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
     obs_[62 + i] = prev_action_[i];
   }
 
-  // Log observations
-  bool at_activation = (policy_step_ >= warmup_steps_ - 1 && policy_step_ <= warmup_steps_ + 5);
-  if (policy_step_ < 5 || at_activation || policy_step_ % 250 == 0) {
-    gzmsg << "[obs step " << policy_step_ << "] "
-          << "lin_vel=[" << obs_[0] << "," << obs_[1] << "," << obs_[2] << "] "
-          << "ang_vel=[" << obs_[3] << "," << obs_[4] << "," << obs_[5] << "] "
-          << "gravity=[" << obs_[6] << "," << obs_[7] << "," << obs_[8] << "] "
-          << "cmd=[" << obs_[9] << "," << obs_[10] << "," << obs_[11] << "]"
-          << std::endl;
-    gzmsg << "  pos_rel_arm=[" << obs_[12] << "," << obs_[13] << "," << obs_[14]
-          << "," << obs_[15] << "," << obs_[16] << "," << obs_[17] << "]"
-          << " pos_rel_leg=[" << obs_[25] << "," << obs_[26] << "," << obs_[27]
-          << "," << obs_[28] << "," << obs_[29] << "," << obs_[30] << "]"
-          << std::endl;
-    float min_vel = *std::min_element(obs_.begin() + 37, obs_.begin() + 62);
-    float max_vel = *std::max_element(obs_.begin() + 37, obs_.begin() + 62);
-    gzmsg << "  vel_range=[" << min_vel << "," << max_vel << "]"
-          << " action_range=[" << *std::min_element(prev_action_.begin(), prev_action_.end())
-          << "," << *std::max_element(prev_action_.begin(), prev_action_.end()) << "]"
-          << std::endl;
-
-    if (at_activation && policy_step_ == warmup_steps_) {
-      std::ostringstream oss;
-      oss << "FULL_OBS_87:";
-      for (int j = 0; j < 87; ++j) {
-        oss << obs_[j];
-        if (j < 86) oss << ",";
-      }
-      gzmsg << oss.str() << std::endl;
-    }
-  }
 }
 
 // ============================================================================
@@ -440,7 +343,7 @@ void HarambePolicyPlugin::RunPolicyInference()
 
   float* actions = output_tensors[0].GetTensorMutableData<float>();
 
-  // Clip actions and apply
+  // Clip actions and set new target (will be interpolated in PreUpdate)
   for (size_t i = 0; i < num_joints_; ++i) {
     float a = actions[i];
     a = std::clamp(a, static_cast<float>(-clip_actions_), static_cast<float>(clip_actions_));
@@ -448,19 +351,6 @@ void HarambePolicyPlugin::RunPolicyInference()
     target_pos_[i] = a * action_scale_ + joints_[i].default_pos;
   }
 
-  // Log per-joint details for first 10 active policy steps
-  static int active_steps = 0;
-  if (active_steps < 10) {
-    gzmsg << "[policy step " << active_steps << "] per-joint actions/targets:" << std::endl;
-    for (size_t i = 0; i < num_joints_; ++i) {
-      gzmsg << "  [" << i << "] " << joints_[i].name
-            << " action=" << prev_action_[i]
-            << " target=" << target_pos_[i]
-            << " default=" << joints_[i].default_pos
-            << std::endl;
-    }
-    active_steps++;
-  }
 }
 
 // ============================================================================
@@ -469,25 +359,6 @@ void HarambePolicyPlugin::RunPolicyInference()
 // ============================================================================
 void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
 {
-  // Gravity compensation disabled — KDL returns error -3, and at joints=0
-  // gravity torques are ~0 anyway (gravity passes through joint axes when legs straight)
-  // ComputeGravityCompensation(ecm);
-  // Log gravity torques once at activation
-  static bool grav_logged = false;
-  if (!grav_logged && policy_active_) {
-    grav_logged = true;
-    const char* jn[] = {"l_sh_p","l_sh_r","l_sh_y","l_elb","l_wr_y","l_wr_r",
-      "r_sh_p","r_sh_r","r_sh_y","r_elb","r_wr_y","r_wr_r","waist",
-      "l_hip_p","l_hip_r","l_hip_y","l_knee","l_ank_p","l_ank_r",
-      "r_hip_p","r_hip_r","r_hip_y","r_knee","r_ank_p","r_ank_r"};
-    std::ostringstream oss;
-    oss << "GRAV_TORQUES(size=" << gravity_torques_.size() << " kdl_ready=" << kdl_ready_ << "):";
-    for (size_t i = 0; i < std::min(gravity_torques_.size(), (size_t)25); ++i) {
-      oss << jn[i] << "=" << gravity_torques_[i] << " ";
-    }
-    gzmsg << oss.str() << std::endl;
-  }
-
   for (size_t i = 0; i < num_joints_; ++i) {
     if (joints_[i].entity == gz::sim::kNullEntity) continue;
 
@@ -503,34 +374,15 @@ void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
     double kp = joints_[i].kp;
     double kd = joints_[i].kd;
     double effort_limit = joints_[i].effort_limit;
-    double vel_limit = joints_[i].vel_limit;
 
-    // PD torque
-    double pd_torque = kp * (target - pos) - kd * vel;
-
-    // Friction compensation: counteract URDF Coulomb friction partially.
-    // URDF applies τ_friction = -friction * sign(vel) which opposes motion.
-    // We add friction * sign(error) scaled by how much error remains
-    // (full comp at small error where friction dominates, less at large error).
-    double error = target - pos;
-    double friction_comp = 0.0;
-    if (std::abs(error) > 0.001 && joints_[i].friction > 0) {
-      // Scale: 100% comp when |error|<0.05, 50% when |error|>0.15
-      double scale = std::clamp(1.0 - (std::abs(error) - 0.05) / 0.10, 0.5, 1.0);
-      friction_comp = joints_[i].friction * scale * (error > 0 ? 1.0 : -1.0);
-    }
-
-    double torque = pd_torque + friction_comp;
+    // PD torque (no friction compensation — match Isaac Lab ImplicitActuator)
+    double torque = kp * (target - pos) - kd * vel;
 
     // Effort clamp
     torque = std::clamp(torque, -effort_limit, effort_limit);
 
-    // Velocity limiting
-    if (vel > vel_limit && torque > 0.0) {
-      torque = -effort_limit;
-    } else if (vel < -vel_limit && torque < 0.0) {
-      torque = effort_limit;
-    }
+    // No velocity limiting or acceleration clamping — match Isaac Lab ImplicitActuator
+    // which only applies effort clamp (done above).
 
     // Store for debug publishing
     last_efforts_[i] = torque;

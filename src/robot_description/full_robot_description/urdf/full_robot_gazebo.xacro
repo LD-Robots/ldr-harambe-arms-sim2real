@@ -6,6 +6,10 @@
   <xacro:arg name="onnx_path" default="" />
   <xacro:arg name="policy_debug" default="false" />
 
+  <!-- PD gain scaling for Gazebo policy plugin (1.0 = Isaac Lab nominal) -->
+  <xacro:property name="kp_scale" value="0.7" />
+  <xacro:property name="kd_scale" value="1.5" />
+
   <!-- Full robot: all joints active (not fixed) -->
   <xacro:arg name="fixed_legs" default="false" />
   <xacro:arg name="only_left" default="false" />
@@ -103,38 +107,38 @@
         <cmd_vel_x>0.0</cmd_vel_x>
         <imu_link>urdf_base</imu_link>
 
-        <!-- 25 joints in HARDWARE_JOINT_ORDER — default positions from mc_rtc CoM controller -->
-        <!-- PD gains ÷5 to match PhysX implicit actuator step response -->
+        <!-- 25 joints in HARDWARE_JOINT_ORDER -->
+        <!-- PD gains: Isaac Lab nominal (center of domain randomization) × kp_scale/kd_scale -->
         <!-- Left arm -->
-        <joint name="left_shoulder_pitch_joint_X6" kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_shoulder_roll_joint_X6"  kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_shoulder_yaw_joint_X4"   kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="left_elbow_pitch_joint_X6"    kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_wrist_yaw_joint_X4"      kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="left_wrist_roll_joint_X4"     kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="left_shoulder_pitch_joint_X6" kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_shoulder_roll_joint_X6"  kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_shoulder_yaw_joint_X4"   kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="left_elbow_pitch_joint_X6"    kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_wrist_yaw_joint_X4"      kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="left_wrist_roll_joint_X4"     kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
         <!-- Right arm -->
-        <joint name="right_shoulder_pitch_joint_X6" kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_shoulder_roll_joint_X6"  kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_shoulder_yaw_joint_X4"   kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="right_elbow_pitch_joint_X6"    kp="6"   kd="2"    effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_wrist_yaw_joint_X4"      kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="right_wrist_roll_joint_X4"     kp="6"   kd="2"    effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="right_shoulder_pitch_joint_X6" kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_shoulder_roll_joint_X6"  kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_shoulder_yaw_joint_X4"   kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="right_elbow_pitch_joint_X6"    kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_wrist_yaw_joint_X4"      kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="right_wrist_roll_joint_X4"     kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
         <!-- Waist -->
-        <joint name="waist_yaw_joint_X8"            kp="30"  kd="2"    effort_limit="100"   vel_limit="13.3" default_pos="0" />
+        <joint name="waist_yaw_joint_X8"            kp="${150*kp_scale}" kd="${8*kd_scale}"  effort_limit="100"   vel_limit="13.3" default_pos="0" />
         <!-- Left leg — with friction compensation (values from URDF dynamics) -->
-        <joint name="left_hip_pitch_joint_X8"       kp="100" kd="15"   effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
-        <joint name="left_hip_roll_joint_X8"        kp="20"  kd="0.5"  effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="left_hip_yaw_joint_X8"         kp="9"   kd="0.5"  effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="left_knee_joint_X8"            kp="60"  kd="6"    effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
-        <joint name="left_ankle_pitch_joint_X4"     kp="60"  kd="6"  effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
-        <joint name="left_ankle_roll_joint_X4"      kp="20"  kd="1"    effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
+        <joint name="left_hip_pitch_joint_X8"       kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
+        <joint name="left_hip_roll_joint_X8"        kp="${150*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="left_hip_yaw_joint_X8"         kp="${150*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="left_knee_joint_X8"            kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
+        <joint name="left_ankle_pitch_joint_X4"     kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
+        <joint name="left_ankle_roll_joint_X4"      kp="${150*kp_scale}" kd="${8*kd_scale}"  effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
         <!-- Right leg (mirror) -->
-        <joint name="right_hip_pitch_joint_X8"      kp="100" kd="15"   effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
-        <joint name="right_hip_roll_joint_X8"       kp="20"  kd="0.5"  effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="right_hip_yaw_joint_X8"        kp="9"   kd="0.5"  effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="right_knee_joint_X8"           kp="60"  kd="6"    effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
-        <joint name="right_ankle_pitch_joint_X4"    kp="60"  kd="6"  effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
-        <joint name="right_ankle_roll_joint_X4"     kp="20"  kd="1"    effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
+        <joint name="right_hip_pitch_joint_X8"      kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
+        <joint name="right_hip_roll_joint_X8"       kp="${150*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="right_hip_yaw_joint_X8"        kp="${150*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="right_knee_joint_X8"           kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
+        <joint name="right_ankle_pitch_joint_X4"    kp="${200*kp_scale}" kd="${10*kd_scale}" effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
+        <joint name="right_ankle_roll_joint_X4"     kp="${150*kp_scale}" kd="${8*kd_scale}"  effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
       </plugin>
     </gazebo>
     <!-- Joint state publisher for observation -->

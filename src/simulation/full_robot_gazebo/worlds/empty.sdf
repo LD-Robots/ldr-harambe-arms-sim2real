@@ -26,7 +26,7 @@
     <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system' />
     <plugin name='gz::sim::systems::Imu' filename='gz-sim-imu-system' />
 
-    <gravity>0 0 -9.8</gravity>
+    <gravity>0 0 -9.81</gravity>
     <magnetic_field>5.5645e-06 2.28758e-05 -4.23884e-05</magnetic_field>
     <atmosphere type='adiabatic' />
 

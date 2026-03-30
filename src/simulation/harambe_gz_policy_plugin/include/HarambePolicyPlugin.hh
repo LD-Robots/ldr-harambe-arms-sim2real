@@ -68,7 +68,7 @@ private:
   // State
   std::vector<float> obs_;
   std::vector<float> prev_action_;
-  std::vector<float> target_pos_;
+  std::vector<float> target_pos_;       // current target (held constant between policy steps)
   std::vector<float> commands_;
 
   // KDL gravity compensation

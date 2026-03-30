@@ -142,7 +142,7 @@
     <inertial>
       <origin xyz="0.00199132 -4.19393e-05 0.328473" rpy="0 0 0"/>
       <mass value="5.9"/>
-      <inertia ixx="0.318197" ixy="5.25211e-07" ixz="-0.00444278" iyy="0.294961" iyz="9.73773e-05" izz="0.0735035"/>
+      <inertia ixx="${0.318197 + X8_reflected_inertia}" ixy="5.25211e-07" ixz="-0.00444278" iyy="${0.294961 + X8_reflected_inertia}" iyz="9.73773e-05" izz="${0.0735035 + X8_reflected_inertia}"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0.26095" rpy="0 0 -1.5708"/>

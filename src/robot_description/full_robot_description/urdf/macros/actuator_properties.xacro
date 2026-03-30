@@ -19,6 +19,10 @@
   <xacro:property name="X4_noload_velocity"    value="11.62" />
   <xacro:property name="X4_friction"           value="1.14" />
   <xacro:property name="X4_damping"            value="0.114" />
+  <!-- Reflected rotor inertia: I_rotor × gear_ratio² = 0.00003 × 36² = 0.0389 kg·m² -->
+  <xacro:property name="X4_rotor_inertia"      value="0.00003" />
+  <xacro:property name="X4_gear_ratio"         value="36" />
+  <xacro:property name="X4_reflected_inertia"  value="${0.00003 * 36 * 36}" />
 
   <!-- ==================== X6-60 (direct) ==================== -->
   <xacro:property name="X6_rated_effort"       value="20" />
@@ -28,6 +32,10 @@
   <xacro:property name="X6_noload_velocity"    value="18.43" />
   <xacro:property name="X6_friction"           value="1.6" />
   <xacro:property name="X6_damping"            value="0.16" />
+  <!-- Reflected rotor inertia: I_rotor × gear_ratio² = 0.000066 × 19.612² = 0.0254 kg·m² -->
+  <xacro:property name="X6_rotor_inertia"      value="0.000066" />
+  <xacro:property name="X6_gear_ratio"         value="19.612" />
+  <xacro:property name="X6_reflected_inertia"  value="${0.000066 * 19.612 * 19.612}" />
 
   <!-- ==================== X8-120 (direct) ==================== -->
   <xacro:property name="X8_rated_effort"       value="43" />
@@ -40,6 +48,10 @@
   <xacro:property name="X8_noload_velocity"    value="16.54" />
   <xacro:property name="X8_friction"           value="3.21" />
   <xacro:property name="X8_damping"            value="0.321" />
+  <!-- Reflected rotor inertia: I_rotor × gear_ratio² = 0.00015 × 19.612² = 0.0577 kg·m² -->
+  <xacro:property name="X8_rotor_inertia"      value="0.00015" />
+  <xacro:property name="X8_gear_ratio"         value="19.612" />
+  <xacro:property name="X8_reflected_inertia"  value="${0.00015 * 19.612 * 19.612}" />
 
   <!-- ==================== Ankle Linkage =====================
        2x X4 motors with eccentric-pushrod mechanism
