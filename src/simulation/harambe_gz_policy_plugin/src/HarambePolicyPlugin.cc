@@ -224,7 +224,8 @@ void HarambePolicyPlugin::PreUpdate(
   // Isaac Lab uses HOLD: target is applied instantly and held constant
   // throughout the decimation period (no interpolation).
 
-  // PD control at every physics step
+  // Gravity compensation + PD control at every physics step
+  ComputeGravityCompensation(ecm);
   ApplyPDControl(ecm);
 
   // Periodic logging
@@ -375,8 +376,9 @@ void HarambePolicyPlugin::ApplyPDControl(gz::sim::EntityComponentManager &ecm)
     double kd = joints_[i].kd;
     double effort_limit = joints_[i].effort_limit;
 
-    // PD torque (no friction compensation — match Isaac Lab ImplicitActuator)
-    double torque = kp * (target - pos) - kd * vel;
+    // PD torque + gravity compensation
+    double grav_comp = (kdl_ready_ && i < gravity_torques_.size()) ? gravity_torques_[i] : 0.0;
+    double torque = kp * (target - pos) - kd * vel + grav_comp;
 
     // Effort clamp
     torque = std::clamp(torque, -effort_limit, effort_limit);
