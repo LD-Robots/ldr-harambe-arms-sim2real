@@ -1,0 +1,148 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 200
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    whole_body_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+whole_body_controller:
+  ros__parameters:
+    joints:
+    - left_shoulder_pitch_joint_X6
+    - left_shoulder_roll_joint_X6
+    - left_shoulder_yaw_joint_X4
+    - left_elbow_pitch_joint_X6
+    - left_wrist_yaw_joint_X4
+    - left_wrist_roll_joint_X4
+    - right_shoulder_pitch_joint_X6
+    - right_shoulder_roll_joint_X6
+    - right_shoulder_yaw_joint_X4
+    - right_elbow_pitch_joint_X6
+    - right_wrist_yaw_joint_X4
+    - right_wrist_roll_joint_X4
+    - waist_yaw_joint_X8
+    - left_hip_pitch_joint_X8
+    - left_hip_roll_joint_X8
+    - left_hip_yaw_joint_X8
+    - left_knee_joint_X8
+    - left_ankle_pitch_joint_X4
+    - left_ankle_roll_joint_X4
+    - right_hip_pitch_joint_X8
+    - right_hip_roll_joint_X8
+    - right_hip_yaw_joint_X8
+    - right_knee_joint_X8
+    - right_ankle_roll_joint_X4
+    - right_ankle_pitch_joint_X4
+    command_interfaces:
+    - effort
+    state_interfaces:
+    - position
+    - velocity
+    allow_nonzero_velocity_at_trajectory_end: true
+    allow_integration_in_goal_trajectories: true
+    allow_partial_joints_goal: true
+    open_loop_control: false
+    constraints:
+      stopped_velocity_tolerance: 0.0
+      goal_time: 0.0
+    gains:
+      left_shoulder_pitch_joint_X6:
+        p: 108.8
+        d: 10.2
+        i: 0.0
+      left_shoulder_roll_joint_X6:
+        p: 109.9
+        d: 10.3
+        i: 0.0
+      left_shoulder_yaw_joint_X4:
+        p: 23.2
+        d: 2.2
+        i: 0.0
+      left_elbow_pitch_joint_X6:
+        p: 29.1
+        d: 2.7
+        i: 0.0
+      left_wrist_yaw_joint_X4:
+        p: 9.6
+        d: 0.9
+        i: 0.0
+      left_wrist_roll_joint_X4:
+        p: 11.3
+        d: 1.1
+        i: 0.0
+      right_shoulder_pitch_joint_X6:
+        p: 108.8
+        d: 10.2
+        i: 0.0
+      right_shoulder_roll_joint_X6:
+        p: 109.8
+        d: 10.2
+        i: 0.0
+      right_shoulder_yaw_joint_X4:
+        p: 23.5
+        d: 2.2
+        i: 0.0
+      right_elbow_pitch_joint_X6:
+        p: 29.9
+        d: 2.8
+        i: 0.0
+      right_wrist_yaw_joint_X4:
+        p: 9.7
+        d: 0.9
+        i: 0.0
+      right_wrist_roll_joint_X4:
+        p: 11.3
+        d: 1.1
+        i: 0.0
+      waist_yaw_joint_X8:
+        p: 416.2
+        d: 16.6
+        i: 0.0
+      left_hip_pitch_joint_X8:
+        p: 1553.9
+        d: 54.4
+        i: 0.0
+      left_hip_roll_joint_X8:
+        p: 1548.1
+        d: 54.2
+        i: 0.0
+      left_hip_yaw_joint_X8:
+        p: 252.2
+        d: 8.8
+        i: 0.0
+      left_knee_joint_X8:
+        p: 324.2
+        d: 11.3
+        i: 0.0
+      left_ankle_pitch_joint_X4:
+        p: 524.3
+        d: 18.4
+        i: 0.0
+      left_ankle_roll_joint_X4:
+        p: 157.4
+        d: 5.5
+        i: 0.0
+      right_hip_pitch_joint_X8:
+        p: 1551.5
+        d: 54.3
+        i: 0.0
+      right_hip_roll_joint_X8:
+        p: 1545.7
+        d: 54.1
+        i: 0.0
+      right_hip_yaw_joint_X8:
+        p: 252.0
+        d: 8.8
+        i: 0.0
+      right_knee_joint_X8:
+        p: 324.2
+        d: 11.3
+        i: 0.0
+      right_ankle_roll_joint_X4:
+        p: 157.8
+        d: 5.5
+        i: 0.0
+      right_ankle_pitch_joint_X4:
+        p: 524.3
+        d: 18.3
+        i: 0.0

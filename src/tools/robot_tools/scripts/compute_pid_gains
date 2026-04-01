@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from robot_tools.compute_pid_gains import main
+raise SystemExit(main())

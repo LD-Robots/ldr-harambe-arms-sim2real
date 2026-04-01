@@ -18,12 +18,17 @@ def generate_launch_description():
         "control_mode", default_value="position",
         description="Control mode: position or effort"
     )
+    fixed_base_arg = DeclareLaunchArgument(
+        "fixed_base", default_value="false",
+        description="Fix robot base to world frame (for arms-only testing)"
+    )
     x_arg = DeclareLaunchArgument("x", default_value="0.0", description="X position")
     y_arg = DeclareLaunchArgument("y", default_value="0.0", description="Y position")
     z_arg = DeclareLaunchArgument("z", default_value="1.215", description="Z position")
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     control_mode = LaunchConfiguration("control_mode")
+    fixed_base = LaunchConfiguration("fixed_base")
     x_pos = LaunchConfiguration("x")
     y_pos = LaunchConfiguration("y")
     z_pos = LaunchConfiguration("z")
@@ -33,6 +38,7 @@ def generate_launch_description():
         "xacro ",
         PathJoinSubstitution([pkg_full_robot_description, "urdf", "full_robot_gazebo.xacro"]),
         " control_mode:=", control_mode,
+        " fixed_base:=", fixed_base,
     ])
     robot_description = {
         "robot_description": ParameterValue(robot_description_content, value_type=str)
@@ -106,7 +112,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Launch arguments
-        use_sim_time_arg, control_mode_arg, x_arg, y_arg, z_arg,
+        use_sim_time_arg, control_mode_arg, fixed_base_arg, x_arg, y_arg, z_arg,
 
         # RSP first, then spawn entity
         robot_state_publisher,

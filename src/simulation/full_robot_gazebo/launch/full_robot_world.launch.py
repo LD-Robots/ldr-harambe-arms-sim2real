@@ -40,6 +40,12 @@ def generate_launch_description():
         description='Control mode: position or effort'
     )
 
+    fixed_base_arg = DeclareLaunchArgument(
+        'fixed_base',
+        default_value='false',
+        description='Fix robot base to world frame (for arms-only testing)'
+    )
+
     # Launch Gazebo Harmonic
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -57,6 +63,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'control_mode': LaunchConfiguration('control_mode'),
+            'fixed_base': LaunchConfiguration('fixed_base'),
         }.items()
     )
 
@@ -91,6 +98,7 @@ def generate_launch_description():
         gz_resource_path,
         world_arg,
         control_mode_arg,
+        fixed_base_arg,
         gazebo,
         clock_bridge,
         spawn_robot,

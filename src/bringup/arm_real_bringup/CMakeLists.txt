@@ -11,6 +11,7 @@ install(DIRECTORY config/ethercat/
 install(FILES
   config/controllers.yaml
   config/controllers_gravcomp.yaml
+  config/controllers_effort_pd.yaml
   config/controllers_viewer.yaml
   DESTINATION share/${PROJECT_NAME}/config)
 

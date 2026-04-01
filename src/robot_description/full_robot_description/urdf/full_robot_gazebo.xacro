@@ -68,12 +68,15 @@
     <origin xyz="0.0635 0.0 0.35" rpy="0 ${pi/2} 0"/>
   </xacro:bno055_imu>
 
-  <!-- Fix robot base to world frame -->
-  <!-- <link name="world"/>
-  <joint name="world_joint" type="fixed">
-    <parent link="world"/>
-    <child link="urdf_base"/>
-  </joint> -->
+  <!-- Fix robot base to world frame (for arms-only testing) -->
+  <xacro:arg name="fixed_base" default="false"/>
+  <xacro:if value="$(arg fixed_base)">
+    <link name="world"/>
+    <joint name="world_joint" type="fixed">
+      <parent link="world"/>
+      <child link="urdf_base"/>
+    </joint>
+  </xacro:if>
 
   <!-- ros2_control: position mode -->
   <xacro:if value="${'$(arg control_mode)' == 'position'}">
@@ -81,8 +84,8 @@
     <xacro:full_robot_ros2_control_position />
   </xacro:if>
 
-  <!-- ros2_control: effort mode -->
-  <xacro:if value="${'$(arg control_mode)' == 'effort'}">
+  <!-- ros2_control: effort mode (matches any control_mode starting with "effort") -->
+  <xacro:if value="${'$(arg control_mode)'.startswith('effort')}">
     <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_effort.xacro" />
     <xacro:full_robot_ros2_control_effort />
   </xacro:if>
