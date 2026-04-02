@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ros2_control hardware interface for Isaac Lab via topic_based_ros2_control -->
+  <xacro:macro name="full_robot_ros2_control_isaac">
+    <ros2_control name="harambe_ros2_control" type="system">
+      <hardware>
+        <plugin>topic_based_ros2_control/TopicBasedSystem</plugin>
+        <param name="joint_commands_topic">/isaac/joint_commands</param>
+        <param name="joint_states_topic">/isaac/joint_states</param>
+      </hardware>
+
+      <!-- Left arm -->
+      <joint name="left_shoulder_pitch_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_shoulder_roll_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_shoulder_yaw_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_elbow_pitch_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_wrist_yaw_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_wrist_roll_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+
+      <!-- Right arm -->
+      <joint name="right_shoulder_pitch_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_shoulder_roll_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_shoulder_yaw_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_elbow_pitch_joint_X6"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_wrist_yaw_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_wrist_roll_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+
+      <!-- Waist -->
+      <joint name="waist_yaw_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+
+      <!-- Left leg -->
+      <joint name="left_hip_pitch_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_hip_roll_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_hip_yaw_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_knee_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_ankle_pitch_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="left_ankle_roll_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+
+      <!-- Right leg -->
+      <joint name="right_hip_pitch_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_hip_roll_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_hip_yaw_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_knee_joint_X8"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_ankle_pitch_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+      <joint name="right_ankle_roll_joint_X4"><command_interface name="position"/><state_interface name="position"/><state_interface name="velocity"/></joint>
+
+    </ros2_control>
+  </xacro:macro>
+
+</robot>

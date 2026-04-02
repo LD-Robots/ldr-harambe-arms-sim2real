@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>full_robot_isaac</name>
+  <version>0.1.0</version>
+  <description>Isaac Lab simulation for Harambe full robot with ros2_control</description>
+  <maintainer email="alex@ldr.com">alex</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>full_robot_description</depend>
+  <depend>controller_manager</depend>
+  <depend>joint_state_broadcaster</depend>
+  <depend>position_controllers</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
