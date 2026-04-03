@@ -56,6 +56,7 @@ void HarambePolicyPlugin::Configure(
   if (sdf->HasElement("action_scale")) action_scale_ = sdf->Get<double>("action_scale");
   if (sdf->HasElement("clip_actions")) clip_actions_ = sdf->Get<double>("clip_actions");
   if (sdf->HasElement("warmup_steps")) warmup_steps_ = sdf->Get<int>("warmup_steps");
+  if (sdf->HasElement("fall_threshold")) fall_threshold_ = sdf->Get<double>("fall_threshold");
   if (sdf->HasElement("policy_debug")) {
     std::string val = sdf->Get<std::string>("policy_debug");
     policy_debug_ = (val == "true" || val == "1");
@@ -219,6 +220,15 @@ void HarambePolicyPlugin::PreUpdate(
   // Policy inference at decimated rate
   if (step_counter_ % decimation_ == 0) {
     BuildObservation(ecm);
+
+    // Fall detection: if |pelvis_gravity_z| < threshold, robot has fallen
+    float grav_z = obs_[8];  // pelvis projected gravity Z
+    if (policy_active_ && !fallen_ && std::abs(grav_z) < fall_threshold_) {
+      fallen_ = true;
+      gzmsg << "HarambePolicyPlugin: FALL DETECTED at step " << step_counter_
+            << " (grav_z=" << grav_z << ", threshold=" << fall_threshold_
+            << "). Disabling policy (action_scale=0)." << std::endl;
+    }
 
     // Active policy after both ramp and warmup complete
     if (step_counter_ >= ramp_steps && policy_step_ >= warmup_steps_) {
@@ -403,12 +413,13 @@ void HarambePolicyPlugin::RunPolicyInference()
 
   float* actions = output_tensors[0].GetTensorMutableData<float>();
 
-  // Clip actions and set new target (will be interpolated in PreUpdate)
+  // Clip actions and set new target
+  double scale = fallen_ ? 0.0 : action_scale_;
   for (size_t i = 0; i < num_joints_; ++i) {
     float a = actions[i];
     a = std::clamp(a, static_cast<float>(-clip_actions_), static_cast<float>(clip_actions_));
     prev_action_[i] = a;
-    target_pos_[i] = a * action_scale_ + joints_[i].default_pos;
+    target_pos_[i] = a * scale + joints_[i].default_pos;
   }
 
 }

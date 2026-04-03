@@ -107,6 +107,7 @@
         <onnx_path>$(arg onnx_path)</onnx_path>
         <decimation>4</decimation>
         <action_scale>0.25</action_scale>
+        <fall_threshold>0.5</fall_threshold>
         <clip_actions>100.0</clip_actions>
         <warmup_steps>0</warmup_steps>
         <policy_debug>$(arg policy_debug)</policy_debug>

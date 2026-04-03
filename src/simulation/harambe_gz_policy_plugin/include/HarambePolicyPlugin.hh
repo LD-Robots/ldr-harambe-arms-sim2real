@@ -91,6 +91,8 @@ private:
   double clip_actions_ = 5.0;
   bool initialized_ = false;
   bool policy_active_ = false;
+  bool fallen_ = false;
+  double fall_threshold_ = 0.5;  // |grav_z| < this = fallen (~60° tilt)
   int warmup_steps_ = 0;
   int policy_step_ = 0;
 
