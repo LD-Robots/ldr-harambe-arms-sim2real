@@ -18,7 +18,7 @@ class PolicyDebugBridge(Node):
 
     def on_msg(self, msg):
         d = msg.data
-        if len(d) < 212:
+        if len(d) < 218:
             return
 
         out = PolicyDebug()
@@ -28,7 +28,7 @@ class PolicyDebugBridge(Node):
         out.positions = list(d[50:75])
         out.velocities = list(d[75:100])
         out.actions = list(d[100:125])
-        out.observations = list(d[125:212])
+        out.observations = list(d[125:218])
         self.pub_.publish(out)
 
 

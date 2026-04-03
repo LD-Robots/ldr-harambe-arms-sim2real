@@ -98,9 +98,11 @@ void HarambePolicyPlugin::Configure(
     }
   }
 
-  // IMU link name
-  imu_link_name_ = "urdf_base";
-  if (sdf->HasElement("imu_link")) imu_link_name_ = sdf->Get<std::string>("imu_link");
+  // IMU link names (pelvis + torso)
+  pelvis_link_name_ = "urdf_base";
+  torso_link_name_ = "urdf_simplified_torso";
+  if (sdf->HasElement("imu_link")) pelvis_link_name_ = sdf->Get<std::string>("imu_link");
+  if (sdf->HasElement("torso_link")) torso_link_name_ = sdf->Get<std::string>("torso_link");
 
   // --- Read joint configs ---
   auto jointElem = sdf->FindElement("joint");
@@ -120,8 +122,10 @@ void HarambePolicyPlugin::Configure(
   num_joints_ = joints_.size();
   gzmsg << "HarambePolicyPlugin: " << num_joints_ << " joints configured" << std::endl;
 
-  // Init arrays
-  obs_.resize(87, 0.0f);
+  // Init arrays (93 = 3 base_lin_vel + 3 pelvis_ang_vel + 3 pelvis_gravity
+  //                   + 3 torso_ang_vel + 3 torso_gravity + 3 commands
+  //                   + 25 joint_pos + 25 joint_vel + 25 prev_actions)
+  obs_.resize(93, 0.0f);
   prev_action_.resize(num_joints_, 0.0f);
   target_pos_.resize(num_joints_, 0.0f);
   for (size_t i = 0; i < num_joints_; ++i) {
@@ -155,23 +159,31 @@ void HarambePolicyPlugin::Configure(
     }
   }
 
-  // Resolve IMU link entity
+  // Resolve IMU link entities (pelvis + torso)
   auto linkEntities = ecm.EntitiesByComponents(gz::sim::components::Link());
   for (auto le : linkEntities) {
     auto nameComp = ecm.Component<gz::sim::components::Name>(le);
-    if (nameComp && nameComp->Data() == imu_link_name_) {
-      imu_entity_ = le;
+    if (!nameComp) continue;
+    if (nameComp->Data() == pelvis_link_name_) {
+      pelvis_entity_ = le;
       if (!ecm.Component<gz::sim::components::AngularVelocity>(le))
         ecm.CreateComponent(le, gz::sim::components::AngularVelocity());
       if (!ecm.Component<gz::sim::components::LinearVelocity>(le))
         ecm.CreateComponent(le, gz::sim::components::LinearVelocity());
-      break;
     }
+    if (nameComp->Data() == torso_link_name_) {
+      torso_entity_ = le;
+      if (!ecm.Component<gz::sim::components::AngularVelocity>(le))
+        ecm.CreateComponent(le, gz::sim::components::AngularVelocity());
+    }
+  }
+  if (torso_entity_ == gz::sim::kNullEntity) {
+    gzwarn << "HarambePolicyPlugin: Torso link '" << torso_link_name_ << "' not found!" << std::endl;
   }
 
   // Init debug publisher (only if policy_debug enabled)
   if (policy_debug_) {
-    // Layout: [efforts(25) | targets(25) | positions(25) | velocities(25) | actions(25) | obs(87)] = 212
+    // Layout: [efforts(25) | targets(25) | positions(25) | velocities(25) | actions(25) | obs(93)] = 218
     debug_pub_ = gz_node_.Advertise<gz::msgs::Float_V>("/policy/debug");
     gzmsg << "HarambePolicyPlugin: Debug publishing enabled on /policy/debug" << std::endl;
   }
@@ -218,6 +230,11 @@ void HarambePolicyPlugin::PreUpdate(
 
     if (policy_step_ == warmup_steps_ + 1) {
       gzmsg << "HarambePolicyPlugin: Warmup complete, policy active!" << std::endl;
+      // Dump first observation for debugging
+      std::ostringstream oss;
+      oss << "OBS_DUMP: ";
+      for (size_t i = 0; i < obs_.size(); ++i) oss << obs_[i] << ",";
+      gzmsg << oss.str() << std::endl;
     }
   }
 
@@ -240,35 +257,53 @@ void HarambePolicyPlugin::PreUpdate(
         if (v > max_vel) { max_vel = v; max_vel_joint = joints_[i].name; }
       }
     }
+    // Action stats
+    float max_act = 0, act_sum = 0;
+    for (size_t i = 0; i < num_joints_; ++i) {
+      act_sum += std::abs(prev_action_[i]);
+      if (std::abs(prev_action_[i]) > max_act) max_act = std::abs(prev_action_[i]);
+    }
     gzmsg << "[step " << step_counter_
           << " policy_step=" << policy_step_
-          << "] gravity=[" << obs_[6] << "," << obs_[7] << "," << obs_[8]
+          << "] cmd=[" << commands_[0] << "," << commands_[1] << "," << commands_[2]
+          << "] act_max=" << max_act << " act_sum=" << act_sum
+          << " pelvis_grav=[" << obs_[6] << "," << obs_[7] << "," << obs_[8]
           << "] max_vel=" << max_vel << " (" << max_vel_joint
-          << ") policy_active=" << policy_active_ << std::endl;
+          << ") max_eff=" << *std::max_element(last_efforts_.begin(), last_efforts_.end())
+          << " target0=" << target_pos_[13]
+          << " pos0=" << last_positions_[13]
+          << " policy_active=" << policy_active_ << std::endl;
   }
 
   step_counter_++;
 }
 
 // ============================================================================
-// Build 87-dim observation
+// Build 93-dim observation (dual IMU: pelvis + torso)
+// ============================================================================
+// Layout: [base_lin_vel(3) | pelvis_ang_vel(3) | pelvis_gravity(3)
+//        | torso_ang_vel(3) | torso_gravity(3) | commands(3)
+//        | joint_pos(25) | joint_vel(25) | prev_actions(25)]
+//
+// IMU sensor transforms match training (observations.py):
+//   Pelvis IMU (rpy="pi -pi/2 0"): sensor=[base_z, -base_y, base_x]
+//     roundtrip: base→sensor→base is identity (self-inverse transform)
+//   Torso IMU (rpy="0 pi/2 0"):    sensor=[torso_z, torso_y, -torso_x]
+//     roundtrip: torso→sensor→torso is identity (self-inverse transform)
+// Since base→sensor→base = identity, the deploy path just uses body-frame
+// values directly. We do the same here.
 // ============================================================================
 void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
 {
-  // All base observations must be in BODY frame to match Isaac Lab:
-  //   base_lin_vel = root_lin_vel_b (body frame)
-  //   base_ang_vel = root_ang_vel_b (body frame)
-  //   projected_gravity = projected_gravity_b (body frame)
-  // Gazebo components give world-frame values, so we rotate them.
-  if (imu_entity_ != gz::sim::kNullEntity) {
-    auto worldPose = gz::sim::worldPose(imu_entity_, ecm);
+  // --- Pelvis (urdf_base) ---
+  if (pelvis_entity_ != gz::sim::kNullEntity) {
+    auto worldPose = gz::sim::worldPose(pelvis_entity_, ecm);
     auto q = worldPose.Rot();
 
-    // base_lin_vel (3): world -> body frame
-    auto linVelComp = ecm.Component<gz::sim::components::LinearVelocity>(imu_entity_);
+    // [0:3] base_lin_vel: world -> pelvis body frame
+    auto linVelComp = ecm.Component<gz::sim::components::LinearVelocity>(pelvis_entity_);
     if (linVelComp) {
-      auto v_world = linVelComp->Data();
-      auto v_body = q.RotateVectorReverse(v_world);
+      auto v_body = q.RotateVectorReverse(linVelComp->Data());
       obs_[0] = static_cast<float>(v_body.X());
       obs_[1] = static_cast<float>(v_body.Y());
       obs_[2] = static_cast<float>(v_body.Z());
@@ -276,11 +311,10 @@ void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
       obs_[0] = obs_[1] = obs_[2] = 0.0f;
     }
 
-    // base_ang_vel (3): world -> body frame
-    auto angVelComp = ecm.Component<gz::sim::components::AngularVelocity>(imu_entity_);
+    // [3:6] pelvis_ang_vel: world -> pelvis body frame
+    auto angVelComp = ecm.Component<gz::sim::components::AngularVelocity>(pelvis_entity_);
     if (angVelComp) {
-      auto w_world = angVelComp->Data();
-      auto w_body = q.RotateVectorReverse(w_world);
+      auto w_body = q.RotateVectorReverse(angVelComp->Data());
       obs_[3] = static_cast<float>(w_body.X());
       obs_[4] = static_cast<float>(w_body.Y());
       obs_[5] = static_cast<float>(w_body.Z());
@@ -288,20 +322,46 @@ void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
       obs_[3] = obs_[4] = obs_[5] = 0.0f;
     }
 
-    // projected_gravity (3): world -> body frame (already correct)
-    auto grav_world = gz::math::Vector3d(0, 0, -1);
-    auto grav_body = q.RotateVectorReverse(grav_world);
+    // [6:9] pelvis_projected_gravity: world -> pelvis body frame
+    auto grav_body = q.RotateVectorReverse(gz::math::Vector3d(0, 0, -1));
     obs_[6] = static_cast<float>(grav_body.X());
     obs_[7] = static_cast<float>(grav_body.Y());
     obs_[8] = static_cast<float>(grav_body.Z());
   }
 
-  // commands (3)
-  obs_[9] = commands_[0];
-  obs_[10] = commands_[1];
-  obs_[11] = commands_[2];
+  // --- Torso (urdf_simplified_torso) ---
+  if (torso_entity_ != gz::sim::kNullEntity) {
+    auto torsoWorldPose = gz::sim::worldPose(torso_entity_, ecm);
+    auto qt = torsoWorldPose.Rot();
 
-  // joint_pos_rel (25) and joint_vel (25)
+    // [9:12] torso_ang_vel: world -> torso body frame
+    auto torsoAngVelComp = ecm.Component<gz::sim::components::AngularVelocity>(torso_entity_);
+    if (torsoAngVelComp) {
+      auto w_torso = qt.RotateVectorReverse(torsoAngVelComp->Data());
+      obs_[9]  = static_cast<float>(w_torso.X());
+      obs_[10] = static_cast<float>(w_torso.Y());
+      obs_[11] = static_cast<float>(w_torso.Z());
+    } else {
+      obs_[9] = obs_[10] = obs_[11] = 0.0f;
+    }
+
+    // [12:15] torso_projected_gravity: world -> torso body frame
+    auto grav_torso = qt.RotateVectorReverse(gz::math::Vector3d(0, 0, -1));
+    obs_[12] = static_cast<float>(grav_torso.X());
+    obs_[13] = static_cast<float>(grav_torso.Y());
+    obs_[14] = static_cast<float>(grav_torso.Z());
+  } else {
+    // Fallback: copy pelvis values if torso not found
+    obs_[9] = obs_[3]; obs_[10] = obs_[4]; obs_[11] = obs_[5];
+    obs_[12] = obs_[6]; obs_[13] = obs_[7]; obs_[14] = obs_[8];
+  }
+
+  // [15:18] commands
+  obs_[15] = commands_[0];
+  obs_[16] = commands_[1];
+  obs_[17] = commands_[2];
+
+  // [18:43] joint_pos_rel (25) and [43:68] joint_vel (25)
   for (size_t i = 0; i < num_joints_; ++i) {
     double pos = 0.0, vel = 0.0;
     if (joints_[i].entity != gz::sim::kNullEntity) {
@@ -310,15 +370,14 @@ void HarambePolicyPlugin::BuildObservation(gz::sim::EntityComponentManager &ecm)
       if (posComp && !posComp->Data().empty()) pos = posComp->Data()[0];
       if (velComp && !velComp->Data().empty()) vel = velComp->Data()[0];
     }
-    obs_[12 + i] = static_cast<float>(pos - joints_[i].default_pos);
-    obs_[37 + i] = static_cast<float>(vel);
+    obs_[18 + i] = static_cast<float>(pos - joints_[i].default_pos);
+    obs_[43 + i] = static_cast<float>(vel);
   }
 
-  // prev_action (25)
+  // [68:93] prev_action (25)
   for (size_t i = 0; i < num_joints_; ++i) {
-    obs_[62 + i] = prev_action_[i];
+    obs_[68 + i] = prev_action_[i];
   }
-
 }
 
 // ============================================================================

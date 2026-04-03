@@ -8,7 +8,7 @@
 
   <!-- PD gain scaling for Gazebo policy plugin (1.0 = Isaac Lab nominal) -->
   <xacro:property name="kp_scale" value="1.0" />
-  <xacro:property name="kd_scale" value="1.3" />
+  <xacro:property name="kd_scale" value="1.0" />
 
   <!-- Full robot: all joints active (not fixed) -->
   <xacro:arg name="fixed_legs" default="false" />
@@ -66,7 +66,7 @@
 
   <!-- Pelvis IMU — attached to pelvis (urdf_base), same world position as before -->
   <xacro:bno055_imu name="pelvis_imu" parent="urdf_base" topic="/pelvis_imu/data" update_rate="100">
-    <origin xyz="0.1069 -0.0007 -0.4707" rpy="0 ${pi/2} ${pi}"/>
+    <origin xyz="0.1069 -0.0007 -0.4707" rpy="${pi} ${-pi/2} 0"/>
   </xacro:bno055_imu>
 
   <!-- Torso IMU — raw sensor axes: x+=up, y+=left, z+=backward -->
@@ -93,6 +93,12 @@
     <xacro:full_robot_ros2_control_effort />
   </xacro:if>
 
+  <!-- ros2_control: Isaac Lab mode (topic_based_ros2_control) -->
+  <xacro:if value="${'$(arg control_mode)' == 'isaac'}">
+    <xacro:include filename="$(find full_robot_isaac)/config/ros2_control_isaac.xacro" />
+    <xacro:full_robot_ros2_control_isaac />
+  </xacro:if>
+
   <!-- gz_policy mode: ONNX policy plugin with PD + friction comp + velocity limiting -->
   <xacro:if value="${'$(arg control_mode)' == 'gz_policy'}">
     <!-- Default positions set by plugin at Configure (joints spawn at 0, PD moves to default) -->
@@ -100,45 +106,45 @@
       <plugin filename="/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/install/harambe_gz_policy_plugin/lib/libharambe_gz_policy_plugin.so" name="harambe_gz::HarambePolicyPlugin">
         <onnx_path>$(arg onnx_path)</onnx_path>
         <decimation>4</decimation>
-        <action_scale>0.12</action_scale>
-        <clip_actions>5.0</clip_actions>
+        <action_scale>0.25</action_scale>
+        <clip_actions>100.0</clip_actions>
         <warmup_steps>0</warmup_steps>
         <policy_debug>$(arg policy_debug)</policy_debug>
-        <cmd_vel_x>0.0</cmd_vel_x>
+        <cmd_vel_x>0.3</cmd_vel_x>
         <imu_link>urdf_base</imu_link>
+        <torso_link>urdf_simplified_torso</torso_link>
 
-        <!-- 25 joints in HARDWARE_JOINT_ORDER -->
-        <!-- PD gains: Isaac Lab nominal (center of domain randomization) × kp_scale/kd_scale -->
-        <!-- Left arm -->
-        <joint name="left_shoulder_pitch_joint_X6" kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_shoulder_roll_joint_X6"  kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_shoulder_yaw_joint_X4"   kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="left_elbow_pitch_joint_X6"    kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="left_wrist_yaw_joint_X4"      kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="left_wrist_roll_joint_X4"     kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <!-- Right arm -->
-        <joint name="right_shoulder_pitch_joint_X6" kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_shoulder_roll_joint_X6"  kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_shoulder_yaw_joint_X4"   kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="right_elbow_pitch_joint_X6"    kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
-        <joint name="right_wrist_yaw_joint_X4"      kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
-        <joint name="right_wrist_roll_joint_X4"     kp="${30*kp_scale}"  kd="${8*kd_scale}"  effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <!-- 25 joints in HARDWARE_JOINT_ORDER — Isaac Lab ActuatorCfg gains × kp_scale/kd_scale -->
+        <!-- Left arm (X6) -->
+        <joint name="left_shoulder_pitch_joint_X6" kp="${114.3*kp_scale}"  kd="${10.7*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_shoulder_roll_joint_X6"  kp="${115.4*kp_scale}"  kd="${10.8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_shoulder_yaw_joint_X4"   kp="${22.0*kp_scale}"   kd="${2.1*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="left_elbow_pitch_joint_X6"    kp="${30.6*kp_scale}"   kd="${2.9*kd_scale}"   effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="left_wrist_yaw_joint_X4"      kp="${9.1*kp_scale}"    kd="${0.9*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="left_wrist_roll_joint_X4"     kp="${10.8*kp_scale}"   kd="${1.0*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <!-- Right arm (X6) -->
+        <joint name="right_shoulder_pitch_joint_X6" kp="${114.3*kp_scale}"  kd="${10.7*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_shoulder_roll_joint_X6"  kp="${115.4*kp_scale}"  kd="${10.8*kd_scale}"  effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_shoulder_yaw_joint_X4"   kp="${22.0*kp_scale}"   kd="${2.1*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="right_elbow_pitch_joint_X6"    kp="${30.6*kp_scale}"   kd="${2.9*kd_scale}"   effort_limit="23"    vel_limit="16.02" default_pos="0" />
+        <joint name="right_wrist_yaw_joint_X4"      kp="${9.1*kp_scale}"    kd="${0.9*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
+        <joint name="right_wrist_roll_joint_X4"     kp="${10.8*kp_scale}"   kd="${1.0*kd_scale}"   effort_limit="12.075" vel_limit="8.69" default_pos="0" />
         <!-- Waist -->
-        <joint name="waist_yaw_joint_X8"            kp="${150*kp_scale}" kd="${15*kd_scale}"  effort_limit="100"   vel_limit="13.3" default_pos="0" />
-        <!-- Left leg — with friction compensation (values from URDF dynamics) -->
-        <joint name="left_hip_pitch_joint_X8"       kp="${140*kp_scale}" kd="${35*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
-        <joint name="left_hip_roll_joint_X8"        kp="${150*kp_scale}" kd="${15*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="left_hip_yaw_joint_X8"         kp="${150*kp_scale}" kd="${18*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="left_knee_joint_X8"            kp="${220*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
-        <joint name="left_ankle_pitch_joint_X4"     kp="${200*kp_scale}" kd="${18*kd_scale}" effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
-        <joint name="left_ankle_roll_joint_X4"      kp="${150*kp_scale}" kd="${8*kd_scale}"  effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
-        <!-- Right leg (mirror) -->
-        <joint name="right_hip_pitch_joint_X8"      kp="${140*kp_scale}" kd="${35*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="-0.15" friction="3.21" />
-        <joint name="right_hip_roll_joint_X8"       kp="${150*kp_scale}" kd="${15*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="right_hip_yaw_joint_X8"        kp="${150*kp_scale}" kd="${18*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0"    friction="1.6" />
-        <joint name="right_knee_joint_X8"           kp="${220*kp_scale}" kd="${10*kd_scale}" effort_limit="100"   vel_limit="13.3" default_pos="0.30" friction="1.14" />
-        <joint name="right_ankle_pitch_joint_X4"    kp="${200*kp_scale}" kd="${18*kd_scale}" effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
-        <joint name="right_ankle_roll_joint_X4"     kp="${150*kp_scale}" kd="${8*kd_scale}"  effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
+        <joint name="waist_yaw_joint_X8"            kp="${91.7*kp_scale}"   kd="${8.6*kd_scale}"   effort_limit="72"    vel_limit="13.3" default_pos="0" />
+        <!-- Left leg -->
+        <joint name="left_hip_pitch_joint_X8"       kp="${466.2*kp_scale}"  kd="${32.6*kd_scale}"  effort_limit="72"    vel_limit="13.3" default_pos="-0.15" friction="3.21" />
+        <joint name="left_hip_roll_joint_X8"        kp="${464.4*kp_scale}"  kd="${32.5*kd_scale}"  effort_limit="72"    vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="left_hip_yaw_joint_X8"         kp="${75.7*kp_scale}"   kd="${5.3*kd_scale}"   effort_limit="72"    vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="left_knee_joint_X8"            kp="${97.3*kp_scale}"   kd="${6.8*kd_scale}"   effort_limit="72"    vel_limit="13.3" default_pos="0.30" friction="1.14" />
+        <joint name="left_ankle_pitch_joint_X4"     kp="${996.2*kp_scale}"  kd="${69.7*kd_scale}"  effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
+        <joint name="left_ankle_roll_joint_X4"      kp="${89.7*kp_scale}"   kd="${6.3*kd_scale}"   effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
+        <!-- Right leg -->
+        <joint name="right_hip_pitch_joint_X8"      kp="${466.2*kp_scale}"  kd="${32.6*kd_scale}"  effort_limit="72"    vel_limit="13.3" default_pos="-0.15" friction="3.21" />
+        <joint name="right_hip_roll_joint_X8"       kp="${464.4*kp_scale}"  kd="${32.5*kd_scale}"  effort_limit="72"    vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="right_hip_yaw_joint_X8"        kp="${75.7*kp_scale}"   kd="${5.3*kd_scale}"   effort_limit="72"    vel_limit="13.3" default_pos="0"    friction="1.6" />
+        <joint name="right_knee_joint_X8"           kp="${97.3*kp_scale}"   kd="${6.8*kd_scale}"   effort_limit="72"    vel_limit="13.3" default_pos="0.30" friction="1.14" />
+        <joint name="right_ankle_pitch_joint_X4"    kp="${996.2*kp_scale}"  kd="${69.7*kd_scale}"  effort_limit="96.6"  vel_limit="2.17" default_pos="-0.15" friction="1.14" />
+        <joint name="right_ankle_roll_joint_X4"     kp="${89.7*kp_scale}"   kd="${6.3*kd_scale}"   effort_limit="28.98" vel_limit="7.24" default_pos="0"    friction="1.14" />
       </plugin>
     </gazebo>
     <!-- Joint state publisher for observation -->
@@ -151,7 +157,7 @@
   </xacro:if>
 
   <!-- Gazebo gz_ros2_control plugin (only for ros2_control modes) -->
-  <xacro:if value="${'$(arg control_mode)' != 'gz_pid' and '$(arg control_mode)' != 'gz_policy'}">
+  <xacro:if value="${'$(arg control_mode)' != 'gz_pid' and '$(arg control_mode)' != 'gz_policy' and '$(arg control_mode)' != 'isaac'}">
     <gazebo>
       <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>$(find full_robot_gazebo)/config/controllers_$(arg control_mode).yaml</parameters>

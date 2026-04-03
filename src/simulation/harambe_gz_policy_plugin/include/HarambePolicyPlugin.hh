@@ -61,9 +61,11 @@ private:
   std::vector<JointConfig> joints_;
   size_t num_joints_ = 0;
 
-  // IMU entity
-  gz::sim::Entity imu_entity_{gz::sim::kNullEntity};
-  std::string imu_link_name_;
+  // IMU entities (pelvis + torso)
+  gz::sim::Entity pelvis_entity_{gz::sim::kNullEntity};
+  std::string pelvis_link_name_;
+  gz::sim::Entity torso_entity_{gz::sim::kNullEntity};
+  std::string torso_link_name_;
 
   // State
   std::vector<float> obs_;

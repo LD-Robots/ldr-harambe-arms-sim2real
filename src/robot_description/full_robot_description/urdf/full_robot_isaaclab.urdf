@@ -943,7 +943,7 @@
     <parent link="urdf_l_tibia_assembly" />
     <child link="urdf_ankle_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="12.075" lower="-0.79" upper="0.79" velocity="8.69" />
+    <limit effort="96.6" lower="-0.79" upper="0.79" velocity="2.17" />
     <dynamics damping="0.114" friction="1.14" />
   </joint>
   <joint name="left_ankle_roll_joint_X4" type="revolute">
@@ -951,7 +951,7 @@
     <parent link="urdf_ankle_assembly" />
     <child link="urdf_foot_assembly" />
     <axis xyz="1 0 0" />
-    <limit effort="12.075" lower="-0.79" upper="0.79" velocity="8.69" />
+    <limit effort="28.98" lower="-0.79" upper="0.79" velocity="7.24" />
     <dynamics damping="0.114" friction="1.14" />
   </joint>
   
@@ -1210,7 +1210,7 @@
     <parent link="urdf_r_tibia_assembly" />
     <child link="urdf_ankle_assembly_2" />
     <axis xyz="0 1 0" />
-    <limit effort="12.075" lower="-0.79" upper="0.79" velocity="8.69" />
+    <limit effort="96.6" lower="-0.79" upper="0.79" velocity="2.17" />
     <dynamics damping="0.114" friction="1.14" />
   </joint>
   <joint name="right_ankle_roll_joint_X4" type="revolute">
@@ -1218,7 +1218,7 @@
     <parent link="urdf_ankle_assembly_2" />
     <child link="urdf_foot_assembly_2" />
     <axis xyz="1 0 0" />
-    <limit effort="12.075" lower="-0.79" upper="0.79" velocity="8.69" />
+    <limit effort="28.98" lower="-0.79" upper="0.79" velocity="7.24" />
     <dynamics damping="0.114" friction="1.14" />
   </joint>
   
@@ -2109,7 +2109,7 @@
   <joint name="pelvis_imu_joint" type="fixed">
     <parent link="urdf_base" />
     <child link="pelvis_imu_link" />
-    <origin rpy="0 1.5707963267948966 3.141592653589793" xyz="0.1069 -0.0007 -0.4707" />
+    <origin rpy="3.141592653589793 -1.5707963267948966 0" xyz="0.1069 -0.0007 -0.4707" />
   </joint>
   
   <link name="pelvis_imu_sensor">
