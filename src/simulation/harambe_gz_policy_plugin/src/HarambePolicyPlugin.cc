@@ -65,6 +65,8 @@ void HarambePolicyPlugin::Configure(
   // Velocity commands
   commands_.resize(3, 0.0f);
   if (sdf->HasElement("cmd_vel_x")) commands_[0] = sdf->Get<float>("cmd_vel_x");
+  if (sdf->HasElement("cmd_vel_y")) commands_[1] = sdf->Get<float>("cmd_vel_y");
+  if (sdf->HasElement("cmd_yaw"))   commands_[2] = sdf->Get<float>("cmd_yaw");
   gz_node_.Subscribe("/cmd_vel", &HarambePolicyPlugin::OnCmdVel, this);
 
   // KDL gravity compensation — get URDF from model SDF

@@ -112,6 +112,8 @@
         <warmup_steps>0</warmup_steps>
         <policy_debug>$(arg policy_debug)</policy_debug>
         <cmd_vel_x>0.3</cmd_vel_x>
+        <cmd_vel_y>0.0</cmd_vel_y>
+        <cmd_yaw>0.223</cmd_yaw>
         <imu_link>urdf_base</imu_link>
         <torso_link>urdf_simplified_torso</torso_link>
 
