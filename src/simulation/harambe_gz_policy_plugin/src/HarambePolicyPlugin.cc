@@ -277,6 +277,9 @@ void HarambePolicyPlugin::PreUpdate(
     }
     gzmsg << "[step " << step_counter_
           << " policy_step=" << policy_step_
+          << "] base_lin_vel=[" << obs_[0] << "," << obs_[1] << "," << obs_[2]
+          << "] pelvis_ang=[" << obs_[3] << "," << obs_[4] << "," << obs_[5]
+          << "] torso_ang=[" << obs_[9] << "," << obs_[10] << "," << obs_[11]
           << "] cmd=[" << commands_[0] << "," << commands_[1] << "," << commands_[2]
           << "] act_max=" << max_act << " act_sum=" << act_sum
           << " pelvis_grav=[" << obs_[6] << "," << obs_[7] << "," << obs_[8]
