@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ROS 2 Jazzy dual-arm humanoid manipulation system with Gazebo Harmonic simulation, MoveIt 2 motion planning, ros2_control, and EtherCAT real hardware support. The robot has a 6-DOF arm and a 6-DOF hand per side. The left arm uses MyActuator RMD X V4 EtherCAT actuators (X6-X6-X4-X6-X4-X4 from shoulder to wrist) via EtherLab IgH master.
+Full humanoid robot (Harambe) with ROS 2 Jazzy: dual 6-DOF arms + 6-DOF hands, legs, and waist (25 DOF total). Supports Gazebo Harmonic simulation, MoveIt 2 motion planning for arms, ros2_control, Isaac Lab RL locomotion training, and EtherCAT real hardware. Left arm uses MyActuator RMD X V4 EtherCAT actuators (X6-X6-X4-X6-X4-X4 from shoulder to wrist) via EtherLab IgH master.
 
 ## Build & Run
 
@@ -84,12 +84,11 @@ Both share the same underlying `JointTrajectoryController`.
 
 | Directory | Packages | Purpose |
 |-----------|----------|---------|
-| `robot_description/` | arm_description, dual_arm_description, hand_description | URDF models and meshes |
-| `control/` | arm_control, dual_arm_control, gripper_control, hand_control | Motion control nodes and configs |
+| `robot_description/` | arm_description, dual_arm_description, full_robot_description, hand_description, camera_description, imu_description | URDF models and meshes |
+| `control/` | arm_control, dual_arm_control, full_robot_control, gripper_control, hand_control, implicit_actuator_controller | Motion control nodes; `full_robot_control` hosts the RL locomotion node |
 | `planning/` | arm_moveit_config, dual_arm_moveit_config, arm_gripper_moveit_config, arm_hand_moveit_config, arm_mtc | MoveIt 2 configs and MTC tasks |
-| `simulation/` | arm_gazebo, dual_arm_gazebo | Gazebo worlds and spawn launch files |
-| `hardware_interface/` | arm_hardware, gripper_hardware, hand_hardware | Legacy placeholders |
-| `hardware_interface/` | arm_ethercat_safety | Safety monitor for real hardware |
+| `simulation/` | arm_gazebo, dual_arm_gazebo, full_robot_gazebo, dual_arm_isaac | Gazebo worlds; `full_robot_gazebo` is used for RL deploy |
+| `hardware_interface/` | arm_hardware, gripper_hardware, hand_hardware, arm_ethercat_safety | Legacy placeholders + safety monitor |
 | `ethercat_driver_ros2/` | ethercat_driver, ethercat_generic_plugins, ethercat_interface | ICube EtherCAT framework (external) |
 | `bringup/` | arm_system_bringup, arm_real_bringup | Sim bringup and real hardware bringup |
 | `teleop/` | arm_teleop | Keyboard, joystick, and Cartesian teleop |
@@ -127,6 +126,79 @@ Located in `src/simulation/arm_gazebo/worlds/`: `lab-ldr.sdf` (default), `lab2.s
 - The GUI launcher handles startup sequencing automatically
 - Dual-arm packages mirror single-arm packages with `dual_` prefix and namespace separation
 - Comprehensive architecture docs live in `docs/ARCHITECTURE.md` and `docs/ARCHITECTURE_DIAGRAMS.md`
+
+## RL Locomotion & Sim2Real
+
+### Isaac Lab Training
+
+Training runs in `~/IsaacLab/` (outside this repo). The task is `Isaac-Velocity-Flat-Harambe-v0` with RSL-RL, 1024 envs, physics at 200 Hz, policy at 50 Hz.
+
+- **Best model**: `~/IsaacLab/logs/rsl_rl/harambe_flat/2026-03-27_20-30-26/model_38800.pt`
+- **ONNX export**: `exported/policy.onnx` — input [batch,87], output [batch,25]
+- **Network**: MLP 87→256→128→128→25, ELU activations, action scale 0.10 rad
+- **Training config**: `~/IsaacLab/source/isaaclab_tasks/.../harambe/rough_env_cfg.py`
+- **Monitor scripts**: `scripts/monitor_training.sh`, `scripts/monitor_v81.sh`
+
+**25-DOF joint ordering (policy order):**
+```
+0: waist_yaw
+1-6:  left arm  (shoulder_pitch/roll/yaw, elbow_pitch, wrist_yaw/roll)
+7-12: right arm (same)
+13-18: left leg  (hip_pitch/roll/yaw, knee, ankle_pitch/roll)
+19-24: right leg (same)
+```
+
+### Gazebo Deploy (Sim2Sim)
+
+```bash
+ros2 launch full_robot_control rl_walk_effort.launch.py
+```
+
+**Architecture:**
+```
+Policy (ONNX, 50Hz) → position targets
+  → implicit_actuator_controller (effort + PD, 200Hz)
+  → gz_ros2_control (effort commands)
+  → Gazebo DART physics (1000Hz)
+```
+
+**Key files:**
+- `src/control/full_robot_control/scripts/rl_locomotion_node.py` — ONNX policy runner; state machine: WAIT_ODOM → FALLEN_RESET → SETTLE → STANDUP → POLICY
+- `src/simulation/full_robot_gazebo/config/controllers_effort_pid.yaml` — PID gains tuned for DART
+- `src/robot_description/full_robot_description/urdf/harambe_mujoco.urdf` — MuJoCo variant for validation
+
+**`implicit_actuator_controller`** (C++ plugin): Mimics Isaac Lab `ImplicitActuator` — per-joint Kp/Kd, integral clamping, effort limits, smooth position ramping.
+
+**Transfer status** (see `docs/sim2real_rl_deploy_notes.md` for full details):
+- Standing (cmd_vel=0): Works ~24s with DART_BIAS + EMA + action clips
+- Walking (cmd_vel=0.3): Fails — PhysX implicit PD vs. Gazebo JTC effort PID creates incompatible contact dynamics
+
+**Bridge scripts** (in `scripts/`):
+- `isaac_ros2_bridge.py` — UDP bridge from Isaac Lab to ROS 2 for live visualization
+- `rl_mujoco_ros2.py` — standalone ONNX policy in MuJoCo + ROS 2
+- `mujoco_ros2_bridge.py` — MuJoCo → ROS 2 joint state bridge
+
+### URDF Variants
+
+| File | Purpose |
+|------|---------|
+| `full_robot.urdf.xacro` | Gazebo sim |
+| `harambe_full_for_isaac.urdf` | Isaac Lab (auto-generated by `dual_arm_isaac/scripts/generate_urdf_rl.py`) |
+| `harambe_mujoco*.urdf` | MuJoCo validation variants (with/without collision meshes) |
+
+## Motion Recording
+
+Record joint trajectories via gravity-comp mode, then play back on sim or real:
+
+```bash
+# Record (requires CST/torque mode active)
+ros2 run arm_control motion_recorder.py
+
+# Play back
+ros2 run arm_control motion_player.py --file motions/wave_hello_4.yaml
+```
+
+Motion files are YAML stored in `motions/`. See `docs/motions/README.md` for format and options (speed scaling, looping, dry-run).
 
 ## EtherCAT Real Hardware
 
