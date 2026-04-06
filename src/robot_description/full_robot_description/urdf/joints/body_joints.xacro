@@ -30,7 +30,7 @@
     <parent link="urdf_base"/>
     <child link="urdf_simplified_torso"/>
     <axis xyz="0 0 1"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-2.60054" upper="2.60054"/>
+    <limit effort="${X8_peak_effort}" velocity="${X8_rated_velocity}" lower="-2.60054" upper="2.60054"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 

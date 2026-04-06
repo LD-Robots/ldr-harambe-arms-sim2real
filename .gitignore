@@ -10,6 +10,10 @@
 **/.pytest_cache/
 *.pyc
 
+# Training logs and outputs
+logs/
+outputs/
+
 # Colcon specific
 */.colcon_
 */colcon-

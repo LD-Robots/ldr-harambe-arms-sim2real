@@ -9,7 +9,7 @@
     <parent link="urdf_simplified_torso"/>
     <child link="urdf_l_shoulder_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X6_moderate_effort}" velocity="${X6_rated_velocity}" lower="-3.01942" upper="1.69297"/>
+    <limit effort="${X6_peak_effort}" velocity="${X6_rated_velocity}" lower="-3.01942" upper="1.69297"/>
     <dynamics damping="${X6_damping}" friction="${X6_friction}"/>
   </joint>
 
@@ -18,7 +18,7 @@
     <parent link="urdf_l_shoulder_assembly"/>
     <child link="urdf_l_upper_arm_assembly"/>
     <axis xyz="1 0 0"/>
-    <limit effort="${X6_moderate_effort}" velocity="${X6_rated_velocity}" lower="-0.20944" upper="2.93215"/>
+    <limit effort="${X6_peak_effort}" velocity="${X6_rated_velocity}" lower="-0.20944" upper="2.93215"/>
     <dynamics damping="${X6_damping}" friction="${X6_friction}"/>
   </joint>
 
@@ -27,7 +27,7 @@
     <parent link="urdf_l_upper_arm_assembly"/>
     <child link="urdf_l_elbow_assembly"/>
     <axis xyz="0 0 1"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-1.74533" upper="2.96706"/>
+    <limit effort="${X4_peak_effort}" velocity="${X4_rated_velocity}" lower="-1.74533" upper="2.96706"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 
@@ -36,7 +36,7 @@
     <parent link="urdf_l_elbow_assembly"/>
     <child link="urdf_l_upper_forearm_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X6_moderate_effort}" velocity="${X6_rated_velocity}" lower="-1.309" upper="1.8326"/>
+    <limit effort="${X6_peak_effort}" velocity="${X6_rated_velocity}" lower="-1.309" upper="1.8326"/>
     <dynamics damping="${X6_damping}" friction="${X6_friction}"/>
   </joint>
 
@@ -45,7 +45,7 @@
     <parent link="urdf_l_upper_forearm_assembly"/>
     <child link="urdf_l_lower_forearm_assembly"/>
     <axis xyz="0 0 1"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-2.35619" upper="2.35619"/>
+    <limit effort="${X4_peak_effort}" velocity="${X4_rated_velocity}" lower="-2.35619" upper="2.35619"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 
@@ -54,7 +54,7 @@
     <parent link="urdf_l_lower_forearm_assembly"/>
     <child link="urdf_l_wrist_assembly"/>
     <axis xyz="1 0 0"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-1.5708" upper="1.5708"/>
+    <limit effort="${X4_peak_effort}" velocity="${X4_rated_velocity}" lower="-1.5708" upper="1.5708"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 

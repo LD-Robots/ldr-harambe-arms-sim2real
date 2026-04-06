@@ -1,6 +1,5 @@
-# Effort controller configuration for Harambe full humanoid robot
-# PD gains from real motor identification — matches Isaac Lab v9 exactly.
-# NOTE: This file is loaded by URDF xacro (gz_ros2_control plugin).
+# Effort controller with JointTrajectoryController (has internal PID)
+# PID runs inside controller_manager at update_rate — no ROS latency
 
 controller_manager:
   ros__parameters:
@@ -12,9 +11,13 @@ controller_manager:
     whole_body_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-
 whole_body_controller:
   ros__parameters:
+    command_interfaces:
+      - effort
+    state_interfaces:
+      - position
+      - velocity
     joints:
       # Left arm (0-5)
       - left_shoulder_pitch_joint_X6
@@ -47,22 +50,8 @@ whole_body_controller:
       - right_ankle_pitch_joint_X4
       - right_ankle_roll_joint_X4
 
-    command_interfaces:
-      - effort
-
-    state_interfaces:
-      - position
-      - velocity
-
-    allow_nonzero_velocity_at_trajectory_end: true
-    allow_partial_joints_goal: true
-    open_loop_control: false
-
-    constraints:
-      stopped_velocity_tolerance: 0.0
-      goal_time: 0.0
-
-    # PID gains from ActuatorCfg identification (v11) — NO I term (matches Isaac Lab PD)
+    # PID gains from ActuatorCfg identification (v11)
+    # These run INSIDE controller_manager at 1000Hz — no ROS latency
     gains:
       # Left arm
       left_shoulder_pitch_joint_X6: {p: 114.3, d: 10.7, i: 0.0, i_clamp: 0.0}
@@ -94,3 +83,10 @@ whole_body_controller:
       right_knee_joint_X8:           {p: 97.3,  d: 6.8,  i: 0.0, i_clamp: 0.0}
       right_ankle_pitch_joint_X4:    {p: 996.1, d: 69.7, i: 0.0, i_clamp: 0.0}
       right_ankle_roll_joint_X4:     {p: 90.0,  d: 6.3,  i: 0.0, i_clamp: 0.0}
+
+    allow_nonzero_velocity_at_trajectory_end: true
+    allow_partial_joints_goal: true
+    constraints:
+      stopped_velocity_tolerance: 0.0
+      goal_time: 0.0
+    open_loop_control: false

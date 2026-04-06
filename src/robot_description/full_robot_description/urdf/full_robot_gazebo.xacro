@@ -91,7 +91,14 @@
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters>$(find full_robot_gazebo)/config/controllers_$(arg control_mode).yaml</parameters>
-      <update_rate>100</update_rate>
+      <update_rate>1000</update_rate>
+    </plugin>
+  </gazebo>
+
+  <!-- Odometry publisher (needed for RL locomotion node) -->
+  <gazebo>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <odom_publish_frequency>50</odom_publish_frequency>
     </plugin>
   </gazebo>
 

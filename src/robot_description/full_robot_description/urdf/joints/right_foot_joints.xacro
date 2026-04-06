@@ -9,7 +9,7 @@
     <parent link="urdf_base"/>
     <child link="urdf_hip_assembly_2"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-2.61799" upper="2.61799"/>
+    <limit effort="${X8_peak_effort}" velocity="${X8_rated_velocity}" lower="-2.61799" upper="2.61799"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
@@ -18,7 +18,7 @@
     <parent link="urdf_hip_assembly_2"/>
     <child link="urdf_r_upper_femur_assemby"/>
     <axis xyz="1 0 0"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-3.22886" upper="0.383972"/>
+    <limit effort="${X8_peak_effort}" velocity="${X8_rated_velocity}" lower="-3.22886" upper="0.383972"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
@@ -27,7 +27,7 @@
     <parent link="urdf_r_upper_femur_assemby"/>
     <child link="urdf_lower_femur_assembly_2"/>
     <axis xyz="0 0 1"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-1.5708" upper="1.5708"/>
+    <limit effort="${X8_peak_effort}" velocity="${X8_rated_velocity}" lower="-1.5708" upper="1.5708"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
@@ -36,7 +36,7 @@
     <parent link="urdf_lower_femur_assembly_2"/>
     <child link="urdf_r_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-1.52716" upper="1.52716"/>
+    <limit effort="${X8_peak_effort}" velocity="${X8_rated_velocity}" lower="-1.52716" upper="1.52716"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
@@ -45,7 +45,7 @@
     <parent link="urdf_r_tibia_assembly"/>
     <child link="udrf_ankle_assembly_2"/>
     <axis xyz="1 0 0"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-0.785398" upper="0.785398"/>
+    <limit effort="${ankle_roll_peak_effort}" velocity="${ankle_roll_rated_velocity}" lower="-0.785398" upper="0.785398"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 
@@ -54,7 +54,7 @@
     <parent link="udrf_ankle_assembly_2"/>
     <child link="urdf_foot_assembly_2"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-0.785398" upper="0.785398"/>
+    <limit effort="${ankle_pitch_peak_effort}" velocity="${ankle_pitch_rated_velocity}" lower="-0.785398" upper="0.785398"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 
