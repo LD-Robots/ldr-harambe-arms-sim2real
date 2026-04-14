@@ -10,8 +10,8 @@
       <!-- === BODY (waist) === -->
       <joint name="waist_yaw_joint_X8">
         <command_interface name="position">
-          <param name="min">-1.57</param>
-          <param name="max">1.57</param>
+          <param name="min">-2.60054</param>
+          <param name="max">2.60054</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -21,8 +21,8 @@
       <!-- === LEFT ARM === -->
       <joint name="left_shoulder_pitch_joint_X6">
         <command_interface name="position">
-          <param name="min">-3.02</param>
-          <param name="max">1.69</param>
+          <param name="min">-3.01942</param>
+          <param name="max">1.69297</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -31,8 +31,8 @@
 
       <joint name="left_shoulder_roll_joint_X6">
         <command_interface name="position">
-          <param name="min">-0.21</param>
-          <param name="max">2.93</param>
+          <param name="min">-0.20944</param>
+          <param name="max">2.93215</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -41,8 +41,8 @@
 
       <joint name="left_shoulder_yaw_joint_X4">
         <command_interface name="position">
-          <param name="min">-1.75</param>
-          <param name="max">2.97</param>
+          <param name="min">-1.74533</param>
+          <param name="max">2.96706</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -51,8 +51,8 @@
 
       <joint name="left_elbow_pitch_joint_X6">
         <command_interface name="position">
-          <param name="min">-1.31</param>
-          <param name="max">1.83</param>
+          <param name="min">-1.309</param>
+          <param name="max">1.8326</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -61,8 +61,8 @@
 
       <joint name="left_wrist_yaw_joint_X4">
         <command_interface name="position">
-          <param name="min">-2.36</param>
-          <param name="max">2.36</param>
+          <param name="min">-2.35619</param>
+          <param name="max">2.35619</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -71,8 +71,8 @@
 
       <joint name="left_wrist_roll_joint_X4">
         <command_interface name="position">
-          <param name="min">-1.57</param>
-          <param name="max">1.57</param>
+          <param name="min">-1.5708</param>
+          <param name="max">1.5708</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -82,8 +82,8 @@
       <!-- === RIGHT ARM === -->
       <joint name="right_shoulder_pitch_joint_X6">
         <command_interface name="position">
-          <param name="min">-3.02</param>
-          <param name="max">1.69</param>
+          <param name="min">-3.01942</param>
+          <param name="max">1.69297</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -92,8 +92,8 @@
 
       <joint name="right_shoulder_roll_joint_X6">
         <command_interface name="position">
-          <param name="min">-2.93</param>
-          <param name="max">0.21</param>
+          <param name="min">-2.93215</param>
+          <param name="max">0.20944</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -102,8 +102,8 @@
 
       <joint name="right_shoulder_yaw_joint_X4">
         <command_interface name="position">
-          <param name="min">-2.97</param>
-          <param name="max">1.75</param>
+          <param name="min">-2.96706</param>
+          <param name="max">1.74533</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -112,8 +112,8 @@
 
       <joint name="right_elbow_pitch_joint_X6">
         <command_interface name="position">
-          <param name="min">-1.31</param>
-          <param name="max">1.83</param>
+          <param name="min">-1.309</param>
+          <param name="max">1.8326</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -122,8 +122,8 @@
 
       <joint name="right_wrist_yaw_joint_X4">
         <command_interface name="position">
-          <param name="min">-2.36</param>
-          <param name="max">2.36</param>
+          <param name="min">-2.35619</param>
+          <param name="max">2.35619</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -132,8 +132,8 @@
 
       <joint name="right_wrist_roll_joint_X4">
         <command_interface name="position">
-          <param name="min">-1.57</param>
-          <param name="max">1.57</param>
+          <param name="min">-1.65806</param>
+          <param name="max">1.65806</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -253,8 +253,8 @@
       <!-- === LEFT LEG === -->
       <joint name="left_hip_pitch_joint_X8">
         <command_interface name="position">
-          <param name="min">-2.53</param>
-          <param name="max">1.57</param>
+          <param name="min">-2.61799</param>
+          <param name="max">2.61799</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -263,8 +263,8 @@
 
       <joint name="left_hip_roll_joint_X8">
         <command_interface name="position">
-          <param name="min">-0.35</param>
-          <param name="max">3.14</param>
+          <param name="min">-0.383972</param>
+          <param name="max">3.22886</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -273,8 +273,8 @@
 
       <joint name="left_hip_yaw_joint_X8">
         <command_interface name="position">
-          <param name="min">-1.57</param>
-          <param name="max">1.57</param>
+          <param name="min">-2.15199</param>
+          <param name="max">2.09003</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -283,8 +283,8 @@
 
       <joint name="left_knee_joint_X8">
         <command_interface name="position">
-          <param name="min">-0.17</param>
-          <param name="max">1.57</param>
+          <param name="min">-1.52716</param>
+          <param name="max">1.52716</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -293,8 +293,8 @@
 
       <joint name="left_ankle_roll_joint_X4">
         <command_interface name="position">
-          <param name="min">-0.79</param>
-          <param name="max">0.79</param>
+          <param name="min">-0.785398</param>
+          <param name="max">0.785398</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -303,8 +303,8 @@
 
       <joint name="left_ankle_pitch_joint_X4">
         <command_interface name="position">
-          <param name="min">-0.79</param>
-          <param name="max">0.79</param>
+          <param name="min">-0.785398</param>
+          <param name="max">0.785398</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -314,8 +314,8 @@
       <!-- === RIGHT LEG === -->
       <joint name="right_hip_pitch_joint_X8">
         <command_interface name="position">
-          <param name="min">-2.53</param>
-          <param name="max">1.57</param>
+          <param name="min">-2.61799</param>
+          <param name="max">2.61799</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -324,8 +324,8 @@
 
       <joint name="right_hip_roll_joint_X8">
         <command_interface name="position">
-          <param name="min">-3.14</param>
-          <param name="max">0.35</param>
+          <param name="min">-3.22886</param>
+          <param name="max">0.383972</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -334,8 +334,8 @@
 
       <joint name="right_hip_yaw_joint_X8">
         <command_interface name="position">
-          <param name="min">-1.57</param>
-          <param name="max">1.57</param>
+          <param name="min">-1.5708</param>
+          <param name="max">1.5708</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -344,8 +344,8 @@
 
       <joint name="right_knee_joint_X8">
         <command_interface name="position">
-          <param name="min">-0.17</param>
-          <param name="max">1.57</param>
+          <param name="min">-1.52716</param>
+          <param name="max">1.52716</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -354,8 +354,8 @@
 
       <joint name="right_ankle_roll_joint_X4">
         <command_interface name="position">
-          <param name="min">-0.79</param>
-          <param name="max">0.79</param>
+          <param name="min">-0.785398</param>
+          <param name="max">0.785398</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
@@ -364,8 +364,8 @@
 
       <joint name="right_ankle_pitch_joint_X4">
         <command_interface name="position">
-          <param name="min">-0.79</param>
-          <param name="max">0.79</param>
+          <param name="min">-0.785398</param>
+          <param name="max">0.785398</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />

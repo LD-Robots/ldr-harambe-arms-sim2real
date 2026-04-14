@@ -122,6 +122,7 @@ Located in `src/simulation/arm_gazebo/worlds/`: `lab-ldr.sdf` (default), `lab2.s
 
 ## Development Notes
 
+- **NEVER round numerical parameters.** Joint limits, conversion factors, offsets, and all robot parameters must use exact values from the source of truth (URDF joint definitions in `full_robot_description/urdf/joints/`). A robot is a precise machine — a rounding error in an EtherCAT config once took 2 weeks to find. Copy exact values, never truncate for readability.
 - After modifying URDF/SDF/config files, rebuild the relevant package and re-source
 - Launch files follow a dependency chain: Gazebo → spawn robot → controller_manager → controllers → MoveIt. Respect startup ordering (~20s between sim and planning layers)
 - The GUI launcher handles startup sequencing automatically

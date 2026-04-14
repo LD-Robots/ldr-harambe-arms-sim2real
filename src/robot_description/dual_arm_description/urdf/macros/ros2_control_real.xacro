@@ -352,8 +352,7 @@
             </joint>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
-            <!-- RIGHT LEG — 5 joints (bus 19-23)                               -->
-            <!-- NOTE: right_ankle_pitch (bus 24) not connected yet              -->
+            <!-- RIGHT LEG — 6 joints (bus 19-24)                               -->
             <!-- ════════════════════════════════════════════════════════════════ -->
 
             <joint name="right_hip_pitch_joint_X8">
@@ -436,7 +435,21 @@
                 </ec_module>
             </joint>
 
-            <!-- TODO: Add right_ankle_pitch_joint_X4 (bus 24) when actuator arrives -->
+            <joint name="right_ankle_pitch_joint_X4">
+                <command_interface name="position"/>
+                <command_interface name="effort"/>
+                <command_interface name="mode_of_operation"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="status_word"/>
+                <ec_module name="RightAnklePitch">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">24</param>
+                    <param name="slave_config">$(find arm_real_bringup)/config/${config_dir}/right_ankle_pitch_X4.yaml</param>
+                </ec_module>
+            </joint>
 
             </xacro:unless>  <!-- only_arms -->
 

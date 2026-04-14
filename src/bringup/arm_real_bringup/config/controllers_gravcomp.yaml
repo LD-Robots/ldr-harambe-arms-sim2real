@@ -64,4 +64,4 @@ right_leg_effort_controller:
       - right_hip_yaw_joint_X8
       - right_knee_joint_X8
       - right_ankle_roll_joint_X4
-      # - right_ankle_pitch_joint_X4  # uncomment when actuator arrives (bus 24)
+      - right_ankle_pitch_joint_X4

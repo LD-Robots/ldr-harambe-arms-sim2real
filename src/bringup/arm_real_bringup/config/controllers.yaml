@@ -176,7 +176,7 @@ right_leg_group_controller:
       - right_hip_yaw_joint_X8
       - right_knee_joint_X8
       - right_ankle_roll_joint_X4
-      # - right_ankle_pitch_joint_X4  # uncomment when actuator arrives (bus 24)
+      - right_ankle_pitch_joint_X4
     command_interfaces:
       - position
     state_interfaces:
@@ -196,7 +196,7 @@ right_leg_effort_controller:
       - right_hip_yaw_joint_X8
       - right_knee_joint_X8
       - right_ankle_roll_joint_X4
-      # - right_ankle_pitch_joint_X4  # uncomment when actuator arrives (bus 24)
+      - right_ankle_pitch_joint_X4
 
 # ─── MODE CONTROLLER (all 25 joints) ───
 
@@ -232,5 +232,5 @@ mode_controller:
       - right_hip_yaw_joint_X8
       - right_knee_joint_X8
       - right_ankle_roll_joint_X4
-      # - right_ankle_pitch_joint_X4  # uncomment when actuator arrives (bus 24)
+      - right_ankle_pitch_joint_X4
     interface_name: mode_of_operation
