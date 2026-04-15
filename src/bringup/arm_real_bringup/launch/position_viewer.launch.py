@@ -74,7 +74,7 @@ def _launch_setup(context):
             arguments=[
                 "joint_state_broadcaster",
                 "--controller-manager", "/controller_manager",
-                "--controller-manager-timeout", "120",
+                "--controller-manager-timeout", "240",
                 "--switch-timeout", "30",
                 "--service-call-timeout", "60",
             ],

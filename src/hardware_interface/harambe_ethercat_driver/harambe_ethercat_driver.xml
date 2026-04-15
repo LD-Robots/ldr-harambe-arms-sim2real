@@ -1,0 +1,11 @@
+<library path="harambe_ethercat_driver">
+  <class name="harambe_ethercat_driver/HarambeEthercatDriver"
+         type="harambe_ethercat_driver::HarambeEthercatDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      EtherCAT driver for Harambe humanoid with nonlinear ankle linkage transform.
+      Inherits ethercat_driver/EthercatDriver and adds eccentric-pushrod kinematics
+      for differential ankle mechanism (2 motors per ankle → pitch/roll).
+    </description>
+  </class>
+</library>

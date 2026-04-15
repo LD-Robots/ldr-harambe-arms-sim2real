@@ -20,9 +20,19 @@
         <!-- only_left=false: full body 25 DOF (bus 0-23) -->
         <ros2_control name="EthercatSystem" type="system">
             <hardware>
-                <plugin>ethercat_driver/EthercatDriver</plugin>
+                <plugin>harambe_ethercat_driver/HarambeEthercatDriver</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
+                <!-- Ankle eccentric-pushrod linkage geometry (meters) -->
+                <param name="r_exc">0.025</param>
+                <param name="d_pitch">0.03</param>
+                <param name="d_roll">0.056</param>
+                <!-- Sign correction: ±1, applied after kinematics to match URDF convention -->
+                <param name="pitch_sign">-1</param>
+                <param name="roll_sign">1</param>
+                <!-- Ankle linkage pairs: pitchJoint,rollJoint — pitch output stored in first, roll in second -->
+                <!-- θA = raw from pitchJoint's motor, θB = raw from rollJoint's motor -->
+                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
             </hardware>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
