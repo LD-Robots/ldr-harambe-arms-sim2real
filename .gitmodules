@@ -1,0 +1,4 @@
+[submodule "src/ethercat_driver_ros2"]
+	path = src/ethercat_driver_ros2
+	url = https://github.com/LD-Robots/ethercat_driver_ros2.git
+	branch = jazzy
