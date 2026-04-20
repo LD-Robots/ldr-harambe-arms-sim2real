@@ -38,7 +38,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 # are skipped automatically.
 BODY_GROUPS = {
     "left_arm": {
-        "controller": "left_arm_group_controller",
+        "controller": "left_arm_trajectory_controller",
         "planning_group": "left_arm",
         "joint_names": [
             "left_shoulder_pitch_joint_X6",
@@ -50,7 +50,7 @@ BODY_GROUPS = {
         ],
     },
     "right_arm": {
-        "controller": "right_arm_group_controller",
+        "controller": "right_arm_trajectory_controller",
         "planning_group": "right_arm",
         "joint_names": [
             "right_shoulder_pitch_joint_X6",
@@ -69,7 +69,7 @@ BODY_GROUPS = {
         ],
     },
     "left_leg": {
-        "controller": "left_leg_group_controller",
+        "controller": "left_leg_trajectory_controller",
         "planning_group": "left_leg",
         "joint_names": [
             "left_hip_pitch_joint_X8",
@@ -81,7 +81,7 @@ BODY_GROUPS = {
         ],
     },
     "right_leg": {
-        "controller": "right_leg_group_controller",
+        "controller": "right_leg_trajectory_controller",
         "planning_group": "right_leg",
         "joint_names": [
             "right_hip_pitch_joint_X8",

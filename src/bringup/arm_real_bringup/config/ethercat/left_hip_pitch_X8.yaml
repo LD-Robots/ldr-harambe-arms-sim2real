@@ -7,7 +7,7 @@
 # COMMONLY MODIFIED VALUES:
 #   - offset (position cmd/state) — recalibrate with: demo_joint_offset
 #   - factor sign (±)             — negate ALL factors to flip direction
-#   - max_torque SDO value        — 400 = 40%, max 1000 = 100%
+#   - max_torque SDO value        — 600 = 60%, max 1000 = 100%
 #
 # POSITION FACTOR REFERENCE:
 #   X8 motor: 20861.0 counts/rad (cmd),  4.794e-5 rad/count (state) — same as X6
@@ -29,8 +29,8 @@ mode_of_operation: 8            # 8 = CSP (Cyclic Synchronous Position) — driv
 # ─── SDO: One-time parameters written to drive at startup ───
 sdo:
   # Max torque limit (obj 0x6072) — value in 0.1% units of rated torque
-  #   400 = 40% of rated torque. CHANGE THIS to allow more/less torque (max 1000 = 100%)
-  - {index: 0x6072, sub_index: 0, type: uint16, value: 400}
+  #   600 = 60% of rated torque. CHANGE THIS to allow more/less torque (max 1000 = 100%)
+  - {index: 0x6072, sub_index: 0, type: uint16, value: 600}
   # Interpolation time period (obj 0x60C2) — defines the PDO cycle time
   #   sub1=10, sub2=-3 → 10 × 10^(-3) s = 10 ms = 100 Hz (must match ros2_control update rate)
   - {index: 0x60C2, sub_index: 1, type: int8, value: 10}
@@ -57,8 +57,8 @@ rpdo:
       #   factor: ±50.0 (sign matches motor direction)
       - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
 
-      # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 40%)
-      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 400}
+      # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 60%)
+      - {index: 0x6072, sub_index: 0, type: int16,  command_interface: ~,        default: 600}
 
       # [1 byte] Mode of operation (0x6060) — runtime-switchable via mode_controller
       #   Write 8 for CSP (position), 10 for CST (torque/gravity comp)

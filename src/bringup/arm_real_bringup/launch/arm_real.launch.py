@@ -118,8 +118,8 @@ def _launch_setup(context):
     homing_nodes = []
 
     if include_arms:
-        left_arm_spawner = _make_spawner("left_arm_group_controller")
-        right_arm_spawner = _make_spawner("right_arm_group_controller")
+        left_arm_spawner = _make_spawner("left_arm_trajectory_controller")
+        right_arm_spawner = _make_spawner("right_arm_trajectory_controller")
         position_spawners.extend([left_arm_spawner, right_arm_spawner])
 
         effort_spawners.extend([
@@ -128,7 +128,7 @@ def _launch_setup(context):
         ])
 
         homing_nodes.append((left_arm_spawner, _make_homing(
-            "left_arm_homing", "left_arm_group_controller",
+            "left_arm_homing", "left_arm_trajectory_controller",
             [
                 "left_shoulder_pitch_joint_X6",
                 "left_shoulder_roll_joint_X6",
@@ -140,7 +140,7 @@ def _launch_setup(context):
             max_velocity=0.2,
         )))
         homing_nodes.append((right_arm_spawner, _make_homing(
-            "right_arm_homing", "right_arm_group_controller",
+            "right_arm_homing", "right_arm_trajectory_controller",
             [
                 "right_shoulder_pitch_joint_X6",
                 "right_shoulder_roll_joint_X6",
@@ -167,8 +167,8 @@ def _launch_setup(context):
         )))
 
     if include_legs:
-        left_leg_spawner = _make_spawner("left_leg_group_controller")
-        right_leg_spawner = _make_spawner("right_leg_group_controller")
+        left_leg_spawner = _make_spawner("left_leg_trajectory_controller")
+        right_leg_spawner = _make_spawner("right_leg_trajectory_controller")
         position_spawners.extend([left_leg_spawner, right_leg_spawner])
 
         effort_spawners.extend([
@@ -178,7 +178,7 @@ def _launch_setup(context):
 
         # Leg homing disabled — motion_player homes to first waypoint instead
         # homing_nodes.append((left_leg_spawner, _make_homing(
-        #     "left_leg_homing", "left_leg_group_controller",
+        #     "left_leg_homing", "left_leg_trajectory_controller",
         #     [
         #         "left_hip_pitch_joint_X8",
         #         "left_hip_roll_joint_X8",
@@ -191,7 +191,7 @@ def _launch_setup(context):
         #     min_duration=5.0,
         # )))
         # homing_nodes.append((right_leg_spawner, _make_homing(
-        #     "right_leg_homing", "right_leg_group_controller",
+        #     "right_leg_homing", "right_leg_trajectory_controller",
         #     [
         #         "right_hip_pitch_joint_X8",
         #         "right_hip_roll_joint_X8",

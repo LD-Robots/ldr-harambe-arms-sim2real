@@ -39,7 +39,7 @@ class HomingSequence(Node):
 
         # Parameters
         self._controller_name = (
-            self.declare_parameter("controller_name", "left_arm_group_controller")
+            self.declare_parameter("controller_name", "left_arm_trajectory_controller")
             .get_parameter_value()
             .string_value
         )

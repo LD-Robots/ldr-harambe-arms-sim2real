@@ -54,6 +54,12 @@ install(PROGRAMS
   RENAME actuator_status
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/action_position_sender.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME action_position_sender
+)
+
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
 )

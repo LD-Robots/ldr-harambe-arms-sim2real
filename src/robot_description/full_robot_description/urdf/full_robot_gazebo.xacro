@@ -4,6 +4,9 @@
   <!-- Control mode: "position" or "effort" -->
   <xacro:arg name="control_mode" default="position" />
 
+  <!-- Fix base to world (no floating, for upper body work) -->
+  <xacro:arg name="fixed_base" default="false" />
+
   <!-- Full robot: all joints active (not fixed) -->
   <xacro:arg name="fixed_legs" default="false" />
   <xacro:arg name="only_left" default="false" />
@@ -69,11 +72,13 @@
   </xacro:bno055_imu>
 
   <!-- Fix robot base to world frame -->
-  <!-- <link name="world"/>
-  <joint name="world_joint" type="fixed">
-    <parent link="world"/>
-    <child link="urdf_base"/>
-  </joint> -->
+  <xacro:if value="$(arg fixed_base)">
+    <link name="world"/>
+    <joint name="world_joint" type="fixed">
+      <parent link="world"/>
+      <child link="urdf_base"/>
+    </joint>
+  </xacro:if>
 
   <!-- ros2_control: position mode -->
   <xacro:if value="${'$(arg control_mode)' == 'position'}">

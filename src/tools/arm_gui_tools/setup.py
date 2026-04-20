@@ -26,6 +26,7 @@ setup(
             'joint_state_monitor = arm_gui_tools.joint_state_monitor:main',
             'joint_state_tui = arm_gui_tools.joint_state_tui:main',
             'actuator_status = arm_gui_tools.actuator_status:main',
+            'action_position_sender = arm_gui_tools.action_position_sender:main',
         ],
     },
 )

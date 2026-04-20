@@ -1,0 +1,57 @@
+motion:
+  name: leggs_balance_standing
+  description: ""
+  recorded_at: "2026-04-15T18:29:23"
+  joint_names:
+    - left_hip_pitch_joint_X8
+    - left_hip_roll_joint_X8
+    - left_hip_yaw_joint_X8
+    - left_knee_joint_X8
+    - left_ankle_pitch_joint_X4
+    - left_ankle_roll_joint_X4
+    - right_hip_pitch_joint_X8
+    - right_hip_roll_joint_X8
+    - right_hip_yaw_joint_X8
+    - right_knee_joint_X8
+    - right_ankle_pitch_joint_X4
+    - right_ankle_roll_joint_X4
+  sample_rate_hz: 10.0
+  total_duration_sec: 69.1436
+  num_waypoints: 329
+  playback:
+    speed_scale: 1.0
+    velocity_scaling: 0.3
+    acceleration_scaling: 0.3
+  waypoints:
+    - t: 1.0
+      positions:
+        [
+          -1.4,
+          0.0,
+          -0.2279,
+          1.2,
+          -0.2524,
+          0.0,
+          -1.4,
+          0.0,
+          0.0,
+          1.2,
+          0.0,
+          -0.2524,
+        ]
+    - t: 2.0
+      positions:
+        [
+          -1.4,
+          0.0,
+          -0.2279,
+          1.2,
+          -0.2524,
+          0.0,
+          -1.4,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          -0.2524,
+        ]

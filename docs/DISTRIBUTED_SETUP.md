@@ -264,7 +264,7 @@ Runs planning, visualization, and high-level control.
 **Key considerations:**
 - MoveIt needs `/robot_description` — gets it from Jetson's `robot_state_publisher` via DDS
 - MoveIt needs `/joint_states` — streamed from Jetson via DDS
-- MoveIt sends trajectories — action client on PC, action server on Jetson (via `left_arm_group_controller`)
+- MoveIt sends trajectories — action client on PC, action server on Jetson (via `left_arm_trajectory_controller`)
 - All transparent over DDS — no code changes needed
 
 ### Minimal Example: PC-side Launch

@@ -152,4 +152,4 @@ The Gazebo URDF currently only exposes `position` command interfaces. To run a t
 4. Verify node is running: `ros2 node list | grep policy`
 5. Check it subscribes to joint_states: `ros2 topic info /joint_states`
 6. Enable and observe robot moving: `ros2 topic pub --once /policy_control/enable std_msgs/msg/Bool "{data: true}"`
-7. Monitor commands: `ros2 topic echo /left_arm_group_controller/joint_trajectory`
+7. Monitor commands: `ros2 topic echo /left_arm_trajectory_controller/joint_trajectory`

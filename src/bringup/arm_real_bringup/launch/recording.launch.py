@@ -123,9 +123,9 @@ def _launch_setup(context):
             }],
         ))
 
-        # Right arm: 3 joints have effort/position factor sign mismatch in EtherCAT configs
-        # (shoulder_roll, shoulder_yaw, wrist_yaw have negative position factor but positive
-        #  effort factor). comp_scale = -1.0 corrects the gravity torque direction for these.
+        # Right arm: 3 joints (shoulder_roll, shoulder_yaw, wrist_yaw) have their physical
+        # actuator mounting mirrored relative to the kinematic model. comp_scale = -1.0
+        # flips the computed gravity torque to match the actual motor direction.
         gravity_comp_nodes.append(Node(
             package="arm_real_bringup",
             executable="gravity_comp_node.py",

@@ -209,13 +209,13 @@ CiA 402 modes are switched at runtime without restarting. Three ros2_control con
 
 | Controller | Interface | Purpose | Startup State |
 |------------|-----------|---------|---------------|
-| `left_arm_group_controller` | position | JointTrajectoryController for CSP | active |
+| `left_arm_trajectory_controller` | position | JointTrajectoryController for CSP | active |
 | `left_arm_effort_controller` | effort | JointGroupEffortController for CST | inactive |
 | `mode_controller` | mode_of_operation | ForwardCommandController to set CiA 402 mode | active |
 
 **Switch to CST (torque/gravity comp):**
 ```bash
-ros2 control switch_controllers --deactivate left_arm_group_controller
+ros2 control switch_controllers --deactivate left_arm_trajectory_controller
 ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
 ros2 control switch_controllers --activate left_arm_effort_controller
 ```
@@ -224,7 +224,7 @@ ros2 control switch_controllers --activate left_arm_effort_controller
 ```bash
 ros2 control switch_controllers --deactivate left_arm_effort_controller
 ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [8,8,8,8,8,8]}"
-ros2 control switch_controllers --activate left_arm_group_controller
+ros2 control switch_controllers --activate left_arm_trajectory_controller
 ```
 
 Mode values: **8** = CSP (Cyclic Synchronous Position), **9** = CSV (Cyclic Synchronous Velocity), **10** = CST (Cyclic Synchronous Torque).

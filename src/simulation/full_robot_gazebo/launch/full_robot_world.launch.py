@@ -40,6 +40,19 @@ def generate_launch_description():
         description='Control mode: position or effort'
     )
 
+    controller_type_arg = DeclareLaunchArgument(
+        'controller_type',
+        default_value='direct',
+        description="Controller type: 'direct' for JointGroupPositionController, "
+                    "'trajectory' for JointTrajectoryController"
+    )
+
+    fixed_base_arg = DeclareLaunchArgument(
+        'fixed_base',
+        default_value='false',
+        description='Fix robot base to world frame (no floating)'
+    )
+
     # Launch Gazebo Harmonic
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -57,6 +70,8 @@ def generate_launch_description():
         ),
         launch_arguments={
             'control_mode': LaunchConfiguration('control_mode'),
+            'controller_type': LaunchConfiguration('controller_type'),
+            'fixed_base': LaunchConfiguration('fixed_base'),
         }.items()
     )
 
@@ -91,6 +106,8 @@ def generate_launch_description():
         gz_resource_path,
         world_arg,
         control_mode_arg,
+        controller_type_arg,
+        fixed_base_arg,
         gazebo,
         clock_bridge,
         spawn_robot,

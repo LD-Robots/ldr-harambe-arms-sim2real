@@ -8,7 +8,7 @@ EtherCAT driver stack for the left arm's 6 MyActuator RMD X V4 actuators, using 
 ┌──────────────────────────────────────────────────────────────────┐
 │  ros2_control  (controller_manager @ 100 Hz)                     │
 │    ├── joint_state_broadcaster    → /joint_states (100 Hz)       │
-│    ├── left_arm_group_controller  → JTC (position, active)       │
+│    ├── left_arm_trajectory_controller  → JTC (position, active)       │
 │    ├── left_arm_effort_controller → Effort (torque, inactive)    │
 │    └── mode_controller            → Forward (mode_of_operation)  │
 ├──────────────────────────────────────────────────────────────────┤
@@ -122,7 +122,7 @@ Loaded when `dual_arm.urdf.xacro use_sim:=false`. Defines one `<ros2_control>` b
 ```
 
 Three command interfaces per joint enable runtime mode switching:
-- `position` — claimed by `left_arm_group_controller` (JTC, CSP mode)
+- `position` — claimed by `left_arm_trajectory_controller` (JTC, CSP mode)
 - `effort` — claimed by `left_arm_effort_controller` (effort controller, CST mode)
 - `mode_of_operation` — claimed by `mode_controller` (sets CiA 402 mode at runtime)
 
@@ -242,7 +242,7 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
       publish_rate: 100
 
-    left_arm_group_controller:
+    left_arm_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
     left_arm_effort_controller:
@@ -251,7 +251,7 @@ controller_manager:
     mode_controller:
       type: forward_command_controller/ForwardCommandController
 
-left_arm_group_controller:
+left_arm_trajectory_controller:
   ros__parameters:
     joints: [left_shoulder_pitch_joint_X6, ..., left_wrist_roll_joint_X4]
     command_interfaces: [position]
@@ -421,7 +421,7 @@ ros2 launch arm_real_bringup recording.launch.py
 1. `robot_state_publisher` — publishes URDF TF (use_sim:=false variant)
 2. `ros2_control_node` — loads `EthercatDriver` plugin, initializes EtherCAT master, activates slaves
 3. `joint_state_broadcaster` — spawned after 2s delay
-4. `mode_controller` + `left_arm_group_controller` + `left_arm_effort_controller` (inactive) — spawned after JSB
+4. `mode_controller` + `left_arm_trajectory_controller` + `left_arm_effort_controller` (inactive) — spawned after JSB
 5. `homing_sequence` — runs after controllers, moves to URDF zero at 0.2 rad/s
 6. `safety_monitor` — launched in parallel via included launch file
 
@@ -437,7 +437,7 @@ Mode switching happens at runtime via the `mode_controller` (ForwardCommandContr
 
 **Switch to CST (torque/gravity comp):**
 ```bash
-ros2 control switch_controllers --deactivate left_arm_group_controller
+ros2 control switch_controllers --deactivate left_arm_trajectory_controller
 ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [10,10,10,10,10,10]}"
 ros2 control switch_controllers --activate left_arm_effort_controller
 ```
@@ -446,7 +446,7 @@ ros2 control switch_controllers --activate left_arm_effort_controller
 ```bash
 ros2 control switch_controllers --deactivate left_arm_effort_controller
 ros2 topic pub --once /mode_controller/commands std_msgs/msg/Float64MultiArray "{data: [8,8,8,8,8,8]}"
-ros2 control switch_controllers --activate left_arm_group_controller
+ros2 control switch_controllers --activate left_arm_trajectory_controller
 ```
 
 **How it works internally:**

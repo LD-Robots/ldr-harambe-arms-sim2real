@@ -22,7 +22,7 @@ from sensor_msgs.msg import JointState
 
 # Position controllers and their joints (must match controllers.yaml)
 CONTROLLER_JOINTS = {
-    "left_arm_group_controller": [
+    "left_arm_trajectory_controller": [
         "left_shoulder_pitch_joint_X6",
         "left_shoulder_roll_joint_X6",
         "left_shoulder_yaw_joint_X4",
@@ -30,7 +30,7 @@ CONTROLLER_JOINTS = {
         "left_wrist_yaw_joint_X4",
         "left_wrist_roll_joint_X4",
     ],
-    "right_arm_group_controller": [
+    "right_arm_trajectory_controller": [
         "right_shoulder_pitch_joint_X6",
         "right_shoulder_roll_joint_X6",
         "right_shoulder_yaw_joint_X4",
@@ -41,7 +41,7 @@ CONTROLLER_JOINTS = {
     "waist_controller": [
         "waist_yaw_joint",
     ],
-    "left_leg_group_controller": [
+    "left_leg_trajectory_controller": [
         "left_hip_pitch_joint",
         "left_hip_roll_joint",
         "left_hip_yaw_joint",
@@ -49,7 +49,7 @@ CONTROLLER_JOINTS = {
         "left_ankle_pitch_joint",
         "left_ankle_roll_joint",
     ],
-    "right_leg_group_controller": [
+    "right_leg_trajectory_controller": [
         "right_hip_pitch_joint",
         "right_hip_roll_joint",
         "right_hip_yaw_joint",

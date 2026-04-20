@@ -16,7 +16,7 @@ motion:
     speed_scale: 1.0
     velocity_scaling: 0.3
     acceleration_scaling: 0.3
-    controller_name: left_arm_group_controller
+    controller_name: left_arm_trajectory_controller
     planning_group: left_arm
   waypoints:
   - t: 0.0
