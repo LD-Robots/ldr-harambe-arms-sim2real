@@ -1,0 +1,11 @@
+<library path="harambe_policy_controller">
+  <class name="harambe_policy_controller/HarambePolicyController"
+         type="harambe_policy_controller::HarambePolicyController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      ONNX RL policy controller. Builds 93-dim observation from joint_states + dual IMU,
+      runs inference at 50 Hz (decimation=4), converts actions to joint torques via
+      PD + KDL gravity compensation. Port of HarambePolicyPlugin (Gazebo) to real hardware.
+    </description>
+  </class>
+</library>

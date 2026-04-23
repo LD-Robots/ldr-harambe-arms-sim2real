@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>harambe_policy_controller</name>
+  <version>0.1.0</version>
+  <description>ros2_control controller running ONNX RL policy with PD + gravity compensation.
+    Port of the Gazebo HarambePolicyPlugin to real hardware (EtherCAT CST mode).
+    Builds 93-dim observation from joint states and dual IMU, runs inference at 50 Hz,
+    converts target positions to joint torques via PD + KDL gravity compensation.
+  </description>
+  <maintainer email="alex.zamfir@ldrobots.ro">alex</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>pluginlib</depend>
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>orocos_kdl</depend>
+  <depend>kdl_parser</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

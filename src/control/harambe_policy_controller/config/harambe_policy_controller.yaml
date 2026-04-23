@@ -1,0 +1,220 @@
+# Per-joint configuration for harambe_policy_controller.
+#
+# Mirror of the "Isaac Lab ActuatorCfg" block in
+# src/robot_description/full_robot_description/urdf/full_robot_gazebo.xacro
+# with kp_scale=1.0, kd_scale=1.0 (no scaling — tested standing).
+#
+# If you change kp_scale/kd_scale in xacro, also change these values OR re-introduce
+# a scale multiplier — training uses whatever gains the deploy env uses.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz  — physics-matched; policy runs at 200/decimation = 50 Hz
+
+    harambe_policy_controller:
+      type: harambe_policy_controller/HarambePolicyController
+
+harambe_policy_controller:
+  ros__parameters:
+    # ------------------------------------------------------------------
+    # Joints — MUST be in HARDWARE_JOINT_ORDER (matches training obs/action)
+    # ------------------------------------------------------------------
+    joints:
+      - left_shoulder_pitch_joint_X6    # 0
+      - left_shoulder_roll_joint_X6     # 1
+      - left_shoulder_yaw_joint_X4      # 2
+      - left_elbow_pitch_joint_X6       # 3
+      - left_wrist_yaw_joint_X4         # 4
+      - left_wrist_roll_joint_X4        # 5
+      - right_shoulder_pitch_joint_X6   # 6
+      - right_shoulder_roll_joint_X6    # 7
+      - right_shoulder_yaw_joint_X4     # 8
+      - right_elbow_pitch_joint_X6      # 9
+      - right_wrist_yaw_joint_X4        # 10
+      - right_wrist_roll_joint_X4       # 11
+      - waist_yaw_joint_X8              # 12
+      - left_hip_pitch_joint_X8         # 13
+      - left_hip_roll_joint_X8          # 14
+      - left_hip_yaw_joint_X8           # 15
+      - left_knee_joint_X8              # 16
+      - left_ankle_pitch_joint_X4       # 17
+      - left_ankle_roll_joint_X4        # 18
+      - right_hip_pitch_joint_X8        # 19
+      - right_hip_roll_joint_X8         # 20
+      - right_hip_yaw_joint_X8          # 21
+      - right_knee_joint_X8             # 22
+      - right_ankle_pitch_joint_X4      # 23
+      - right_ankle_roll_joint_X4       # 24
+
+    # ------------------------------------------------------------------
+    # PD gains — Isaac Lab ActuatorCfg nominal values, scale=1.0
+    # ------------------------------------------------------------------
+    kp:
+      - 114.3    # left_shoulder_pitch_X6
+      - 115.4    # left_shoulder_roll_X6
+      -  22.0    # left_shoulder_yaw_X4
+      -  30.6    # left_elbow_pitch_X6
+      -   9.1    # left_wrist_yaw_X4
+      -  10.8    # left_wrist_roll_X4
+      - 114.3    # right_shoulder_pitch_X6
+      - 115.4    # right_shoulder_roll_X6
+      -  22.0    # right_shoulder_yaw_X4
+      -  30.6    # right_elbow_pitch_X6
+      -   9.1    # right_wrist_yaw_X4
+      -  10.8    # right_wrist_roll_X4
+      -  91.7    # waist_yaw_X8
+      - 466.2    # left_hip_pitch_X8
+      - 464.4    # left_hip_roll_X8
+      -  75.7    # left_hip_yaw_X8
+      -  97.3    # left_knee_X8
+      - 996.2    # left_ankle_pitch_X4
+      -  89.7    # left_ankle_roll_X4
+      - 466.2    # right_hip_pitch_X8
+      - 464.4    # right_hip_roll_X8
+      -  75.7    # right_hip_yaw_X8
+      -  97.3    # right_knee_X8
+      - 996.2    # right_ankle_pitch_X4
+      -  89.7    # right_ankle_roll_X4
+
+    kd:
+      - 10.7     # left_shoulder_pitch_X6
+      - 10.8     # left_shoulder_roll_X6
+      -  2.1     # left_shoulder_yaw_X4
+      -  2.9     # left_elbow_pitch_X6
+      -  0.9     # left_wrist_yaw_X4
+      -  1.0     # left_wrist_roll_X4
+      - 10.7     # right_shoulder_pitch_X6
+      - 10.8     # right_shoulder_roll_X6
+      -  2.1     # right_shoulder_yaw_X4
+      -  2.9     # right_elbow_pitch_X6
+      -  0.9     # right_wrist_yaw_X4
+      -  1.0     # right_wrist_roll_X4
+      -  8.6     # waist_yaw_X8
+      - 32.6     # left_hip_pitch_X8
+      - 32.5     # left_hip_roll_X8
+      -  5.3     # left_hip_yaw_X8
+      -  6.8     # left_knee_X8
+      - 69.7     # left_ankle_pitch_X4
+      -  6.3     # left_ankle_roll_X4
+      - 32.6     # right_hip_pitch_X8
+      - 32.5     # right_hip_roll_X8
+      -  5.3     # right_hip_yaw_X8
+      -  6.8     # right_knee_X8
+      - 69.7     # right_ankle_pitch_X4
+      -  6.3     # right_ankle_roll_X4
+
+    # Effort limits from xacro (Nm)
+    effort_limits:
+      - 23.0     # shoulder_pitch_X6
+      - 23.0
+      - 12.075   # shoulder_yaw_X4
+      - 23.0     # elbow_pitch_X6
+      - 12.075
+      - 12.075
+      - 23.0
+      - 23.0
+      - 12.075
+      - 23.0
+      - 12.075
+      - 12.075
+      - 72.0     # waist_yaw_X8
+      - 72.0     # hip_pitch_X8
+      - 72.0
+      - 72.0
+      - 72.0     # knee_X8
+      -  96.6    # ankle_pitch_X4
+      -  28.98   # ankle_roll_X4
+      - 72.0
+      - 72.0
+      - 72.0
+      - 72.0
+      -  96.6
+      -  28.98
+
+    # Default (home) positions — identical to xacro default_pos fields
+    default_positions:
+      - 0.0      # left_shoulder_pitch_X6
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0      # waist
+      - -0.15    # left_hip_pitch_X8
+      -  0.0     # left_hip_roll_X8
+      -  0.0     # left_hip_yaw_X8
+      -  0.30    # left_knee_X8
+      - -0.15    # left_ankle_pitch_X4
+      -  0.0     # left_ankle_roll_X4
+      - -0.15    # right_hip_pitch_X8
+      -  0.0
+      -  0.0
+      -  0.30
+      - -0.15
+      -  0.0
+
+    # Coulomb friction (from xacro; informational — not applied in PD yet)
+    friction:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0      # waist
+      - 3.21     # left_hip_pitch_X8
+      - 1.6      # left_hip_roll_X8
+      - 1.6      # left_hip_yaw_X8
+      - 1.14     # left_knee_X8
+      - 1.14     # left_ankle_pitch_X4
+      - 1.14     # left_ankle_roll_X4
+      - 3.21
+      - 1.6
+      - 1.6
+      - 1.14
+      - 1.14
+      - 1.14
+
+    # ------------------------------------------------------------------
+    # Policy / ONNX parameters — MUST match training config
+    # ------------------------------------------------------------------
+    onnx_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real-main/policies/harambe_imitation_policy.onnx"
+    urdf_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real-main/src/robot_description/full_robot_description/urdf/full_robot_isaaclab.urdf"
+
+    decimation: 4          # 200 Hz / 4 = 50 Hz policy rate
+    action_scale: 0.25     # matches harambe_imitation_rl env_cfg
+    clip_actions: 5.0
+    warmup_steps: 200      # physics steps with 2x Kp, 3x Kd boost before policy engages
+    fall_threshold: 0.5    # |pelvis_grav_z| < 0.5 ≈ 60° tilt → action_scale=0
+
+    # ------------------------------------------------------------------
+    # Topics
+    # ------------------------------------------------------------------
+    # Main IMU topics (sensor_msgs/Imu) — used for angular_velocity.
+    pelvis_imu_topic: "/pelvis/imu"
+    torso_imu_topic:  "/torso/imu"
+
+    # Gravity vector topics (geometry_msgs/Vector3 from BNO055 "grav" output).
+    # When use_grav_topic=true, these take precedence over orientation-derived
+    # projected_gravity — more accurate (no Kalman drift, no magnetometer dep).
+    # Set use_grav_topic=false to fall back to imu.orientation-based gravity.
+    pelvis_grav_topic: "/pelvis/grav"
+    torso_grav_topic:  "/torso/grav"
+    use_grav_topic:    true
+
+    cmd_vel_topic:    "/cmd_vel"
+    enable_topic:     "~/enable"         # std_msgs/Bool — true=run policy, false=grav_comp only
+    debug_topic:      "~/debug"
+    publish_debug:    false
