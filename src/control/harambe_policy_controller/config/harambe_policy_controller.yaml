@@ -190,8 +190,10 @@ harambe_policy_controller:
     # ------------------------------------------------------------------
     # Policy / ONNX parameters — MUST match training config
     # ------------------------------------------------------------------
-    onnx_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real-main/policies/harambe_imitation_policy.onnx"
-    urdf_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real-main/src/robot_description/full_robot_description/urdf/full_robot_isaaclab.urdf"
+    # Paths on Jetson (match the workspace you actually build in).
+    # Override from launch: onnx_path:=<path> urdf_path:=<path>
+    onnx_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real/policy.onnx"
+    urdf_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real/src/robot_description/full_robot_description/urdf/full_robot_isaaclab.urdf"
 
     decimation: 4          # 200 Hz / 4 = 50 Hz policy rate
     action_scale: 0.25     # matches harambe_imitation_rl env_cfg
