@@ -527,6 +527,10 @@ void HarambePolicyController::applyPDControl()
 // ============================================================================
 bool HarambePolicyController::initKDL(const std::string & urdf_string)
 {
+  // Reset state — controller may be re-configured without re-instantiation.
+  kdl_chains_.clear();
+  kdl_ready_ = false;
+
   KDL::Tree tree;
   if (!kdl_parser::treeFromString(urdf_string, tree)) {
     RCLCPP_ERROR(get_node()->get_logger(), "Failed to parse URDF into KDL tree");
