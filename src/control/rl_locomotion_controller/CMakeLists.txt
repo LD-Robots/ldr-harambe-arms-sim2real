@@ -15,18 +15,32 @@ find_package(std_msgs REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 
-# ONNX Runtime — expected under $ONNXRUNTIME_ROOT or default path
-if(NOT DEFINED ENV{ONNXRUNTIME_ROOT})
-  set(ONNXRUNTIME_ROOT "/home/andrei/Git/pendulum_test/third_party/onnxruntime")
-else()
-  set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}")
+# ONNX Runtime — set ONNXRUNTIME_ROOT env var or CMake cache var before build.
+# Common install locations:
+#   Linux x86_64: /usr/local, /opt/onnxruntime, ~/onnxruntime
+#   Jetson:       /opt/onnxruntime (after extracting the aarch64 tarball)
+# Example: export ONNXRUNTIME_ROOT=/opt/onnxruntime
+if(NOT DEFINED ONNXRUNTIME_ROOT)
+  if(DEFINED ENV{ONNXRUNTIME_ROOT})
+    set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}")
+  else()
+    # Probe a few common locations
+    foreach(candidate "/opt/onnxruntime" "/usr/local" "$ENV{HOME}/onnxruntime")
+      if(EXISTS "${candidate}/include/onnxruntime_cxx_api.h")
+        set(ONNXRUNTIME_ROOT "${candidate}")
+        break()
+      endif()
+    endforeach()
+  endif()
 endif()
 
-if(NOT EXISTS "${ONNXRUNTIME_ROOT}/include/onnxruntime_cxx_api.h")
+if(NOT ONNXRUNTIME_ROOT OR NOT EXISTS "${ONNXRUNTIME_ROOT}/include/onnxruntime_cxx_api.h")
   message(FATAL_ERROR
-    "onnxruntime_cxx_api.h not found under ${ONNXRUNTIME_ROOT}/include. "
-    "Set ONNXRUNTIME_ROOT env var to point at your ONNX Runtime install.")
+    "onnxruntime_cxx_api.h not found. Install ONNX Runtime and set "
+    "ONNXRUNTIME_ROOT env var, e.g. 'export ONNXRUNTIME_ROOT=/opt/onnxruntime', "
+    "then re-run colcon build.")
 endif()
+message(STATUS "ONNXRUNTIME_ROOT: ${ONNXRUNTIME_ROOT}")
 
 add_library(${PROJECT_NAME} SHARED
   src/rl_locomotion_controller.cpp
