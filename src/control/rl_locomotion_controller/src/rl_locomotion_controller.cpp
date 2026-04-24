@@ -408,11 +408,11 @@ bool RLLocomotionController::read_current_pose_ctrl(
     return false;
   }
   for (std::size_t i = 0; i < kNumJoints; ++i) {
-    const auto v = state_interfaces_[i * 2].get_optional();
-    if (!v.has_value() || std::isnan(*v)) {
+    const double v = state_interfaces_[i * 2].get_value();
+    if (std::isnan(v)) {
       return false;
     }
-    out[i] = *v;
+    out[i] = v;
   }
   return true;
 }
@@ -421,7 +421,7 @@ void RLLocomotionController::write_targets_ctrl(
   const std::array<double, kNumJoints> & targets_ctrl)
 {
   for (std::size_t i = 0; i < kNumJoints; ++i) {
-    (void)command_interfaces_[i].set_value(targets_ctrl[i]);
+    command_interfaces_[i].set_value(targets_ctrl[i]);
   }
 }
 
@@ -456,10 +456,10 @@ void RLLocomotionController::build_obs(std::vector<float> & out) const
   std::size_t idx_vel = 12 + kNumJoints;
   for (std::size_t p = 0; p < kNumJoints; ++p) {
     const std::size_t c = policy_to_ctrl_[p];
-    const auto vp = state_interfaces_[c * 2].get_optional();      // pos
-    const auto vv = state_interfaces_[c * 2 + 1].get_optional();  // vel
-    const double pos = (vp.has_value() && !std::isnan(*vp)) ? *vp : 0.0;
-    const double vel = (vv.has_value() && !std::isnan(*vv)) ? *vv : 0.0;
+    const double pos_raw = state_interfaces_[c * 2].get_value();      // pos
+    const double vel_raw = state_interfaces_[c * 2 + 1].get_value();  // vel
+    const double pos = std::isnan(pos_raw) ? 0.0 : pos_raw;
+    const double vel = std::isnan(vel_raw) ? 0.0 : vel_raw;
     out[idx_pos + p] = static_cast<float>(pos - isaac_default_[p]);
     out[idx_vel + p] = static_cast<float>(vel);
   }
