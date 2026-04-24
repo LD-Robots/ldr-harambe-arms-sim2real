@@ -1,0 +1,137 @@
+# rl_locomotion_controller — parameters for the Harambe 25-DOF ONNX policy.
+#
+# Load with the main controllers.yaml or spawn separately, e.g.:
+#   ros2 control load_controller --set-state active rl_locomotion_controller
+# with --param-file pointing at this YAML.
+
+rl_locomotion_controller:
+  ros__parameters:
+
+    # ---- Policy file -----------------------------------------------------
+    # Default: the ONNX shipped with this package (V29 resume, iter ~79k).
+    # Override via launch arg `policy_path:=/abs/path/to/your_policy.onnx`.
+    # To update, re-copy after training:
+    #   cp ~/IsaacLab/logs/rsl_rl/harambe_flat/<run>/exported/policy.onnx \
+    #      src/control/rl_locomotion_controller/policies/v29_latest.onnx
+    policy_path: "package://rl_locomotion_controller/policies/v29_latest.onnx"
+
+    # ---- Joint ordering --------------------------------------------------
+    # `joints` = controller / URDF order (matches the ros2_control state_interfaces).
+    # Must match the 25 joint names claimed by the hardware driver.
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+
+    # `policy_joint_order` = Isaac Lab training order. The controller maps
+    # from this order into `joints` via name lookup. Do NOT reorder unless
+    # the policy was retrained with a different layout.
+    policy_joint_order:
+      - waist_yaw_joint_X8
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+
+    # ---- Isaac default pose (policy order) -------------------------------
+    # 25 values. All arms/waist at 0.0; legs bent (hip -0.28, knee +0.56,
+    # ankle_pitch -0.28). Foot stays level: hip_p + knee + ank_p = 0.
+    isaac_default:
+      - 0.0      # waist_yaw
+      - 0.0      # left shoulder pitch
+      - 0.0      # left shoulder roll
+      - 0.0      # left shoulder yaw
+      - 0.0      # left elbow pitch
+      - 0.0      # left wrist yaw
+      - 0.0      # left wrist roll
+      - 0.0      # right shoulder pitch
+      - 0.0      # right shoulder roll
+      - 0.0      # right shoulder yaw
+      - 0.0      # right elbow pitch
+      - 0.0      # right wrist yaw
+      - 0.0      # right wrist roll
+      - -0.28    # left hip pitch
+      - 0.0      # left hip roll
+      - 0.0      # left hip yaw
+      - 0.56     # left knee
+      - -0.28    # left ankle pitch
+      - 0.0      # left ankle roll
+      - -0.28    # right hip pitch
+      - 0.0      # right hip roll
+      - 0.0      # right hip yaw
+      - 0.56     # right knee
+      - -0.28    # right ankle pitch
+      - 0.0      # right ankle roll
+
+    # ---- Policy execution ------------------------------------------------
+    action_scale: 0.25        # V29 training value (quadruped-style)
+    decimation: 2             # 100 Hz update / 2 = 50 Hz policy
+    ramp_duration_s: 2.0      # smooth init: current -> isaac_default
+
+    # ---- Safety ----------------------------------------------------------
+    # Freeze targets when proj_grav.z (body-frame gravity z-component)
+    # rises above this threshold. proj_grav.z = -1 when upright, 0 horizontal,
+    # +1 inverted. -0.3 ≈ 72° tilt from upright.
+    tilt_abort_cos: -0.3
+
+    # Max target delta per policy step (radians). Prevents action spikes
+    # from propagating straight to the motors.
+    max_target_rate: 0.10
+
+    # ---- Commands --------------------------------------------------------
+    cmd_vel_x: 0.0
+    cmd_vel_y: 0.0
+    cmd_vel_yaw: 0.0
+
+    # ---- Topics ----------------------------------------------------------
+    # BNO055 driver layout on the real robot: angular_velocity from /*/imu,
+    # gravity vector (body frame, ~9.81 m/s²) directly from /*/grav.
+    # Controller normalizes grav to unit vector to match Isaac convention.
+    pelvis_imu_topic: "/pelvis/imu"
+    torso_imu_topic: "/torso/imu"
+    pelvis_grav_topic: "/pelvis/grav"
+    torso_grav_topic: "/torso/grav"
+    cmd_vel_topic: "/cmd_vel"
+    estop_topic: "/emergency_stop"

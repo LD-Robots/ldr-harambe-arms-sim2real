@@ -1,0 +1,12 @@
+<library path="rl_locomotion_controller">
+  <class name="rl_locomotion_controller/RLLocomotionController"
+         type="rl_locomotion_controller::RLLocomotionController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Runs an ONNX locomotion policy on the 25-DOF Harambe humanoid. Claims
+      position command interfaces and position+velocity state interfaces for
+      all 25 joints. Subscribes to pelvis+torso IMU and cmd_vel. Outputs
+      targets in CSP mode at 50 Hz (decimation from 100 Hz update).
+    </description>
+  </class>
+</library>
