@@ -1,0 +1,54 @@
+{
+  "folders": [
+    {
+      "name": "robot (code)",
+      "path": "."
+    },
+    {
+      "name": "docs (field notes)",
+      "path": "../ldr-harambe-docs"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/build": true,
+      "**/install": true,
+      "**/log": true,
+      "**/.DS_Store": true
+    },
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.rulers": [88, 100],
+    "editor.minimap.enabled": false,
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/arm_mtc/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/ethercat_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/ethercat_msgs/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/dualsense_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/arm_gui_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/ws_moveit/build/moveit_configs_utils",
+      "/home/andrei-dragomir/ws_moveit/install/moveit_configs_utils/lib/python3.12/site-packages",
+      "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/arm_mtc/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/ethercat_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/ethercat_msgs/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/dualsense_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/Documents/GitHub/ldr-harambe-arms-sim2real/install/arm_gui_tools/lib/python3.12/site-packages",
+      "/home/andrei-dragomir/ws_moveit/build/moveit_configs_utils",
+      "/home/andrei-dragomir/ws_moveit/install/moveit_configs_utils/lib/python3.12/site-packages",
+      "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "anthropic.claude-code",
+      "ms-vscode.live-server",
+      "yzhang.markdown-all-in-one",
+      "ms-python.python",
+      "ms-iot.vscode-ros"
+    ]
+  }
+}

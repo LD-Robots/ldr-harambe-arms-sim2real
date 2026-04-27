@@ -25,3 +25,4 @@
 
 # YOLO tracking crops
 object_crops/
+.claude/settings.local.json

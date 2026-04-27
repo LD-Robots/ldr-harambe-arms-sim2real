@@ -259,3 +259,55 @@ The existing `EcCiA402Drive::processData()` handles mode switching automatically
 | `ros2 run arm_gui_tools joint_state_tui` | Terminal dashboard with Rich (multi-tab, keyboard controls) |
 
 All tools support three modes: **DEMO** (offline, simulated data), **SIM** (Gazebo /joint_states only), **REAL** (EtherCAT topics present). Mode is auto-detected. Detailed docs in `docs/TOOLS.md`.
+
+# Humanoid robot — code repository
+
+## Stack
+- ROS 2 (Jazzy), ros2_control with effort interface
+- Isaac Gym for RL training, Gazebo for validation
+- Python for training scripts, C++ for hardware interfaces
+- Policies deployed as ONNX through a minimal inference node
+
+## Commands
+- `colcon build --symlink-install` — build the workspace
+- `. install/setup.bash` — source the env
+- `ros2 launch humanoid_bringup pendulum.launch.py` — bring up pendulum
+- `pytest tests/` — run Python tests
+
+## Related documentation
+Documentation lives in `~/Documents/GitHub/ldr-harambe-docs/` and is
+loaded into every Claude Code session via `additionalDirectories` (see
+.claude/settings.json).
+
+The docs repo follows the Field Notes design system defined in
+`docs/design_guide.md`. When creating or editing any HTML there, use the
+patterns, components, and CSS from that file — never invent new styling.
+
+## When to update the docs
+
+Update docs when ANY of these happen:
+- Motor parameters change (mass, inertia, friction, torque limits)
+  → `docs/tuning/motor_id_report.html` or relevant per-joint doc
+- PD gains or controller config change
+  → `docs/tuning/pd_tuning_guide.html`
+- Sim-to-real pipeline architecture changes (new controller, new
+  actuator model, new validation step)
+  → `docs/strategy/sim_to_real_guide.html`
+- You identify a new motor, joint, or a bug worth capturing
+  → create a new field note via the `write-field-note` skill
+
+Do NOT update docs for:
+- Trivial refactors (renaming, formatting, comment tweaks)
+- Experimental code on a feature branch that might not land
+- WIP changes that aren't committed yet
+
+## Doc update protocol
+1. Read the existing doc first. Match its tone and structure.
+2. Preserve `§ NN` section numbering. Renumber if inserting.
+3. Keep changes surgical — modify only what changed, not the surrounding prose.
+4. Commit docs in a SEPARATE commit with prefix `docs: `.
+
+## Writing voice (applies to both code comments and doc edits)
+- Direct. No preamble.
+- Honest assessment over flattery.
+- Concrete over abstract. Use real measured numbers.
