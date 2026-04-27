@@ -16,7 +16,7 @@ def _make_spawner(controller_name, inactive=False, **kwargs):
     args = [
         controller_name,
         "--controller-manager", "/controller_manager",
-        "--controller-manager-timeout", "120",
+        "--controller-manager-timeout", "240",
         "--switch-timeout", "20",
         "--service-call-timeout", "60",
     ]
