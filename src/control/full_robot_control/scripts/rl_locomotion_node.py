@@ -1,7 +1,8 @@
 #!/usr/bin/env -S /usr/bin/python3
 """ROS 2 node — ONNX locomotion policy for Gazebo.
 
-Sends position targets to JointTrajectoryController (effort + internal PID at 200Hz).
+Sends position targets to ImplicitActuatorController (effort + internal PD at 200Hz)
+via Float64MultiArray on /whole_body_controller/target_joint_positions.
 Policy runs at 50Hz. Auto-resets robot pose if fallen after spawn.
 """
 
@@ -11,11 +12,10 @@ import onnxruntime as ort
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from builtin_interfaces.msg import Duration
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu, JointState
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from std_msgs.msg import Float64MultiArray
 
 # ── Joint ordering ──────────────────────────────────────────────────────────
 POLICY_JOINTS = [
@@ -52,46 +52,37 @@ CTRL_JOINTS = [
 
 POLICY_TO_CTRL = [CTRL_JOINTS.index(j) for j in POLICY_JOINTS]
 
-# Isaac Lab default standing pose
+# Isaac Lab default standing pose — V25+ training (hip+knee+ankle = 0, foot level)
+# Source: ~/IsaacLab/source/isaaclab_assets/isaaclab_assets/robots/harambe.py init_state
 ISAAC_DEFAULT = np.array([
     0.0,                                        # waist_yaw
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0,             # left arm
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0,             # right arm
-    -0.28, 0.0, 0.0, 0.56, -0.28, 0.0,         # left leg
-    -0.28, 0.0, 0.0, 0.56, -0.28, 0.0,         # right leg
+    -0.25, 0.0, 0.0, 0.50, -0.25, 0.0,         # left leg
+    -0.25, 0.0, 0.0, 0.50, -0.25, 0.0,         # right leg
 ], dtype=np.float32)
 
-# Gazebo standup pose (more bent for DART stability)
-STANDUP_POS = np.array([
-    0.0,                                        # waist_yaw
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,             # left arm
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,             # right arm
-    -0.35, 0.0, 0.0, 0.70, -0.35, 0.0,         # left leg
-    -0.35, 0.0, 0.0, 0.70, -0.35, 0.0,         # right leg
-], dtype=np.float32)
+# Standup pose = same as ISAAC_DEFAULT (avoid pose mismatch at policy hand-off)
+STANDUP_POS = ISAAC_DEFAULT.copy()
 
-ACTION_SCALE = 0.10  # must match training action scale
+ACTION_SCALE = 0.25  # V29+ training value (was 0.10 for V6/V17 — must match the loaded policy)
 POLICY_RATE = 50.0
 N = 25
 
-# Per-joint action clamp — relaxed for walking (v7)
-# Training has no clipping, so keep wide to preserve policy behavior
+# Per-joint action clamp — tighter for Gazebo PID stability
 ACTION_CLIP = np.array([
-    1.5,                                         # waist_yaw
-    1.5, 1.5, 1.5, 1.5, 1.5, 1.5,             # left arm
-    1.5, 1.5, 1.5, 1.5, 1.5, 1.5,             # right arm
-    2.5, 1.5, 1.0, 2.5, 2.5, 1.5,             # L: hip_p, hip_r, hip_y, knee, ank_p, ank_r
-    2.5, 1.5, 1.0, 2.5, 2.5, 1.5,             # R: same
+    1.0,                                         # waist_yaw
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0,             # left arm
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0,             # right arm
+    1.5, 1.0, 0.8, 1.5, 1.5, 1.0,             # L: hip_p, hip_r, hip_y, knee, ank_p, ank_r
+    1.5, 1.0, 0.8, 1.5, 1.5, 1.0,             # R: same
 ], dtype=np.float32)
 
 # DART compensation: policy leans forward in PhysX but DART has less ankle resistance
 # Positive hip_pitch bias = less forward lean, positive ankle = foot tilts back
 DART_BIAS = np.zeros(N, dtype=np.float32)
-# Disabled for v6 policy — v6 was trained with wider randomization
-# DART_BIAS[13] = +0.04   # left_hip_pitch
-# DART_BIAS[17] = +0.03   # left_ankle_pitch
-# DART_BIAS[19] = +0.04   # right_hip_pitch
-# DART_BIAS[23] = +0.03   # right_ankle_pitch
+# Re-enable selectively if Gazebo shows persistent forward lean (DART has lower
+# ankle resistance than PhysX). Try +0.03 to +0.04 on hip_pitch/ankle_pitch.
 
 GZ_RESET_CMD = (
     "gz service -s /world/empty/control "
@@ -133,13 +124,19 @@ class RLNode(Node):
         self.session = ort.InferenceSession(pp, providers=["CPUExecutionProvider"])
         self.inp_name = self.session.get_inputs()[0].name
         inp_shape = self.session.get_inputs()[0].shape
-        self.get_logger().info(f"Loaded: {pp}  input_shape={inp_shape}")
+        # V21+ policies (93 inputs) add torso IMU; older V6 (87 inputs) skip.
+        self.expects_torso = (inp_shape[-1] == 93)
+        self.get_logger().info(
+            f"Loaded: {pp}  input_shape={inp_shape}  torso_imu={self.expects_torso}")
 
         self.pos_p = np.zeros(N, dtype=np.float32)
         self.vel_p = np.zeros(N, dtype=np.float32)
         self.ang_vel = np.zeros(3, dtype=np.float32)
         self.proj_grav = np.array([0., 0., -1.], dtype=np.float32)
         self.lin_vel = np.zeros(3, dtype=np.float32)
+        # V21+ torso IMU observations (required for 93-dim policies)
+        self.torso_ang_vel = np.zeros(3, dtype=np.float32)
+        self.torso_proj_grav = np.array([0., 0., -1.], dtype=np.float32)
         self.cmd = np.array([
             self.get_parameter("cmd_vel_x").get_parameter_value().double_value,
             self.get_parameter("cmd_vel_y").get_parameter_value().double_value,
@@ -158,15 +155,16 @@ class RLNode(Node):
         qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         self.create_subscription(JointState, "/joint_states", self._js, qos)
         self.create_subscription(Imu, "/pelvis_imu/data", self._imu, qos)
+        self.create_subscription(Imu, "/torso_imu/data", self._torso_imu, qos)
         self.create_subscription(Odometry, "/model/harambe/odometry", self._odom, 10)
         self.create_subscription(Twist, "/cmd_vel", self._cmd, 10)
 
         self.pub = self.create_publisher(
-            JointTrajectory, "/whole_body_controller/joint_trajectory", 10)
+            Float64MultiArray, "/whole_body_controller/target_joint_positions", 10)
 
         self.create_timer(1.0 / POLICY_RATE, self._tick)
         self.get_logger().info(
-            f"RL JTC node: {POLICY_RATE}Hz, "
+            f"RL ImplicitActuator node: {POLICY_RATE}Hz, "
             f"cmd=({self.cmd[0]:.1f},{self.cmd[1]:.1f},{self.cmd[2]:.1f})")
 
     def _js(self, msg):
@@ -203,6 +201,16 @@ class RLNode(Node):
             self.odom_received = True
             self.get_logger().info(f"First IMU: proj_grav={self.proj_grav}")
 
+    def _torso_imu(self, msg):
+        q = msg.orientation
+        self.torso_ang_vel[:] = [
+            msg.angular_velocity.x,
+            msg.angular_velocity.y,
+            msg.angular_velocity.z,
+        ]
+        gx, gy, gz = quat_rotate_inverse(q.x, q.y, q.z, q.w, 0., 0., -1.)
+        self.torso_proj_grav[:] = [gx, gy, gz]
+
     def _odom(self, msg):
         # Use odom for accurate lin_vel if available (overrides IMU estimate)
         self.lin_vel[:] = [
@@ -220,6 +228,13 @@ class RLNode(Node):
     def _is_fallen(self):
         return self.proj_grav[2] > -0.3
 
+    def _is_stable(self):
+        # Tighter than _is_upright — also require low joint velocities.
+        # Used to gate policy hand-off so impact dynamics fully decay.
+        upright = self.proj_grav[2] < -0.95
+        slow = float(np.max(np.abs(self.vel_p))) < 0.5
+        return upright and slow
+
     def _send_standup(self):
         targets_ctrl = np.zeros(N, dtype=np.float64)
         for i in range(N):
@@ -235,7 +250,7 @@ class RLNode(Node):
             self._send_standup()
             if self.odom_received:
                 self.get_logger().info("IMU received, going to standup...")
-                self.state = self.STATE_STANDUP  # skip fallen check, go straight to standup
+                self.state = self.STATE_STANDUP
                 self.state_step = 0
             return
 
@@ -278,11 +293,27 @@ class RLNode(Node):
                     self.state_step = 0
             return
 
-        # ── STATE: standup — hold default pose (5s) ──
+        # ── STATE: standup — hold ISAAC_DEFAULT pose until robot is stable ──
         if self.state == self.STATE_STANDUP:
-            self._send_standup()
+            # Send ISAAC_DEFAULT (what policy expects)
+            targets_ctrl = np.zeros(N, dtype=np.float64)
+            for i in range(N):
+                targets_ctrl[POLICY_TO_CTRL[i]] = float(ISAAC_DEFAULT[i])
+            self._send_trajectory(targets_ctrl)
             self.state_step += 1
-            if self.state_step >= 250:
+            # Require minimum 100 steps (2s) AND robot upright with low velocities.
+            # Policy hand-off needs zero velocity to match training initial conditions.
+            if self._is_stable() and self.state_step >= 100:
+                self.get_logger().info(
+                    f"Standup stable at step {self.state_step}! "
+                    f"proj_grav={self.proj_grav} "
+                    f"max_vel={float(np.max(np.abs(self.vel_p))):.3f}")
+                self.state = self.STATE_POLICY
+                self.state_step = 0
+                self.last_act[:] = 0
+                self.smoothed_act[:] = 0
+                return
+            if self.state_step >= 150:
                 self.get_logger().info(
                     f"Standup complete! proj_grav={self.proj_grav} "
                     f"pos_legs={self.pos_p[13:19]}")
@@ -303,11 +334,15 @@ class RLNode(Node):
 
             self.state_step += 1
 
-            # Policy obs uses ISAAC default (what the policy was trained with)
-            obs = np.concatenate([
+            # Policy obs uses ISAAC default (what the policy was trained with).
+            # V21+ policies (93 inputs) also consume torso IMU; older (87) skip.
+            base_obs = [
                 self.lin_vel, self.ang_vel, self.proj_grav, self.cmd,
                 self.pos_p - ISAAC_DEFAULT, self.vel_p, self.last_act,
-            ]).astype(np.float32).clip(-100, 100)
+            ]
+            if self.expects_torso:
+                base_obs += [self.torso_proj_grav, self.torso_ang_vel]
+            obs = np.concatenate(base_obs).astype(np.float32).clip(-100, 100)
 
             act = self.session.run(
                 None, {self.inp_name: obs.reshape(1, -1)})[0][0]
@@ -318,24 +353,19 @@ class RLNode(Node):
             # Clip for safety (only affects targets, not obs)
             act_clipped = np.clip(act, -ACTION_CLIP, ACTION_CLIP)
 
-            # EMA smoothing on targets only (reduces jitter in Gazebo)
-            EMA_ALPHA = 0.7  # less smoothing than before (0.5 was too sluggish)
+            # Light EMA smoothing — reduces Gazebo PID oscillation
+            EMA_ALPHA = 0.85
             self.smoothed_act[:] = EMA_ALPHA * act_clipped + (1.0 - EMA_ALPHA) * self.smoothed_act
 
-            # Gradual blend over 10s
-            blend = min(1.0, self.state_step / 500)
-
-            # Policy target with smoothed actions
-            policy_tgt = self.smoothed_act * ACTION_SCALE + ISAAC_DEFAULT + DART_BIAS
-            # Smooth interpolation: standup pose → policy target
-            tgt = (1.0 - blend) * STANDUP_POS + blend * policy_tgt
+            # Policy target — no blend, direct output (matches Isaac Lab)
+            tgt = self.smoothed_act * ACTION_SCALE + ISAAC_DEFAULT + DART_BIAS
 
             # Log every 2s for first 20s
             if self.state_step <= 500 and self.state_step % 100 == 1:
                 leg_tgt = tgt[13:19]
                 leg_act = self.pos_p[13:19]
                 self.get_logger().info(
-                    f"[step {self.state_step}] blend={blend:.2f} "
+                    f"[step {self.state_step}] "
                     f"proj_grav={self.proj_grav}\n"
                     f"  left_leg tgt={np.array2string(leg_tgt, precision=3)} "
                     f"act={np.array2string(leg_act, precision=3)}\n"
@@ -347,12 +377,8 @@ class RLNode(Node):
             self._send_trajectory(targets_ctrl)
 
     def _send_trajectory(self, positions):
-        msg = JointTrajectory()
-        msg.joint_names = CTRL_JOINTS
-        pt = JointTrajectoryPoint()
-        pt.positions = positions.tolist()
-        pt.time_from_start = Duration(sec=0, nanosec=2_000_000)  # 2ms for 1000Hz PID
-        msg.points = [pt]
+        msg = Float64MultiArray()
+        msg.data = positions.tolist()
         self.pub.publish(msg)
 
 

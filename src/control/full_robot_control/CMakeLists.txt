@@ -15,6 +15,12 @@ install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
+install(PROGRAMS
+  scripts/rl_locomotion_node.py
+  scripts/rl_locomotion_pr_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

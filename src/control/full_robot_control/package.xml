@@ -23,6 +23,8 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>full_robot_description</exec_depend>
   <exec_depend>hand_description</exec_depend>
+  <exec_depend>implicit_actuator_controller</exec_depend>
+  <exec_depend>ankle_pr_controller</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -12,6 +12,7 @@ install(FILES
   config/controllers.yaml
   config/controllers_gravcomp.yaml
   config/controllers_viewer.yaml
+  config/controllers_rl.yaml
   DESTINATION share/${PROJECT_NAME}/config)
 
 # ── Generate readonly variant (auto_state_transitions=false, drives stay disabled) ──

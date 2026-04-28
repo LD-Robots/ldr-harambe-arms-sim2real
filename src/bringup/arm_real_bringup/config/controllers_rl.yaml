@@ -1,0 +1,247 @@
+# Real hardware RL deployment — startup sequence:
+#   1. JSB + 5 position group controllers active → drives enable in CSP mode (8)
+#   2. mode_controller switches drives to CST mode (10)
+#   3. whole_body_controller (ImplicitActuator) activates → claims effort, runs PD
+#   4. Position controllers stay active (commands ignored by drive in CST mode)
+#   5. RL node sends position targets to /whole_body_controller/target_joint_positions
+#
+# Pipeline once in CST:
+#   ONNX (50 Hz) → ImplicitActuator (200 Hz, PD) → effort → EthercatDriver → motors
+#
+# Mode values: 8=CSP, 9=CSV, 10=CST
+
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz — matches Isaac Lab sim_dt=0.005
+    thread_priority: 49
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      publish_rate: 100
+
+    # Position group controllers — active during CSP startup, hold pose at enable
+    left_arm_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    right_arm_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    waist_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    left_leg_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    right_leg_group_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    # Effort controller — claims effort interface, INACTIVE at startup
+    whole_body_controller:
+      type: implicit_actuator_controller/ImplicitActuatorController
+
+    # Mode controller — always active for CSP↔CST switching
+    mode_controller:
+      type: forward_command_controller/ForwardCommandController
+
+
+# ── Position group controllers (CSP mode holders) ──
+
+left_arm_group_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+right_arm_group_controller:
+  ros__parameters:
+    joints:
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+waist_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint_X8
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+left_leg_group_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+right_leg_group_controller:
+  ros__parameters:
+    joints:
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: false
+
+
+whole_body_controller:
+  ros__parameters:
+    joints:
+      # Left arm (0-5)
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      # Right arm (6-11)
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      # Waist (12)
+      - waist_yaw_joint_X8
+      # Left leg (13-18)
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      # Right leg (19-24)
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+
+    # PD gains — exact per-joint from real motor identification (v11 ActuatorCfg)
+    # Source: ~/IsaacLab/source/isaaclab_assets/isaaclab_assets/robots/harambe.py
+    # IdealPDActuator is pure PD — ki must stay 0
+    kp: [
+      114.3, 115.4, 22.0, 30.6, 9.1, 10.8,
+      114.3, 115.2, 22.3, 31.4, 9.2, 10.8,
+      91.7,
+      466.2, 464.4, 75.7, 97.3, 996.2, 89.7,
+      465.4, 463.7, 75.6, 97.3, 996.1, 90.0,
+    ]
+
+    ki: [
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    ]
+
+    kd: [
+      10.7, 10.8, 2.1, 2.9, 0.9, 1.0,
+      10.7, 10.8, 2.1, 2.9, 0.9, 1.0,
+      8.6,
+      32.6, 32.5, 5.3, 6.8, 69.7, 6.3,
+      32.6, 32.5, 5.3, 6.8, 69.7, 6.3,
+    ]
+
+    i_clamp: [
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    ]
+
+    # Effort limits — exact from harambe.py (matches training)
+    # Ankle linkage gives mechanical advantage: pitch=163Nm, roll=49Nm
+    effort_limits: [
+      36.0, 36.0, 20.0, 36.0, 20.0, 20.0,
+      36.0, 36.0, 20.0, 36.0, 20.0, 20.0,
+      72.0,
+      72.0, 72.0, 72.0, 72.0, 163.0, 49.0,
+      72.0, 72.0, 72.0, 72.0, 163.0, 49.0,
+    ]
+
+    # Max rate for target smoothing (rad/s) — conservative on real
+    max_position_rate: 2.0
+
+    # Default positions — V25+ Isaac Lab init_state.joint_pos
+    # Source: ~/IsaacLab/source/isaaclab_assets/isaaclab_assets/robots/harambe.py
+    default_positions: [
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0,
+      -0.25, 0.0, 0.0, 0.50, -0.25, 0.0,
+      -0.25, 0.0, 0.0, 0.50, -0.25, 0.0,
+    ]
+
+
+mode_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
+    interface_name: mode_of_operation
