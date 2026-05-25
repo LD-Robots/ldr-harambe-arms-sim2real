@@ -50,11 +50,11 @@
   </joint>
 
   <joint name="right_wrist_roll_joint_X4" type="revolute">
-    <origin xyz="0.0219763 0.0156857 -0.0565" rpy="0.248276 0 0.619896"/>
+    <origin xyz="0.02686 0.0191714 -0.0565" rpy="0.248276 0 0.619896"/>
     <parent link="urdf_r_lower_forearm_assembly"/>
     <child link="urdf_r_wrist_assembly"/>
     <axis xyz="1 0 0"/>
-    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-1.65806" upper="1.65806"/>
+    <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-1.5708" upper="1.5708"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
   </joint>
 

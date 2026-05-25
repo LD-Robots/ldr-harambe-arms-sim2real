@@ -59,7 +59,7 @@ def generate_launch_description():
             PathJoinSubstitution([pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'])
         ),
         launch_arguments={
-            'gz_args': [LaunchConfiguration('world'), ' -r']
+            'gz_args': [LaunchConfiguration('world')]
         }.items()
     )
 

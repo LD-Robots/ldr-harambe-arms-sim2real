@@ -70,9 +70,9 @@
 
   <link name="urdf_l_elbow_assembly">
     <inertial>
-      <origin xyz="-0.004748 -0.00662541 -0.0710681" rpy="0 0 0"/>
-      <mass value="1.109"/>
-      <inertia ixx="0.00145153" ixy="5.51714e-05" ixz="-3.01713e-05" iyy="0.00147549" iyz="-7.59581e-05" izz="0.00114035"/>
+      <origin xyz="-0.00461411 -0.00637933 -0.0707457" rpy="0 0 0"/>
+      <mass value="1.142"/>
+      <inertia ixx="0.00154287" ixy="6.05563e-05" ixz="-3.2966e-05" iyy="0.00156902" iyz="-8.34358e-05" izz="0.00119839"/>
     </inertial>
     <visual>
       <origin xyz="-0.0245855 -0.0370918 -0.075" rpy="-1.57079 1.57079 -0.585341"/>
@@ -102,9 +102,9 @@
 
   <link name="urdf_l_upper_forearm_assembly">
     <inertial>
-      <origin xyz="0.0267132 -0.0286559 -0.0999185" rpy="0 0 0"/>
-      <mass value="0.707"/>
-      <inertia ixx="0.00162524" ixy="9.29307e-05" ixz="0.000226906" iyy="0.00146156" iyz="-0.000353662" izz="0.000776911"/>
+      <origin xyz="0.0265914 -0.0282785 -0.0989525" rpy="0 0 0"/>
+      <mass value="0.75"/>
+      <inertia ixx="0.00179111" ixy="0.000103834" ixz="0.000252339" iyy="0.00160857" iyz="-0.00039262" izz="0.00085415"/>
     </inertial>
     <visual>
       <origin xyz="0.0285991 -0.035 -0.115512" rpy="0.242704 0 -1.5708"/>
@@ -134,9 +134,9 @@
 
   <link name="urdf_l_lower_forearm_assembly">
     <inertial>
-      <origin xyz="-0.00311766 0.00307025 -0.0515634" rpy="0 0 0"/>
-      <mass value="0.618"/>
-      <inertia ixx="0.000628386" ixy="-1.68351e-06" ixz="-2.8195e-05" iyy="0.000617293" iyz="-3.24981e-07" izz="0.000448744"/>
+      <origin xyz="-0.00362531 0.00330112 -0.0531095" rpy="0 0 0"/>
+      <mass value="0.556"/>
+      <inertia ixx="0.000520191" ixy="3.46296e-06" ixz="-2.37876e-05" iyy="0.000515397" iyz="8.30152e-07" izz="0.000383432"/>
     </inertial>
     <visual>
       <origin xyz="-0.00732538 0.00522865 -0.0615" rpy="-1.5708 0 0.95089"/>
@@ -154,7 +154,7 @@
       </geometry>
     </collision>
     <visual>
-      <origin xyz="-0.0305224 0.021786 -0.0615" rpy="1.5708 0 0.950885"/>
+      <origin xyz="-0.0305224 0.021786 -0.0615" rpy="1.5708 0 0.95089"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/stator_x4_p36_36_unified.stl"/>
       </geometry>
@@ -166,10 +166,25 @@
 
   <link name="urdf_l_wrist_assembly">
     <inertial>
-      <origin xyz="-0.0219307 0.0106852 -0.0421315" rpy="0 0 0"/>
-      <mass value="0.098"/>
-      <inertia ixx="0.000100785" ixy="8.20205e-06" ixz="-3.2373e-05" iyy="0.000121426" iyz="6.79922e-06" izz="9.6353e-05"/>
+      <origin xyz="-0.0290507 0.0297622 -0.117398" rpy="0 0 0"/>
+      <mass value="0.638"/>
+      <inertia ixx="0.00213609" ixy="8.63163e-06" ixz="-3.40776e-05" iyy="0.00224824" iyz="0.000464587" izz="0.000533279"/>
     </inertial>
+    <visual>
+      <origin xyz="-0.0303429 0.0332242 -0.131057" rpy="0.248282 0 0"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/visual/l_hand.stl"/>
+      </geometry>
+      <material name="l_hand_material">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.0303429 0.0332242 -0.131057" rpy="0.248282 0 0"/>
+      <geometry>
+        <mesh filename="package://full_robot_description/meshes/collision/l_hand.stl"/>
+      </geometry>
+    </collision>
     <visual>
       <origin xyz="-0.0219314 0.0106852 -0.0421315" rpy="0 0.248279 -1.5708"/>
       <geometry>

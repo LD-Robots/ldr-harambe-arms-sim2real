@@ -5,7 +5,7 @@
   <!-- Left Foot                                                         -->
   <!-- ================================================================== -->
   <joint name="left_hip_pitch_joint_X8" type="${leg_joint_type}">
-    <origin xyz="0.070373 0.0872946 -0.431099" rpy="0 0 0"/>
+    <origin xyz="-0.015194 0.0881676 -0.0706295" rpy="0 0 0"/>
     <parent link="urdf_base"/>
     <child link="urdf_hip_assembly"/>
     <axis xyz="0 1 0"/>

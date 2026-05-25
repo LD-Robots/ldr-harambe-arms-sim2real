@@ -50,7 +50,7 @@
   </joint>
 
   <joint name="left_wrist_roll_joint_X4" type="revolute">
-    <origin xyz="0.0219762 -0.0156859 -0.0615" rpy="-0.248279 0 -0.619909"/>
+    <origin xyz="0.0268597 -0.0191717 -0.0615" rpy="-0.248279 0 -0.619909"/>
     <parent link="urdf_l_lower_forearm_assembly"/>
     <child link="urdf_l_wrist_assembly"/>
     <axis xyz="1 0 0"/>
