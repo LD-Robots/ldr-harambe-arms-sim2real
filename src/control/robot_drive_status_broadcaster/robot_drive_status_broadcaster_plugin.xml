@@ -1,0 +1,13 @@
+<library path="robot_drive_status_broadcaster">
+  <class
+    name="robot_drive_status_broadcaster/DriveStatusBroadcaster"
+    type="robot_drive_status_broadcaster::DriveStatusBroadcaster"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Whole-body MyActuator drive telemetry broadcaster. Claims TxPDO 0x1A02
+      state interfaces (motor_temperature, drive_temperature, bus_voltage,
+      error_code) for every joint in the `joints` parameter and republishes
+      each as a std_msgs/Float64MultiArray sized to the joint roster.
+    </description>
+  </class>
+</library>

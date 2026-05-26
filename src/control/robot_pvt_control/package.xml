@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_pvt_control</name>
+  <version>0.1.0</version>
+  <description>
+    Whole-body PVT (CiA 402 mode 5) controller for the 25-joint humanoid.
+    Streams position / velocity / torque-FF / Kp / Kd setpoints to every
+    MyActuator drive at 1 kHz; drives run τ = Kp·Δp + Kd·Δv + τ_ff in firmware.
+    Exposes both a streaming setpoint topic and a FollowJointTrajectory action
+    with cubic/quintic-Hermite interpolation, plus hold / free services, a
+    whole-body lag governor, and centralised safety (clamps + thermal Kp
+    derating + e-stop FREE/HOLD via librobot_safety).
+
+    Ported from pendulum_pvt_control — generalised N=1 → N=25.
+  </description>
+  <maintainer email="andrei.dragomir@ldrobots.ro">Andrei Dragomir</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>control_msgs</depend>
+  <depend>lifecycle_msgs</depend>
+  <depend>robot_safety</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

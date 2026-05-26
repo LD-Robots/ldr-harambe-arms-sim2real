@@ -1,0 +1,13 @@
+<library path="robot_filtered_joint_state_broadcaster">
+  <class
+    name="robot_filtered_joint_state_broadcaster/FilteredJointStateBroadcaster"
+    type="robot_filtered_joint_state_broadcaster::FilteredJointStateBroadcaster"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Whole-body filtered joint state broadcaster. Reads pos/vel/eff state
+      interfaces for every joint in the `joints` parameter, applies a per-joint
+      first-order IIR low-pass on velocity and effort, and publishes a
+      sensor_msgs/JointState on the configured topic. Position is unfiltered.
+    </description>
+  </class>
+</library>

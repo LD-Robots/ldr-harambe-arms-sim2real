@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_drive_status_broadcaster</name>
+  <version>0.1.0</version>
+  <description>
+    Whole-body MyActuator drive telemetry broadcaster. Claims TxPDO 0x1A02
+    state interfaces (motor_temperature, drive_temperature, bus_voltage,
+    error_code) for every configured joint and republishes each signal as a
+    std_msgs/Float64MultiArray sized to the joint roster. Consumed by
+    robot_safety_supervisor for thermal Kp derating and over-temp / under-voltage
+    breach detection.
+  </description>
+  <maintainer email="andrei.dragomir@ldrobots.ro">Andrei Dragomir</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>std_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

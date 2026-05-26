@@ -1,0 +1,184 @@
+# robot_safety — single source of truth for every per-joint safety limit.
+#
+# Loaded by:
+#   - robot_safety_supervisor    (full file, including supervisor-only block)
+#   - robot_pvt_controller       (safety.* — clamps + Kp derate)
+#   - any future control path that links librobot_safety
+#
+# Schema:
+#   safety.global.<field>            — applies to any joint without an override
+#   safety.joints.<joint>.<field>    — per-joint override (only specify what
+#                                      differs from global)
+#
+# CAUTION: these limits are first-pass envelopes derived from the gazebo policy
+# gains and the canonical EtherCAT max_torque SDO settings. EVERY VALUE MUST BE
+# VALIDATED ON HARDWARE BEFORE TRUSTING. Per [[project-wrist-yaw-incident]],
+# real-hardware breakages happen when limits are too loose; per
+# [[feedback-real-hardware-safety]], err on the conservative side.
+
+robot_safety_supervisor:
+  ros__parameters:
+    joint_names:
+      - left_shoulder_pitch_X6
+      - left_shoulder_roll_X6
+      - left_shoulder_yaw_X4
+      - left_elbow_pitch_X6
+      - left_wrist_yaw_X4
+      - left_wrist_roll_X4
+      - right_shoulder_pitch_X6
+      - right_shoulder_roll_X6
+      - right_shoulder_yaw_X4
+      - right_elbow_pitch_X6
+      - right_wrist_yaw_X4
+      - right_wrist_roll_X4
+      - waist_yaw_X8
+      - left_hip_pitch_X8
+      - left_hip_roll_X8
+      - left_hip_yaw_X8
+      - left_knee_X8
+      - left_ankle_pitch_X4
+      - left_ankle_roll_X4
+      - right_hip_pitch_X8
+      - right_hip_roll_X8
+      - right_hip_yaw_X8
+      - right_knee_X8
+      - right_ankle_pitch_X4
+      - right_ankle_roll_X4
+
+    joint_state_topic: /joint_states
+    monitor_temperature: true
+    temperature_topic_motor: /drive_status_broadcaster/motor_temperature
+    temperature_topic_drive: /drive_status_broadcaster/drive_temperature
+    bus_voltage_topic: /drive_status_broadcaster/bus_voltage
+    watchdog_rate_hz: 200.0
+    # Breach detection arms only after the joint feed is continuously fresh
+    # for this long — bringup transients (EtherCAT reaching OP, controller
+    # activation) cannot latch a spurious e-stop.
+    startup_grace_sec: 2.0
+    # Boot in a latched e-stop so the drives stay limp until the operator
+    # calls ~/reset. Reset is gated on detection being armed.
+    start_latched: true
+
+    # Per-trigger FREE / HOLD action. Position / overspeed / stale faults hold
+    # the joints (safer for an already-moving robot); thermal / sustained / manual
+    # release torque (recoverable conditions where coasting is preferred).
+    action.temperature: free
+    action.overspeed: hold
+    action.position: hold
+    action.manual: free
+    action.stale_joint_state: hold
+    action.sustained_effort: free
+
+    safety:
+      global:
+        # 3.1 position — symmetric ±π default; override per joint below
+        position_limits_enable: true
+        position_min: -3.141592653589793
+        position_max:  3.141592653589793
+        # 3.2 effort — conservative whole-body default (Nm). Heavy load joints
+        # (hips, knees, ankles) override upward; wrists override downward.
+        effort_limit: 12.0
+        sustained_effort_threshold: 10.0
+        sustained_effort_window_sec: 1.0
+        # 3.3 velocity
+        velocity_limit: 5.0           # rad/s
+        slew_rate_limit: 2.5          # rad/s — position-command slew
+        acceleration_limit: 30.0      # rad/s^2
+        # 3.4 temperature / bus voltage (MyActuator X-series envelope)
+        motor_temp_warn: 70.0
+        motor_temp_error: 90.0
+        drive_temp_warn: 70.0
+        drive_temp_error: 85.0
+        bus_voltage_min: 40.0
+        bus_voltage_max: 54.0
+        kp_scale_floor: 0.3
+        # watchdog
+        joint_state_timeout_sec: 0.25
+
+      joints:
+        # ── Wrists (X4, low-inertia, narrow torque envelope) ──
+        left_wrist_yaw_X4:
+          # NEVER lift the limits here without re-validating —
+          # [[project-wrist-yaw-incident]] broke this joint at the X4
+          # mechanical limit during a CST PD test.
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        left_wrist_roll_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        right_wrist_yaw_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        right_wrist_roll_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+
+        # ── Waist (X8) — single torso joint, moderate envelope ──
+        waist_yaw_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 3.0
+          position_min: -1.5708        # ±π/2 — torso twist range
+          position_max:  1.5708
+
+        # ── Hips (X8) — heavy load, full-body weight ──
+        left_hip_pitch_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_roll_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_yaw_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+        right_hip_pitch_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_roll_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_yaw_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+
+        # ── Knees (X8) — single-axis hinge, bends only one way ──
+        left_knee_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0            # knees only bend forward
+          position_max: 2.5
+        right_knee_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+
+        # ── Ankles (X4) — small joint, large mechanical advantage ──
+        left_ankle_pitch_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+        left_ankle_roll_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+        right_ankle_pitch_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+        right_ankle_roll_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0

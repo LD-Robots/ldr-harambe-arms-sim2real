@@ -1,0 +1,86 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ICube EtherCAT slave config — left_elbow_pitch_X6 (PVT / CiA 402 mode 5)
+#
+# BOOTSTRAPPED from arm_real_bringup/config/ethercat/{name}.yaml via
+# scripts/generate_ethercat_pvt.py. After bootstrapping this is the
+# source of truth — edit by hand for per-joint PVT tuning (PVT_KP / PVT_KD
+# factors, max_torque, position offsets, etc.). Re-running the generator
+# will OVERWRITE these edits.
+#
+# Mode 5 (PVT) layout:
+#   RxPDO 0x1601 (22 B): control_word, target_position, target_velocity,
+#                        torque_ff, PVT_KP, PVT_KD, mode (locked 5), padding.
+#   TxPDO 0x1A02 (22 B): status, actual_pos, actual_vel, actual_torque,
+#                        error_code, motor_temp, drive_temp, bus_voltage,
+#                        mode_display, padding.
+#
+# Drive math:  τ = Kp·(p_des - p_fb) + Kd·(v_des - v_fb) + τ_ff
+#   PVT_KP / PVT_KD apply ×0.001 inside the drive, so factor=1000.0 lets
+#   the host command in N·m/rad and N·m·s/rad.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── DEVICE IDENTITY ───
+vendor_id:  0x00202008
+product_id: 0x00000000
+
+# ─── DISTRIBUTED CLOCK ───
+assign_activate: 0x0300
+
+# ─── CiA 402 DRIVE BEHAVIOR ───
+auto_fault_reset: true
+auto_state_transitions: true
+mode_of_operation: 5            # 5 = PVT (drive runs Kp·Δp + Kd·Δv + τ_ff)
+
+# ─── SDO: one-time parameters written to drive at startup ───
+sdo:
+  - {index: 0x6072, sub_index: 0, type: uint16, value: 400}  # max torque (per-mille rated)
+  - {index: 0x60C2, sub_index: 1, type: int8,   value: 1}     # interpolation time period
+  - {index: 0x60C2, sub_index: 2, type: int8,   value: -3}    # base 10^-3 s → 1 ms cycle = 1 kHz
+
+# ─── RxPDO 0x1601 (22 B): master → drive every cycle ───
+rpdo:
+  - index: 0x1601
+    channels:
+      # [2 B] control_word — managed by CiA 402 driver
+      - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
+      # [4 B] target_position (0x607A) — drive PD setpoint, in encoder counts (factor includes direction sign)
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -20860.756, offset: 6058, default: 6058}
+      # [4 B] target_velocity (0x60FF) — drive PD velocity setpoint
+      - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20860.756, default: 0}
+      # [2 B] torque feedforward (0x6071) — added to PD output inside the drive
+      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -50.0,    default: 0}
+      # [4 B] PVT_KP (0x2000) — drive applies value × 0.001; factor 1000 ⇒ host sends N·m/rad
+      - {index: 0x2000, sub_index: 0, type: int32,  command_interface: kp,       factor: 1000.0, default: 0}
+      # [4 B] PVT_KD (0x2001) — same scaling as Kp
+      - {index: 0x2001, sub_index: 0, type: int32,  command_interface: kd,       factor: 1000.0, default: 0}
+      # [1 B] mode_of_operation (0x6060) — locked to PVT (firmware does not remap PDOs)
+      - {index: 0x6060, sub_index: 0, type: int8,   command_interface: ~,        default: 5}
+      # [1 B] padding
+      - {index: 0x2ffd, sub_index: 0, type: int8,   command_interface: ~,        default: 0}
+
+# ─── TxPDO 0x1A02 (22 B): drive → master every cycle ───
+# Channel order must match the ESI MT-Device_260424.xml; this firmware does not
+# remap TxPDOs, so reordering will cause AL status 0x001E during PREOP→SAFEOP.
+tpdo:
+  - index: 0x1a02
+    channels:
+      # [2 B] status_word (0x6041) — exposed for safety supervisor + diagnostics
+      - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
+      # [4 B] actual_position (0x6064)
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -4.79369e-05, offset: 0.2904}
+      # [4 B] actual_velocity (0x606C)
+      - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.79369e-05}
+      # [2 B] actual_torque (0x6077)
+      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02}
+      # [2 B] error_code (0x603F) — exposed to robot_drive_status_broadcaster
+      - {index: 0x603f, sub_index: 0, type: uint16, state_interface: error_code}
+      # [2 B] motor_temperature (0x2009) — degrees C, int16
+      - {index: 0x2009, sub_index: 0, type: int16,  state_interface: motor_temperature, factor: 1.0}
+      # [2 B] drive_temperature (0x200C) — MOSFET temp, degrees C, int16
+      - {index: 0x200c, sub_index: 0, type: int16,  state_interface: drive_temperature, factor: 1.0}
+      # [2 B] bus_voltage (0x200A) — V, rounded uint16
+      - {index: 0x200a, sub_index: 0, type: uint16, state_interface: bus_voltage,       factor: 1.0}
+      # [1 B] mode_of_operation_display (0x6061) — read by CiA 402 plugin
+      - {index: 0x6061, sub_index: 0, type: int8,   state_interface: ~}
+      # [1 B] padding
+      - {index: 0x2ffe, sub_index: 0, type: int8,   state_interface: ~}

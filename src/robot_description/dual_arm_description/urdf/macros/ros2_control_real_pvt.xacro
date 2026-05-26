@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <!-- ros2_control interface for real EtherCAT hardware in PVT (CiA 402 mode 5) -->
+    <!-- All 25 actuators on a single EtherCAT bus (master_id=0), 1 kHz -->
+    <!-- Each joint exposes 5 command interfaces (position, velocity, effort, kp, kd) -->
+    <!-- and 8 state interfaces (position, velocity, effort, motor_temperature, -->
+    <!-- drive_temperature, bus_voltage, error_code, status_word). The mode_of_operation -->
+    <!-- command interface is NOT exposed in PVT — the firmware locks the PDO to mode 5. -->
+    <xacro:macro name="dual_arm_ros2_control_real_pvt">
+
+        <xacro:property name="ctrl_freq" value="1000"/>
+        <xacro:property name="pvt_yaml_dir" value="$(find robot_bringup)/config/ethercat_pvt"/>
+
+        <xacro:macro name="ec_pvt_joint" params="name bus_pos slave_file ec_name">
+            <joint name="${name}">
+                <command_interface name="position"/>
+                <command_interface name="velocity"/>
+                <command_interface name="effort"/>
+                <command_interface name="kp"/>
+                <command_interface name="kd"/>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+                <state_interface name="motor_temperature"/>
+                <state_interface name="drive_temperature"/>
+                <state_interface name="bus_voltage"/>
+                <state_interface name="error_code"/>
+                <state_interface name="status_word"/>
+                <ec_module name="${ec_name}">
+                    <plugin>ethercat_generic_plugins/EcCiA402Drive</plugin>
+                    <param name="alias">0</param>
+                    <param name="position">${bus_pos}</param>
+                    <param name="slave_config">${pvt_yaml_dir}/${slave_file}</param>
+                </ec_module>
+            </joint>
+        </xacro:macro>
+
+        <ros2_control name="EthercatSystem" type="system">
+            <hardware>
+                <plugin>harambe_ethercat_driver/HarambeEthercatDriver</plugin>
+                <param name="master_id">0</param>
+                <param name="control_frequency">${ctrl_freq}</param>
+                <!-- Ankle eccentric-pushrod linkage geometry (meters) -->
+                <param name="r_exc">0.025</param>
+                <param name="d_pitch">0.03</param>
+                <param name="d_roll">0.056</param>
+                <param name="pitch_sign">-1</param>
+                <param name="roll_sign">1</param>
+                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
+            </hardware>
+
+            <!-- LEFT ARM (bus 0-5) -->
+            <xacro:ec_pvt_joint name="left_shoulder_pitch_joint_X6" bus_pos="0"  slave_file="left_shoulder_pitch_X6.yaml"  ec_name="LeftShoulderPitch"/>
+            <xacro:ec_pvt_joint name="left_shoulder_roll_joint_X6"  bus_pos="1"  slave_file="left_shoulder_roll_X6.yaml"   ec_name="LeftShoulderRoll"/>
+            <xacro:ec_pvt_joint name="left_shoulder_yaw_joint_X4"   bus_pos="2"  slave_file="left_shoulder_yaw_X4.yaml"    ec_name="LeftShoulderYaw"/>
+            <xacro:ec_pvt_joint name="left_elbow_pitch_joint_X6"    bus_pos="3"  slave_file="left_elbow_pitch_X6.yaml"     ec_name="LeftElbowPitch"/>
+            <xacro:ec_pvt_joint name="left_wrist_yaw_joint_X4"      bus_pos="4"  slave_file="left_wrist_yaw_X4.yaml"       ec_name="LeftWristYaw"/>
+            <xacro:ec_pvt_joint name="left_wrist_roll_joint_X4"     bus_pos="5"  slave_file="left_wrist_roll_X4.yaml"      ec_name="LeftWristRoll"/>
+
+            <xacro:unless value="$(arg only_left)">
+            <!-- RIGHT ARM (bus 6-11) -->
+            <xacro:ec_pvt_joint name="right_shoulder_pitch_joint_X6" bus_pos="6"  slave_file="right_shoulder_pitch_X6.yaml" ec_name="RightShoulderPitch"/>
+            <xacro:ec_pvt_joint name="right_shoulder_roll_joint_X6"  bus_pos="7"  slave_file="right_shoulder_roll_X6.yaml"  ec_name="RightShoulderRoll"/>
+            <xacro:ec_pvt_joint name="right_shoulder_yaw_joint_X4"   bus_pos="8"  slave_file="right_shoulder_yaw_X4.yaml"   ec_name="RightShoulderYaw"/>
+            <xacro:ec_pvt_joint name="right_elbow_pitch_joint_X6"    bus_pos="9"  slave_file="right_elbow_pitch_X6.yaml"    ec_name="RightElbowPitch"/>
+            <xacro:ec_pvt_joint name="right_wrist_yaw_joint_X4"      bus_pos="10" slave_file="right_wrist_yaw_X4.yaml"      ec_name="RightWristYaw"/>
+            <xacro:ec_pvt_joint name="right_wrist_roll_joint_X4"     bus_pos="11" slave_file="right_wrist_roll_X4.yaml"     ec_name="RightWristRoll"/>
+            </xacro:unless>
+
+            <xacro:unless value="$(arg only_arms)">
+            <!-- WAIST (bus 12) -->
+            <xacro:ec_pvt_joint name="waist_yaw_joint_X8" bus_pos="12" slave_file="waist_yaw_X8.yaml" ec_name="WaistYaw"/>
+
+            <!-- LEFT LEG (bus 13-18) -->
+            <xacro:ec_pvt_joint name="left_hip_pitch_joint_X8"   bus_pos="13" slave_file="left_hip_pitch_X8.yaml"   ec_name="LeftHipPitch"/>
+            <xacro:ec_pvt_joint name="left_hip_roll_joint_X8"    bus_pos="14" slave_file="left_hip_roll_X8.yaml"    ec_name="LeftHipRoll"/>
+            <xacro:ec_pvt_joint name="left_hip_yaw_joint_X8"     bus_pos="15" slave_file="left_hip_yaw_X8.yaml"     ec_name="LeftHipYaw"/>
+            <xacro:ec_pvt_joint name="left_knee_joint_X8"        bus_pos="16" slave_file="left_knee_X8.yaml"        ec_name="LeftKnee"/>
+            <xacro:ec_pvt_joint name="left_ankle_pitch_joint_X4" bus_pos="17" slave_file="left_ankle_pitch_X4.yaml" ec_name="LeftAnklePitch"/>
+            <xacro:ec_pvt_joint name="left_ankle_roll_joint_X4"  bus_pos="18" slave_file="left_ankle_roll_X4.yaml"  ec_name="LeftAnkleRoll"/>
+
+            <!-- RIGHT LEG (bus 19-24) — note: roll is bus 23, pitch is bus 24 -->
+            <xacro:ec_pvt_joint name="right_hip_pitch_joint_X8"   bus_pos="19" slave_file="right_hip_pitch_X8.yaml"   ec_name="RightHipPitch"/>
+            <xacro:ec_pvt_joint name="right_hip_roll_joint_X8"    bus_pos="20" slave_file="right_hip_roll_X8.yaml"    ec_name="RightHipRoll"/>
+            <xacro:ec_pvt_joint name="right_hip_yaw_joint_X8"     bus_pos="21" slave_file="right_hip_yaw_X8.yaml"     ec_name="RightHipYaw"/>
+            <xacro:ec_pvt_joint name="right_knee_joint_X8"        bus_pos="22" slave_file="right_knee_X8.yaml"        ec_name="RightKnee"/>
+            <xacro:ec_pvt_joint name="right_ankle_roll_joint_X4"  bus_pos="23" slave_file="right_ankle_roll_X4.yaml"  ec_name="RightAnkleRoll"/>
+            <xacro:ec_pvt_joint name="right_ankle_pitch_joint_X4" bus_pos="24" slave_file="right_ankle_pitch_X4.yaml" ec_name="RightAnklePitch"/>
+            </xacro:unless>
+
+        </ros2_control>
+
+    </xacro:macro>
+</robot>

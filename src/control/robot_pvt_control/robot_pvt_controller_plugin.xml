@@ -1,0 +1,15 @@
+<library path="robot_pvt_control">
+  <class
+    name="robot_pvt_control/RobotPVTController"
+    type="robot_pvt_control::RobotPVTController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Whole-body PVT (CiA 402 mode 5) controller. Streams position / velocity /
+      torque-FF / Kp / Kd to every drive at 1 kHz; the drives run
+      τ = Kp·Δp + Kd·Δv + τ_ff in firmware. Streaming setpoint topic
+      (~/setpoint) and FollowJointTrajectory action (~/follow_joint_trajectory)
+      with cubic/quintic-Hermite interpolation, plus hold/free services. Links
+      librobot_safety for clamps + thermal Kp derating + e-stop FREE/HOLD.
+    </description>
+  </class>
+</library>

@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_safety</name>
+  <version>0.1.0</version>
+  <description>
+    Centralised safety enforcement for the full humanoid (25 joints). Provides a
+    shared, realtime-safe limiter library (position / velocity / effort clamps,
+    slew-rate and acceleration limiting, thermal Kp derating, sustained-effort
+    monitoring) linked by the PVT and policy control paths, plus a standalone
+    supervisor node that performs all breach detection (position, velocity,
+    effort, motor / drive temperature, bus voltage, stale joint state) across
+    all joints and drives a configurable, manually-reset emergency stop with
+    per-trigger FREE / HOLD action.
+
+    Ported from pendulum_safety (single-joint bench rig) — generalised N=1 → N=25.
+  </description>
+  <maintainer email="andrei.dragomir@ldrobots.ro">Andrei Dragomir</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>diagnostic_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

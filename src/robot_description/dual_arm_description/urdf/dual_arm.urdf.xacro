@@ -9,6 +9,7 @@
     <xacro:arg name="only_arms" default="false" />
     <xacro:arg name="readonly" default="false" />
     <xacro:arg name="gravcomp" default="false" />
+    <xacro:arg name="pvt_mode" default="false" />
 
     <xacro:if value="$(arg use_isaac)">
         <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_isaac.xacro" />

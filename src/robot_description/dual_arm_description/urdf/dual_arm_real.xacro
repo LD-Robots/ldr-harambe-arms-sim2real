@@ -5,6 +5,7 @@
     <xacro:arg name="robot_name" default="dual_arm_description"/>
     <xacro:arg name="readonly" default="false"/>
     <xacro:arg name="gravcomp" default="false"/>
+    <xacro:arg name="pvt_mode" default="false"/>
 
     <!-- Bring in base structure (links, joints, hands) -->
     <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />
@@ -16,9 +17,17 @@
         <child link="urdf_base"/>
     </joint>
 
-    <!-- ros2_control interfaces for real EtherCAT hardware -->
-    <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real.xacro"/>
-    <xacro:dual_arm_ros2_control_real/>
+    <!-- ros2_control interfaces for real EtherCAT hardware.
+         pvt_mode=true: CiA 402 mode 5, 1 kHz, 5 cmd / 8 state interfaces per joint
+         pvt_mode=false: legacy CSP/CST path (position + effort + mode_of_operation) -->
+    <xacro:if value="$(arg pvt_mode)">
+        <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real_pvt.xacro"/>
+        <xacro:dual_arm_ros2_control_real_pvt/>
+    </xacro:if>
+    <xacro:unless value="$(arg pvt_mode)">
+        <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real.xacro"/>
+        <xacro:dual_arm_ros2_control_real/>
+    </xacro:unless>
 
     <!-- Depth Camera (if connected to real robot) -->
     <xacro:include filename="$(find arm_description)/urdf/macros/depth_camera.xacro"/>

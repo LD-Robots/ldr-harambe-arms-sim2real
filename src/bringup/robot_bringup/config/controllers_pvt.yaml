@@ -1,0 +1,190 @@
+# Controllers for the whole-body PVT stack on real EtherCAT hardware.
+#
+# Layout:
+#   1) robot_filtered_joint_state_broadcaster — replaces the standard
+#      joint_state_broadcaster; publishes /joint_states_raw at 100 Hz with
+#      a 30 Hz IIR low-pass on velocity + effort (positions unfiltered).
+#   2) robot_drive_status_broadcaster — TxPDO 0x1A02 telemetry: motor temp,
+#      drive temp, bus voltage, error code — published as Float64MultiArray
+#      sized to the joint roster.
+#   3) robot_pvt_controller — claims position/velocity/effort/kp/kd on every
+#      joint. Spawned INACTIVE; the operator activates it explicitly after
+#      verifying telemetry is healthy.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 1000   # PVT runs at 1 kHz — slave configs set 1 ms cycle
+
+    robot_filtered_joint_state_broadcaster:
+      type: robot_filtered_joint_state_broadcaster/FilteredJointStateBroadcaster
+
+    robot_drive_status_broadcaster:
+      type: robot_drive_status_broadcaster/DriveStatusBroadcaster
+
+    robot_pvt_controller:
+      type: robot_pvt_control/RobotPVTController
+
+# ── Filtered joint-state broadcaster ─────────────────────────────────────────
+robot_filtered_joint_state_broadcaster:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_roll_joint_X4
+      - right_ankle_pitch_joint_X4
+    velocity_cutoff_hz: 30.0
+    torque_cutoff_hz: 30.0
+    publish_rate: 100.0
+    topic: /joint_states_raw
+
+# ── Drive status broadcaster (TxPDO 0x1A02 telemetry) ────────────────────────
+robot_drive_status_broadcaster:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_roll_joint_X4
+      - right_ankle_pitch_joint_X4
+    publish_rate: 50.0
+    motor_temp_warn: 70.0
+    motor_temp_error: 90.0
+    drive_temp_warn: 70.0
+    drive_temp_error: 85.0
+    bus_voltage_min: 40.0
+    bus_voltage_max: 54.0
+
+# ── PVT controller (drive-side PD) ───────────────────────────────────────────
+# All per-joint arrays use the same order as `joints` above. Defaults below
+# come from src/robot_description/full_robot_description/urdf/full_robot_gazebo.xacro:122-154
+# (gazebo policy gains — these are SIM-tuned starting points, NOT hardware-validated.
+# Per project history they must be ramped from 0 on hardware: K=0 -> Kd -> Kp.)
+robot_pvt_controller:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_roll_joint_X4
+      - right_ankle_pitch_joint_X4
+
+    drive_side_pd: true       # real hw: drive runs the PD law (mode 5)
+
+    # FIRST BRINGUP: leave Kp / Kd at 0.0 across the board. Activate the
+    # controller, verify ~/setpoint streams reach the drives, then ramp Kd
+    # then Kp per the bench-rig protocol (ethercat_control_guide.html §23).
+    Kp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    Kd: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    # All host-side feedforward terms OFF on first bringup — easier to debug
+    # what's coming from the drive vs the host. Enable per joint once gains
+    # are validated.
+    ff_gravity: [false]
+    ff_inertia: [false]
+    ff_viscous: [false]
+
+    # Per-joint inertia / gravity / viscous magnitudes — placeholder zeros.
+    # These need URDF-derived values before enabling ff_*.
+    mgl: [0.0]
+    J:   [0.0]
+    Fv:  [0.0]
+    comp_sign: [1.0]
+    hold_position: [0.0]
+
+    # Lag governor (global) — defaults from pendulum_pvt_control. Tune at
+    # hardware time per joint group.
+    lag_free: 0.04
+    lag_pause: 0.14
+    alpha_slew: 2.0
+
+    # ── Safety limits (consumed by the limiter library inside the controller).
+    # These shadow the supervisor's safety_limits.yaml — keep the two in sync,
+    # or pass the same file via --params-file to both nodes.
+    safety:
+      global:
+        position_limits_enable: true
+        position_min: -3.141592653589793
+        position_max:  3.141592653589793
+        effort_limit: 12.0
+        sustained_effort_threshold: 10.0
+        sustained_effort_window_sec: 1.0
+        velocity_limit: 5.0
+        slew_rate_limit: 2.5
+        acceleration_limit: 30.0
+        motor_temp_warn: 70.0
+        motor_temp_error: 90.0
+        drive_temp_warn: 70.0
+        drive_temp_error: 85.0
+        bus_voltage_min: 40.0
+        bus_voltage_max: 54.0
+        kp_scale_floor: 0.3
+        joint_state_timeout_sec: 0.25
