@@ -12,6 +12,7 @@ install(FILES
   config/controllers.yaml
   config/controllers_gravcomp.yaml
   config/controllers_viewer.yaml
+  config/handshake.yaml
   DESTINATION share/${PROJECT_NAME}/config)
 
 # ── Generate readonly variant (auto_state_transitions=false, drives stay disabled) ──
@@ -62,6 +63,7 @@ install(PROGRAMS
   scripts/homing_sequence.py
   scripts/gravity_comp_node.py
   scripts/startup_monitor_node.py
+  scripts/handshake_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

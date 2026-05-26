@@ -1,0 +1,31 @@
+# Defaults for the handshake demo node.
+#
+# `predefined_pose` is a placeholder — calibrate it once on the real robot
+# (e.g. drive the arm to the desired "hand outstretched" pose with your
+# action_sender GUI, read /joint_states, paste the values here in the same
+# joint order as `joint_names` resolved from `arm_side`).
+#
+# Joint order for arm_side=right:
+#   right_shoulder_pitch_joint_X6, right_shoulder_roll_joint_X6,
+#   right_shoulder_yaw_joint_X4,   right_elbow_pitch_joint_X6,
+#   right_wrist_yaw_joint_X4,      right_wrist_roll_joint_X4
+
+handshake_demo:
+  ros__parameters:
+    arm_side: "right"
+    pose_source: "predefined"
+    predefined_pose: [-0.0450, 0.1126, -0.1233, -0.8806, -0.1281, 0.1000]
+    mode: "continuous"
+
+    max_velocity: 0.3
+    min_duration: 3.0
+    tolerance: 0.01
+    joint_state_timeout: 10.0
+    action_server_timeout: 30.0
+
+    hand_namespace: "/inspire/right"
+    action_index: 16
+    monitored_finger_indices: [0, 1, 2, 3]
+    force_threshold_g: 50.0
+    force_hold_seconds: 0.15
+    cooldown_seconds: 5.0

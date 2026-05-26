@@ -11,14 +11,15 @@
   </xacro:if>
 
   <!-- ================================================================== -->
-  <!-- only_left — when true, also lock waist yaw joint                  -->
+  <!-- Waist yaw — locked when only_left or only_arms is true            -->
   <!-- ================================================================== -->
   <xacro:arg name="only_left" default="true"/>
+  <xacro:arg name="only_arms" default="false"/>
   <xacro:property name="waist_joint_type" value="revolute"/>
   <xacro:if value="$(arg only_left)">
     <xacro:property name="waist_joint_type" value="fixed"/>
   </xacro:if>
-  <xacro:if value="$(arg fixed_legs)">
+  <xacro:if value="$(arg only_arms)">
     <xacro:property name="waist_joint_type" value="fixed"/>
   </xacro:if>
 
