@@ -48,7 +48,7 @@ rpdo:
       # [4 B] target_velocity (0x60FF) — drive PD velocity setpoint
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: 20860.756, default: 0}
       # [2 B] torque feedforward (0x6071) — added to PD output inside the drive
-      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: 50.0,    default: 0}
+      - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: 35.536602700781806,    default: 0}
       # [4 B] PVT_KP (0x2000) — drive applies value × 0.001; factor 1000 ⇒ host sends N·m/rad
       - {index: 0x2000, sub_index: 0, type: int32,  command_interface: kp,       factor: 1000.0, default: 0}
       # [4 B] PVT_KD (0x2001) — same scaling as Kp
@@ -71,7 +71,7 @@ tpdo:
       # [4 B] actual_velocity (0x606C)
       - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: 4.79369e-05}
       # [2 B] actual_torque (0x6077)
-      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: 0.02}
+      - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: 0.02814}
       # [2 B] error_code (0x603F) — exposed to robot_drive_status_broadcaster
       - {index: 0x603f, sub_index: 0, type: uint16, state_interface: error_code}
       # [2 B] motor_temperature (0x2009) — degrees C, int16
