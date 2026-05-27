@@ -39,53 +39,114 @@ from ethercat_tools.joint_calibration.reverse_direction import reverse_direction
 # ---------------------------------------------------------------------------
 
 
-def _find_source_ethercat_dir():
-    """Locate the SOURCE TREE ethercat config directory.
+_LEGACY_PKG = "arm_real_bringup"
+_LEGACY_SUBDIR = "ethercat"
+_PVT_PKG = "robot_bringup"
+_PVT_SUBDIR = "ethercat_pvt"
 
-    Uses os.path.realpath to follow symlinks (--symlink-install creates
-    symlinks in install/ that point back to src/), ensuring we always find
-    the source tree — not the install copy.
 
-    Returns the path or None.
-    """
-    # Resolve symlinks so we land in the source tree, not install/
+def _source_tree_dir(pkg, subdir):
+    """Return src/bringup/<pkg>/config/<subdir> if it exists, else None."""
     this_dir = os.path.dirname(os.path.realpath(__file__))
     ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
-    ethercat_dir = os.path.join(
-        ws_src, "src", "bringup", "arm_real_bringup", "config", "ethercat"
-    )
-    if os.path.isdir(ethercat_dir):
-        return ethercat_dir
+    d = os.path.join(ws_src, "src", "bringup", pkg, "config", subdir)
+    return d if os.path.isdir(d) else None
 
-    # Fallback: ament_index (installed workspace — read-only use only)
+
+def _installed_dir(pkg, subdir):
+    """Return ament install share path for <pkg>/config/<subdir>, else None."""
     try:
         from ament_index_python.packages import get_package_share_directory
-        pkg_dir = get_package_share_directory("arm_real_bringup")
-        ethercat_dir = os.path.join(pkg_dir, "config", "ethercat")
-        if os.path.isdir(ethercat_dir):
-            return ethercat_dir
+        d = os.path.join(get_package_share_directory(pkg), "config", subdir)
+        return d if os.path.isdir(d) else None
+    except Exception:
+        return None
+
+
+def _find_source_ethercat_dir():
+    """Legacy: locate the arm_real_bringup ethercat config directory.
+
+    Kept for back-compat with any external imports. New code should use
+    `_resolve_active_ethercat_dir()` which handles both legacy and PVT layouts.
+    """
+    return _source_tree_dir(_LEGACY_PKG, _LEGACY_SUBDIR) \
+        or _installed_dir(_LEGACY_PKG, _LEGACY_SUBDIR)
+
+
+def _resolve_active_ethercat_dir(ros_node=None):
+    """Resolve the active EtherCAT config directory and its mode.
+
+    Returns (dir_path, mode) where mode is "pvt" or "legacy". Resolution:
+      1. Probe `ros2 control list_hardware_interfaces` — if any joint exposes
+         a `kp` or `kd` command interface, we are running PVT.
+      2. Otherwise check the filesystem and prefer PVT if both source dirs
+         exist (matches the user's workflow on the pvt-tunning branch).
+      3. Falls back to install-tree share dirs.
+
+    Returns (None, None) if no config dir can be found.
+    """
+    # 1. Live probe via ros2_control hardware interfaces
+    mode_from_live = None
+    try:
+        result = subprocess.run(
+            ["ros2", "control", "list_hardware_interfaces"],
+            capture_output=True, text=True, timeout=2,
+        )
+        if result.returncode == 0:
+            out = result.stdout
+            if re.search(r"/(kp|kd)\b", out):
+                mode_from_live = "pvt"
+            elif re.search(r"/position\b", out):
+                mode_from_live = "legacy"
     except Exception:
         pass
 
-    return None
+    # 2/3. Pick the directory matching the detected mode, or prefer PVT
+    pvt_dir = _source_tree_dir(_PVT_PKG, _PVT_SUBDIR) \
+        or _installed_dir(_PVT_PKG, _PVT_SUBDIR)
+    legacy_dir = _source_tree_dir(_LEGACY_PKG, _LEGACY_SUBDIR) \
+        or _installed_dir(_LEGACY_PKG, _LEGACY_SUBDIR)
+
+    if mode_from_live == "pvt" and pvt_dir:
+        return pvt_dir, "pvt"
+    if mode_from_live == "legacy" and legacy_dir:
+        return legacy_dir, "legacy"
+
+    # Offline / ambiguous: prefer PVT if present
+    if pvt_dir:
+        return pvt_dir, "pvt"
+    if legacy_dir:
+        return legacy_dir, "legacy"
+    return None, None
 
 
-def _discover_actuators_from_configs():
-    """Scan arm_real_bringup/config/ethercat/ YAML files for actuator metadata.
+def _discover_actuators_from_configs(ethercat_dir=None, mode=None):
+    """Scan an EtherCAT slave config directory for actuator metadata.
 
-    Each file has structured comment headers:
-      Line 2: # ICube EtherCAT slave config — {joint_name}
-      Line 4: # Bus position: {N}
-      Line 5: # Direction: {+1|-1}
-    And rpdo position channel with factor (sign = direction) and offset.
+    Works with both layouts:
+      - Legacy (arm_real_bringup/config/ethercat/): has `# ICube ... — {joint}_joint_{motor}`,
+        `# Bus position:`, `# Direction:` headers and `offset:` on position channels.
+      - PVT (robot_bringup/config/ethercat_pvt/): comment is `... — {joint}_{motor} (PVT / ...)`
+        (the comment-derived joint name is wrong — strips `_joint_`), no bus/direction
+        headers, and may have no `offset:` on the position channels (yet).
 
-    Returns (actuators_list, ethercat_dir_path) tuple.
+    For PVT, the joint name is taken from the filename (which yields the
+    correct `*_joint_{motor}` form) and direction is inferred from the sign
+    of the RxPDO position `factor:`. Missing offsets default to 0 — the
+    correct starting point for the first calibration.
+
+    Returns (actuators_list, ethercat_dir_path) tuple. If ethercat_dir is
+    None, falls back to `_resolve_active_ethercat_dir()`.
     """
     actuators = []
 
-    ethercat_dir = _find_source_ethercat_dir()
+    resolved_mode = mode
+    if ethercat_dir is None:
+        ethercat_dir, resolved_mode = _resolve_active_ethercat_dir()
     if ethercat_dir is None:
         return actuators, None
+
+    is_pvt = (resolved_mode == "pvt")
 
     for fname in sorted(os.listdir(ethercat_dir)):
         if not fname.endswith(".yaml"):
@@ -96,7 +157,6 @@ def _discover_actuators_from_configs():
         bus_pos = None
         direction = 1
 
-        # Extract motor type from filename (e.g. "left_shoulder_pitch_X6.yaml" -> "X6")
         stem = fname.replace(".yaml", "")
         motor = "?"
         for suffix in ("X4", "X6", "X8"):
@@ -104,37 +164,47 @@ def _discover_actuators_from_configs():
                 motor = suffix
                 break
 
-        # Parse comment headers and YAML data
         existing_rpdo = 0
         existing_tpdo = 0.0
         try:
             with open(fpath, "r") as f:
                 raw_text = f.read()
 
-            # Extract joint name from comment: "# ICube EtherCAT slave config — {name}"
-            m = re.search(r"#\s*ICube EtherCAT slave config\s*[—–-]\s*(\S+)", raw_text)
-            if m:
-                joint_name = m.group(1)
+            # Joint name: PVT comments strip `_joint_`, so trust the filename
+            # in PVT mode. For legacy, the comment is authoritative.
+            if not is_pvt:
+                m = re.search(r"#\s*ICube EtherCAT slave config\s*[—–-]\s*(\S+)", raw_text)
+                if m:
+                    joint_name = m.group(1)
 
-            # Extract bus position from comment: "# Bus position: {N}"
             m = re.search(r"#\s*Bus position:\s*(\d+)", raw_text)
             if m:
                 bus_pos = int(m.group(1))
 
-            # Extract direction from comment: "# Direction: {+1|-1}"
             m = re.search(r"#\s*Direction:\s*([+-]?\d+)", raw_text)
             if m:
                 direction = int(m.group(1))
+            else:
+                # PVT layout has no Direction header — infer from factor sign
+                fm = re.search(
+                    r"command_interface:\s*position,\s*factor:\s*([+-]?[\d.eE+-]+)",
+                    raw_text,
+                )
+                if fm:
+                    try:
+                        direction = -1 if float(fm.group(1)) < 0 else 1
+                    except ValueError:
+                        direction = 1
 
-            # Extract existing rpdo offset (command_interface: position)
+            # Existing rpdo offset (legacy only — PVT regex won't match yet,
+            # leaving existing_rpdo=0, which is the correct starting point).
             m = re.search(
-                r"command_interface: position,\s*factor:\s*[^,]+,\s*offset:\s*([^,]+),\s*default:",
+                r"command_interface: position,\s*factor:\s*[^,]+,\s*offset:\s*([^,}]+)[,}]",
                 raw_text,
             )
             if m:
                 existing_rpdo = int(float(m.group(1).strip()))
 
-            # Extract existing tpdo offset (state_interface: position)
             m = re.search(
                 r"state_interface: position,\s*factor:\s*[^,}]+,\s*offset:\s*([^}]+)}",
                 raw_text,
@@ -142,8 +212,8 @@ def _discover_actuators_from_configs():
             if m:
                 existing_tpdo = float(m.group(1).strip())
 
-            # If no joint name from comment, infer from filename + URDF convention
-            # e.g. left_shoulder_pitch_X6 -> left_shoulder_pitch_joint_X6
+            # Fallback joint name from filename: left_shoulder_pitch_X6 ->
+            # left_shoulder_pitch_joint_X6 (matches URDF + /joint_states).
             if joint_name is None:
                 base = stem
                 for suffix in ("_X4", "_X6", "_X8"):
@@ -163,14 +233,13 @@ def _discover_actuators_from_configs():
             "motor": motor,
             "slave": bus_pos if bus_pos is not None else len(actuators),
             "direction": direction,
-            "lower": -math.pi,   # Default — will be overridden by URDF
-            "upper": math.pi,    # Default — will be overridden by URDF
+            "lower": -math.pi,
+            "upper": math.pi,
             "config": fname,
             "existing_rpdo": existing_rpdo,
             "existing_tpdo": existing_tpdo,
         })
 
-    # Sort by bus position
     actuators.sort(key=lambda a: a["slave"])
     return actuators, ethercat_dir
 
@@ -474,14 +543,24 @@ class CalibrationWindow(QMainWindow):
         self._start_time = time.monotonic()
         self._joint_state_data = {}
 
+        # Resolve which EtherCAT config tree is active (PVT vs legacy)
+        self._ethercat_dir, self._ethercat_mode = _resolve_active_ethercat_dir(ros_node)
+
         # Discover actuators dynamically from EtherCAT configs + URDF
-        self._actuators, self._ethercat_dir = _discover_actuators_from_configs()
+        self._actuators, _ = _discover_actuators_from_configs(
+            self._ethercat_dir, self._ethercat_mode,
+        )
         _apply_urdf_limits(self._actuators, ros_node)
         self._actuator_map = {act["joint"]: act for act in self._actuators}
 
         if self._actuators:
+            dir_label = (
+                os.path.basename(self._ethercat_dir)
+                if self._ethercat_dir else "?"
+            )
             ros_node.get_logger().info(
-                f"Discovered {len(self._actuators)} actuators from EtherCAT configs"
+                f"Discovered {len(self._actuators)} actuators from "
+                f"{dir_label}/ ({self._ethercat_mode})"
             )
         else:
             ros_node.get_logger().warn(
@@ -829,7 +908,11 @@ class CalibrationWindow(QMainWindow):
     def _update_mode_display(self):
         colors = {"SIM": _BLUE, "REAL": _GREEN}
         color = colors.get(self._mode, _FG)
-        self._mode_value.setText(self._mode)
+        label = self._mode
+        if self._mode == "REAL" and self._ethercat_mode:
+            suffix = "PVT" if self._ethercat_mode == "pvt" else "CSP"
+            label = f"{self._mode}/{suffix}"
+        self._mode_value.setText(label)
         self._mode_value.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {color};")
 
     # -- Controller management -----------------------------------------------
@@ -1139,7 +1222,9 @@ class CalibrationWindow(QMainWindow):
 
         self._log("")
         self._log("# ── ICube ethercat_driver_ros2 offset values (absolute) ──")
-        self._log("# Per-joint YAML files in arm_real_bringup/config/ethercat/")
+        pkg = "robot_bringup" if self._ethercat_mode == "pvt" else "arm_real_bringup"
+        subdir = os.path.basename(self._ethercat_dir) if self._ethercat_dir else "?"
+        self._log(f"# Per-joint YAML files in {pkg}/config/{subdir}/")
         self._log("#")
         self._log("# TxPDO offset (radians): position state_interface offset field")
         self._log("# RxPDO offset (raw):     position command_interface offset field")
@@ -1194,12 +1279,22 @@ class CalibrationWindow(QMainWindow):
             rpdo = off["rpdo"]
             tpdo = off["tpdo"]
 
+            is_pvt = (self._ethercat_mode == "pvt")
+            pkg = _PVT_PKG if is_pvt else _LEGACY_PKG
+            subdir = os.path.basename(self._ethercat_dir) if self._ethercat_dir else "?"
+            dirs_msg = (
+                f"This modifies files in {pkg}/config/{subdir}/"
+                if is_pvt
+                else f"This modifies files in {pkg}/config/{subdir}/ "
+                     "and the ethercat_readonly/ sibling."
+            )
+
             reply = QMessageBox.question(
                 self, "Write Offset",
                 f"Write offset to {config}?\n\n"
                 f"  rpdo (raw): {rpdo:+d}\n"
                 f"  tpdo (rad): {tpdo:+.6f}\n\n"
-                "This modifies files in ethercat/ and ethercat_readonly/.",
+                f"{dirs_msg}",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
             )
             if reply != QMessageBox.Yes:
@@ -1211,31 +1306,33 @@ class CalibrationWindow(QMainWindow):
             # Collect all directories to write: source tree + install tree
             dirs_to_write = []
 
-            # Source tree (ethercat/ and ethercat_readonly/)
             if self._ethercat_dir is None:
                 self._log("  FAIL: could not locate ethercat config directory.")
                 return
             dirs_to_write.append(self._ethercat_dir)
-            readonly_dir = os.path.join(
-                os.path.dirname(self._ethercat_dir), "ethercat_readonly"
-            )
-            if os.path.isdir(readonly_dir):
-                dirs_to_write.append(readonly_dir)
+
+            # Legacy layout has a readonly sibling; PVT does not.
+            if not is_pvt:
+                readonly_dir = os.path.join(
+                    os.path.dirname(self._ethercat_dir), "ethercat_readonly"
+                )
+                if os.path.isdir(readonly_dir):
+                    dirs_to_write.append(readonly_dir)
 
             # Install tree (so launcher picks up changes without rebuild)
             try:
                 from ament_index_python.packages import get_package_share_directory
                 install_dir = os.path.join(
-                    get_package_share_directory("arm_real_bringup"),
-                    "config", "ethercat",
+                    get_package_share_directory(pkg), "config", subdir,
                 )
                 if os.path.isdir(install_dir) and install_dir != self._ethercat_dir:
                     dirs_to_write.append(install_dir)
-                    install_ro = os.path.join(
-                        os.path.dirname(install_dir), "ethercat_readonly"
-                    )
-                    if os.path.isdir(install_ro):
-                        dirs_to_write.append(install_ro)
+                    if not is_pvt:
+                        install_ro = os.path.join(
+                            os.path.dirname(install_dir), "ethercat_readonly"
+                        )
+                        if os.path.isdir(install_ro):
+                            dirs_to_write.append(install_ro)
             except Exception:
                 pass
 
@@ -1264,13 +1361,22 @@ class CalibrationWindow(QMainWindow):
 
             config = act["config"]
 
+            is_pvt = (self._ethercat_mode == "pvt")
+            pkg = _PVT_PKG if is_pvt else _LEGACY_PKG
+            subdir = os.path.basename(self._ethercat_dir) if self._ethercat_dir else "?"
+            dirs_msg = (
+                f"This negates all factor values in {pkg}/config/{subdir}/."
+                if is_pvt
+                else f"This negates all factor values in {pkg}/config/{subdir}/ "
+                     "and ethercat_readonly/."
+            )
+
             reply = QMessageBox.question(
                 self, "Reverse Direction",
                 f"Reverse motor direction for {joint_name}?\n\n"
                 f"Config: {config}\n"
                 f"Current direction: {act['direction']:+d}\n\n"
-                "This negates all factor values in both\n"
-                "ethercat/ and ethercat_readonly/.\n\n"
+                f"{dirs_msg}\n\n"
                 "Offsets must be recalibrated after reversing.",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
             )
@@ -1278,28 +1384,28 @@ class CalibrationWindow(QMainWindow):
                 self._log("  Cancelled.")
                 return
 
-            # Build list of dirs: source tree + install tree
+            # Build list of dirs: source tree (active + optional readonly) + install tree
             ethercat_dirs = [self._ethercat_dir]
-            readonly_dir = os.path.join(
-                os.path.dirname(self._ethercat_dir), "ethercat_readonly"
-            )
-            if os.path.isdir(readonly_dir):
-                ethercat_dirs.append(readonly_dir)
+            if not is_pvt:
+                readonly_dir = os.path.join(
+                    os.path.dirname(self._ethercat_dir), "ethercat_readonly"
+                )
+                if os.path.isdir(readonly_dir):
+                    ethercat_dirs.append(readonly_dir)
 
-            # Also include install tree
             try:
                 from ament_index_python.packages import get_package_share_directory
                 install_dir = os.path.join(
-                    get_package_share_directory("arm_real_bringup"),
-                    "config", "ethercat",
+                    get_package_share_directory(pkg), "config", subdir,
                 )
                 if os.path.isdir(install_dir) and install_dir != self._ethercat_dir:
                     ethercat_dirs.append(install_dir)
-                    install_ro = os.path.join(
-                        os.path.dirname(install_dir), "ethercat_readonly"
-                    )
-                    if os.path.isdir(install_ro):
-                        ethercat_dirs.append(install_ro)
+                    if not is_pvt:
+                        install_ro = os.path.join(
+                            os.path.dirname(install_dir), "ethercat_readonly"
+                        )
+                        if os.path.isdir(install_ro):
+                            ethercat_dirs.append(install_ro)
             except Exception:
                 pass
 

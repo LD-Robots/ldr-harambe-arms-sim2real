@@ -66,6 +66,12 @@ install(PROGRAMS
   RENAME pvt_tuner
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/pvt_dashboard.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME pvt_dashboard
+)
+
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
 )

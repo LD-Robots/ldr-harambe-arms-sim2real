@@ -21,36 +21,59 @@ import re
 import sys
 
 
-def find_ethercat_dirs():
-    """Locate both ethercat/ and ethercat_readonly/ config directories.
+_LEGACY_PKG = "arm_real_bringup"
+_LEGACY_SUBDIRS = ("ethercat", "ethercat_readonly")
+_PVT_PKG = "robot_bringup"
+_PVT_SUBDIRS = ("ethercat_pvt",)  # no readonly sibling in the PVT layout
 
-    Returns list of existing directory paths.
-    """
+
+def _resolve_dirs(pkg, subdirs):
+    """Return existing dirs for src/bringup/<pkg>/config/<subdir> (or install)."""
     dirs = []
-
-    # Relative to source tree (realpath follows --symlink-install symlinks)
     this_dir = os.path.dirname(os.path.realpath(__file__))
     ws_src = os.path.abspath(os.path.join(this_dir, "..", "..", "..", "..", ".."))
-    for subdir in ("ethercat", "ethercat_readonly"):
-        d = os.path.join(ws_src, "src", "bringup", "arm_real_bringup", "config", subdir)
+    for subdir in subdirs:
+        d = os.path.join(ws_src, "src", "bringup", pkg, "config", subdir)
         if os.path.isdir(d):
             dirs.append(d)
-
     if dirs:
         return dirs
 
-    # Installed workspace via ament_index
     try:
         from ament_index_python.packages import get_package_share_directory
-        pkg_dir = get_package_share_directory("arm_real_bringup")
-        for subdir in ("ethercat", "ethercat_readonly"):
+        pkg_dir = get_package_share_directory(pkg)
+        for subdir in subdirs:
             d = os.path.join(pkg_dir, "config", subdir)
             if os.path.isdir(d):
                 dirs.append(d)
     except Exception:
         pass
-
     return dirs
+
+
+def find_ethercat_dirs(mode="auto"):
+    """Locate EtherCAT config directories for a given calibration mode.
+
+    mode:
+      "legacy" — arm_real_bringup/config/{ethercat,ethercat_readonly}/
+      "pvt"    — robot_bringup/config/ethercat_pvt/  (no readonly sibling)
+      "both"   — union of legacy + pvt (useful for --list across both trees)
+      "auto"   — prefer PVT if present, else legacy
+
+    Returns list of existing directory paths.
+    """
+    if mode == "legacy":
+        return _resolve_dirs(_LEGACY_PKG, _LEGACY_SUBDIRS)
+    if mode == "pvt":
+        return _resolve_dirs(_PVT_PKG, _PVT_SUBDIRS)
+    if mode == "both":
+        return _resolve_dirs(_LEGACY_PKG, _LEGACY_SUBDIRS) \
+            + _resolve_dirs(_PVT_PKG, _PVT_SUBDIRS)
+    # auto: prefer PVT if it exists
+    pvt_dirs = _resolve_dirs(_PVT_PKG, _PVT_SUBDIRS)
+    if pvt_dirs:
+        return pvt_dirs
+    return _resolve_dirs(_LEGACY_PKG, _LEGACY_SUBDIRS)
 
 
 def _negate_factor(match):
@@ -62,19 +85,21 @@ def _negate_factor(match):
         return f"factor: -{val}"
 
 
-def reverse_direction(filenames, ethercat_dirs=None, dry_run=False):
+def reverse_direction(filenames, ethercat_dirs=None, dry_run=False, mode="auto"):
     """Negate all factors in the given EtherCAT YAML config files.
 
     Args:
         filenames: list of YAML filenames (e.g. ["right_shoulder_roll_X6.yaml"])
         ethercat_dirs: list of config directory paths (auto-detected if None)
         dry_run: if True, print changes without writing
+        mode: which tree to auto-detect when ethercat_dirs is None
+              ("auto", "legacy", "pvt", "both")
 
     Returns:
         list of (filename, directory, success_bool, message) tuples
     """
     if ethercat_dirs is None:
-        ethercat_dirs = find_ethercat_dirs()
+        ethercat_dirs = find_ethercat_dirs(mode=mode)
     if not ethercat_dirs:
         return [("*", "", False, "Could not locate ethercat config directories")]
 
@@ -148,15 +173,17 @@ def reverse_direction(filenames, ethercat_dirs=None, dry_run=False):
     return results
 
 
-def list_directions(ethercat_dirs=None):
+def list_directions(ethercat_dirs=None, mode="auto"):
     """List the current direction of all joint config files.
+
+    For PVT YAMLs (which omit the `# Direction:` comment), direction is
+    inferred from the sign of the RxPDO position `factor:`.
 
     Returns list of (filename, direction_int, joint_name) tuples.
     """
     if ethercat_dirs is None:
-        ethercat_dirs = find_ethercat_dirs()
+        ethercat_dirs = find_ethercat_dirs(mode=mode)
 
-    # Use the first (primary) directory
     if not ethercat_dirs:
         return []
 
@@ -171,11 +198,22 @@ def list_directions(ethercat_dirs=None):
         with open(fpath, "r") as f:
             content = f.read()
 
-        # Parse direction from comment
         m = re.search(r"# Direction:\s*([+-]?\d+)", content)
-        direction = int(m.group(1)) if m else 0
+        if m:
+            direction = int(m.group(1))
+        else:
+            fm = re.search(
+                r"command_interface:\s*position,\s*factor:\s*([+-]?[\d.eE+-]+)",
+                content,
+            )
+            if fm:
+                try:
+                    direction = -1 if float(fm.group(1)) < 0 else 1
+                except ValueError:
+                    direction = 0
+            else:
+                direction = 0
 
-        # Parse joint name from comment
         m = re.search(r"#\s*ICube EtherCAT slave config\s*[—–-]\s*(\S+)", content)
         joint_name = m.group(1) if m else fname.replace(".yaml", "")
 
@@ -198,6 +236,11 @@ def main():
              "Can be specified multiple times.",
     )
     parser.add_argument(
+        "--mode", choices=("auto", "legacy", "pvt", "both"), default="auto",
+        help="Which config tree to target when --ethercat-dir is omitted "
+             "(default: auto — prefers PVT if present)",
+    )
+    parser.add_argument(
         "--dry-run", action="store_true",
         help="Preview changes without writing files",
     )
@@ -210,7 +253,7 @@ def main():
     dirs = args.ethercat_dir if args.ethercat_dir else None
 
     if args.list_all:
-        entries = list_directions(dirs)
+        entries = list_directions(dirs, mode=args.mode)
         if not entries:
             print("No config files found.")
             sys.exit(1)
@@ -224,7 +267,9 @@ def main():
     if not args.files:
         parser.error("No files specified. Use --list to see available files.")
 
-    results = reverse_direction(args.files, ethercat_dirs=dirs, dry_run=args.dry_run)
+    results = reverse_direction(
+        args.files, ethercat_dirs=dirs, dry_run=args.dry_run, mode=args.mode,
+    )
 
     ok = 0
     fail = 0
