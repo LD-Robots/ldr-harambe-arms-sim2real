@@ -54,7 +54,7 @@ rpdo:
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -20860.756, default: 0}
 
       # [2 bytes] Target torque (0x6071) — torque command in 0.1% of rated torque
-      #   factor: ±50.0 (sign matches motor direction)
+      #   factor: 1000 / (K_t · I_rated) — per-family, see scripts/recompute_torque_factors.py; sign matches direction
       - {index: 0x6071, sub_index: 0, type: int16,  command_interface: effort,   factor: -35.536602700781806,    default: 0}
 
       # [2 bytes] Max torque (0x6072) — cycle-level torque limit (redundant with SDO, default 40%)
@@ -86,7 +86,7 @@ tpdo:
       - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -4.79369e-05}
 
       # [2 bytes] Actual torque (0x6077) — motor torque in 0.1% rated
-      #   factor: ±0.02 converts to normalized fraction (sign matches direction)
+      #   factor: K_t · I_rated / 1000 — per-family, see scripts/recompute_torque_factors.py; sign matches direction
       - {index: 0x6077, sub_index: 0, type: int16,  state_interface: effort,   factor: -0.02814}
 
       # [2 bytes] Error code (0x603F) — drive error register (not mapped to ros2_control)

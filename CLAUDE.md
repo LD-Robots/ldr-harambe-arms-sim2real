@@ -175,16 +175,17 @@ ros2 launch arm_real_bringup position_viewer.launch.py
 
 **Encoder resolution:** raw ±65535 = ±180° → `position_factor = π/65535 ≈ 4.794e-5 rad/count` (20,861 counts/rad)
 
-**Gear ratios:** X6 = 19.612:1, X4 = 36:1
+**Gear ratios:** X6 = 19.612:1, X8 = 19.612:1, X4 = 36:1
 
-**Conversion factors by motor type:**
+**Conversion factors by motor type.** Position/velocity factors are normalized at the drive output shaft (X4 factor is 2x X6 due to the higher gear ratio); torque factors are derived per-family from `factor_cmd = 1000 / (K_t · I_rated)` with manufacturer K_t (X4 = 1.9, X6 = 2.1, X8 = 2.4 N·m/A) and configured I_rated from `All_Updated_Motors_by_Type.ods` (X4 = 8.625 A, X6 = 13.40 A, X8 = 24.88 A). Run `python src/tools/ethercat_tools/scripts/recompute_torque_factors.py print` for the current per-joint table — never copy these numbers into other config by hand.
 
-| Motor | Position cmd factor | Position state factor | Velocity factor | Torque cmd/state |
-|-------|--------------------|-----------------------|-----------------|------------------|
-| X6 | 20861.0 counts/rad | 4.794e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
-| X4 | 41722.0 counts/rad | 2.397e-5 rad/count | 20861.0 / 4.794e-5 | 50.0 / 0.02 |
+| Motor | Position cmd factor | Position state factor | Torque cmd factor (‰/N·m) | Torque state factor (N·m/‰) |
+|-------|--------------------|-----------------------|---------------------------|------------------------------|
+| X4 | 41722.0 counts/rad | 2.397e-5 rad/count | 61.022121 | 0.016388 |
+| X6 | 20861.0 counts/rad | 4.794e-5 rad/count | 35.536603 | 0.028140 |
+| X8 | 20861.0 counts/rad | 4.794e-5 rad/count | 16.747053 | 0.059712 |
 
-X4 position factor is 2x X6 due to the higher gear ratio (36 vs 19.612).
+The MyActuator V4 reports `6077h` torque feedback as ‰ of *rated current* (not rated torque — deviation from CiA 402 standard; see `docs/tuning/motor_id_protocol.html` §10.2). The old YAMLs assumed rated torque = 20 N·m universally and used `factor = ±50.0` — corrected on branch `pvt-tunning` (commit `5faa96f`). `right_shoulder_yaw_X4` has its in-drive `I_rated` mis-configured at 9.625 A; it must be re-flashed to 8.625 A via the MyActuator CAN setup tool before the new factor matches.
 
 **Calibrated zero offsets** (from `arm_real_bringup/config/ethercat/`):
 
