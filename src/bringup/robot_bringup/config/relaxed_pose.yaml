@@ -1,0 +1,26 @@
+# "Relaxed" arm pose — arms held slightly forward and outward, mimicking a
+# natural standing posture. Used as a reference pose for gravity-comp tuning:
+#
+#   src/tools/ethercat_tools/scripts/gravcomp_from_urdf.py evaluate \
+#     --pose src/bringup/robot_bringup/config/relaxed_pose.yaml
+#
+# Source: arms pose table from the sim/training side (dof_* naming there
+# matches the joint_* names here). Right-arm signs are the left-arm mirror.
+# right_wrist_roll was missing from the source table; inferred 0° by symmetry.
+#
+# Legs and waist held at the URDF reference (omitted = 0).
+# Values are radians. Inline comments show the source degrees.
+
+left_shoulder_pitch_joint_X6:  0.12217304763960307   #  +7 deg, arm forward
+left_shoulder_roll_joint_X6:  -0.20943951023931953   # -12 deg, arm outward
+left_shoulder_yaw_joint_X4:    0.6108652381980153    # +35 deg
+left_elbow_pitch_joint_X6:    -0.2617993877991494    # -15 deg, slight bend
+left_wrist_yaw_joint_X4:       0.0                   #   0 deg
+left_wrist_roll_joint_X4:      0.0                   #   0 deg
+
+right_shoulder_pitch_joint_X6: 0.12217304763960307   #  +7 deg, arm forward
+right_shoulder_roll_joint_X6:  0.20943951023931953   # +12 deg, arm outward (mirror)
+right_shoulder_yaw_joint_X4:  -0.6108652381980153    # -35 deg (mirror)
+right_elbow_pitch_joint_X6:    0.2617993877991494    # +15 deg, slight bend (mirror)
+right_wrist_yaw_joint_X4:      0.0                   #   0 deg
+right_wrist_roll_joint_X4:     0.0                   #   0 deg (inferred by symmetry)

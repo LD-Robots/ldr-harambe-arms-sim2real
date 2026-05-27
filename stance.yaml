@@ -1,0 +1,29 @@
+# Pose template — pass to `evaluate --pose <file>`.
+# Units are radians. Missing joints default to 0.
+# The values below are the URDF reference pose (all zeros);
+# edit any subset to the stance you care about.
+left_shoulder_pitch_joint_X6: 0.0
+left_shoulder_roll_joint_X6: 0.0
+left_shoulder_yaw_joint_X4: 0.0
+left_elbow_pitch_joint_X6: 0.0
+left_wrist_yaw_joint_X4: 0.0
+left_wrist_roll_joint_X4: 0.0
+right_shoulder_pitch_joint_X6: 0.0
+right_shoulder_roll_joint_X6: 0.0
+right_shoulder_yaw_joint_X4: 0.0
+right_elbow_pitch_joint_X6: 0.0
+right_wrist_yaw_joint_X4: 0.0
+right_wrist_roll_joint_X4: 0.0
+waist_yaw_joint_X8: 0.0
+left_hip_pitch_joint_X8: 0.0
+left_hip_roll_joint_X8: 0.0
+left_hip_yaw_joint_X8: 0.0
+left_knee_joint_X8: 0.0
+left_ankle_pitch_joint_X4: 0.0
+left_ankle_roll_joint_X4: 0.0
+right_hip_pitch_joint_X8: 0.0
+right_hip_roll_joint_X8: 0.0
+right_hip_yaw_joint_X8: 0.0
+right_knee_joint_X8: 0.0
+right_ankle_roll_joint_X4: 0.0
+right_ankle_pitch_joint_X4: 0.0

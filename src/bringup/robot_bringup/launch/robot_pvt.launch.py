@@ -57,20 +57,16 @@ def _launch_setup(context):
     pkg_robot_bringup = FindPackageShare("robot_bringup")
     pkg_robot_safety = FindPackageShare("robot_safety")
 
-    if robot_group == "arms":
-        xacro_extra = " only_arms:=true"
-    elif robot_group == "arms_waist":
-        xacro_extra = " only_arms:=false fixed_legs:=true"
-    else:  # "legs" / "full"
-        xacro_extra = " only_arms:=false fixed_legs:=false"
-
-    # PVT URDF: dispatches to ros2_control_real_pvt.xacro via pvt_mode:=true
+    # PVT URDF always enumerates all 25 joints — the bus is always physically
+    # full, and per-group scope is enforced inside the controller via the
+    # `body_group` parameter (see _make_spawner below). Legs must stay
+    # revolute in the kinematic tree (fixed_legs:=false), or the
+    # controller_manager fails to claim their hardware interfaces.
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
-        " use_sim:=false pvt_mode:=true",
-        xacro_extra,
+        " use_sim:=false pvt_mode:=true fixed_legs:=false",
     ])
     robot_description = {
         "robot_description": ParameterValue(
@@ -79,6 +75,8 @@ def _launch_setup(context):
 
     controller_config = PathJoinSubstitution(
         [pkg_robot_bringup, "config", "controllers_pvt.yaml"])
+    safety_limits_yaml = PathJoinSubstitution(
+        [pkg_robot_safety, "config", "safety_limits.yaml"])
 
     robot_state_publisher = Node(
         package="robot_state_publisher",
@@ -90,10 +88,23 @@ def _launch_setup(context):
 
     # ros2_control node — keep its default joint_states topic out of the way
     # (the filtered broadcaster takes over /joint_states_raw).
+    #
+    # Parameter sources, in load order (later overrides earlier):
+    #   1. robot_description           — the URDF
+    #   2. controllers_pvt.yaml        — controllers + body_group default
+    #   3. safety_limits.yaml          — supervisor + controller safety mirror
+    #   4. body_groups/<group>.yaml    — overrides body_group per-launch
+    body_group_override = PathJoinSubstitution(
+        [pkg_robot_bringup, "config", "body_groups", robot_group + ".yaml"])
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, controller_config],
+        parameters=[
+            robot_description,
+            controller_config,
+            safety_limits_yaml,
+            body_group_override,
+        ],
         output="screen",
         prefix="chrt -f 49",
     )

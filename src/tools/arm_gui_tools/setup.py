@@ -27,6 +27,7 @@ setup(
             'joint_state_tui = arm_gui_tools.joint_state_tui:main',
             'actuator_status = arm_gui_tools.actuator_status:main',
             'action_position_sender = arm_gui_tools.action_position_sender:main',
+            'pvt_tuner = arm_gui_tools.pvt_tuner:main',
         ],
     },
 )

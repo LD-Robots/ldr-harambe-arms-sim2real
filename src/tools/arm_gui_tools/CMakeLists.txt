@@ -60,6 +60,12 @@ install(PROGRAMS
   RENAME action_position_sender
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/pvt_tuner.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME pvt_tuner
+)
+
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
 )

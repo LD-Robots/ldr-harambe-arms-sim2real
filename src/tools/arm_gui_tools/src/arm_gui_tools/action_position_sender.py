@@ -119,10 +119,15 @@ SAVED_POSITIONS_FILE = os.path.join(SAVED_POSITIONS_DIR, "saved_positions.yaml")
 # Slider precision: 10000 steps per radian
 SLIDER_SCALE = 10000
 
-# Controller types we support
+# Controller types we support. All "action" entries expose
+# ~/follow_joint_trajectory; the GUI builds the same single-point
+# JointTrajectoryPoint goal for each. The PVT controller accepts a subset of
+# its joint roster and silently masks any joint outside the active
+# body_group (see robot_pvt_controller.cpp).
 SUPPORTED_CONTROLLER_TYPES = {
     "joint_trajectory_controller/JointTrajectoryController": "action",
     "position_controllers/JointGroupPositionController": "topic",
+    "robot_pvt_control/RobotPVTController": "action",
 }
 
 # Strip ANSI escape codes

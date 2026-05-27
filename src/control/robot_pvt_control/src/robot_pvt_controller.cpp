@@ -4,11 +4,13 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <utility>
 
 #include "lifecycle_msgs/msg/state.hpp"
 #include "pluginlib/class_list_macros.hpp"
+#include "robot_pvt_control/body_group.hpp"
 #include "robot_safety/clamp.hpp"
 
 namespace robot_pvt_control
@@ -65,6 +67,7 @@ void normalize(std::vector<bool> & v, std::size_t n, bool fill = true)
     v.resize(n);
   }
 }
+
 }  // namespace
 
 controller_interface::CallbackReturn RobotPVTController::on_init()
@@ -73,6 +76,7 @@ controller_interface::CallbackReturn RobotPVTController::on_init()
     auto_declare<std::vector<std::string>>("joints", std::vector<std::string>{});
     auto_declare<std::vector<double>>("Kp", std::vector<double>{});
     auto_declare<std::vector<double>>("Kd", std::vector<double>{});
+    auto_declare<std::vector<double>>("Kd_damp", std::vector<double>{});
     auto_declare<std::vector<double>>("mgl", std::vector<double>{});
     auto_declare<std::vector<double>>("J", std::vector<double>{});
     auto_declare<std::vector<double>>("Fv", std::vector<double>{});
@@ -82,6 +86,7 @@ controller_interface::CallbackReturn RobotPVTController::on_init()
     auto_declare<std::vector<bool>>("ff_viscous", std::vector<bool>{});
     auto_declare<std::vector<double>>("hold_position", std::vector<double>{});
     auto_declare<bool>("drive_side_pd", true);
+    auto_declare<std::string>("body_group", std::string{"full"});
     auto_declare<double>("lag_free", 0.04);
     auto_declare<double>("lag_pause", 0.14);
     auto_declare<double>("alpha_slew", 2.0);
@@ -101,6 +106,7 @@ void RobotPVTController::load_params()
 
   params_.Kp            = node->get_parameter("Kp").as_double_array();
   params_.Kd            = node->get_parameter("Kd").as_double_array();
+  params_.Kd_damp       = node->get_parameter("Kd_damp").as_double_array();
   params_.mgl           = node->get_parameter("mgl").as_double_array();
   params_.J             = node->get_parameter("J").as_double_array();
   params_.Fv            = node->get_parameter("Fv").as_double_array();
@@ -117,6 +123,7 @@ void RobotPVTController::load_params()
   // Pad / truncate per-joint arrays so every accessor is bounded.
   normalize(params_.Kp, num_joints_, 0.0);
   normalize(params_.Kd, num_joints_, 0.0);
+  normalize(params_.Kd_damp, num_joints_, 0.0);
   normalize(params_.mgl, num_joints_, 0.0);
   normalize(params_.J, num_joints_, 0.0);
   normalize(params_.Fv, num_joints_, 0.0);
@@ -145,6 +152,35 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
 
   drive_side_pd_ = params_.drive_side_pd;
   cmd_per_joint_ = drive_side_pd_ ? kDriveStride : kSimStride;
+
+  // body_group is latched here for the lifetime of this configure session.
+  // Runtime changes are surfaced as warnings in load_params() and only take
+  // effect after a reconfigure (operator deactivates → configures again).
+  const std::string requested_group =
+    get_node()->get_parameter("body_group").as_string();
+  if (!is_valid_body_group(requested_group)) {
+    RCLCPP_ERROR(get_node()->get_logger(),
+      "robot_pvt_controller: body_group='%s' is not one of "
+      "{arms, arms_waist, legs, full} — refusing to start.",
+      requested_group.c_str());
+    return controller_interface::CallbackReturn::ERROR;
+  }
+  body_group_ = requested_group;
+  active_mask_.assign(num_joints_, false);
+  std::size_t active_count = 0;
+  std::ostringstream active_names;
+  for (std::size_t j = 0; j < num_joints_; ++j) {
+    active_mask_[j] = joint_in_group(joints_[j], body_group_);
+    if (active_mask_[j]) {
+      ++active_count;
+      if (active_count > 1) active_names << ", ";
+      active_names << joints_[j];
+    }
+  }
+  RCLCPP_INFO(get_node()->get_logger(),
+    "robot_pvt_controller: body_group=%s, active=%zu/%zu joints: [%s]",
+    body_group_.c_str(), active_count, num_joints_,
+    active_names.str().c_str());
 
   // Centralised safety: load shared limits and subscribe to the supervisor.
   limits_ = robot_safety::loadSafetyLimits(*get_node(), joints_, "safety.");
@@ -184,6 +220,10 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     "~/free",
     std::bind(&RobotPVTController::free_service, this,
       std::placeholders::_1, std::placeholders::_2));
+  damp_srv_ = node->create_service<std_srvs::srv::Trigger>(
+    "~/damp",
+    std::bind(&RobotPVTController::damp_service, this,
+      std::placeholders::_1, std::placeholders::_2));
 
   // Action server.
   traj_buf_.writeFromNonRT(nullptr);
@@ -209,9 +249,14 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     [this]() { this->on_feedback_tick(); });
 
   post_set_param_cb_ = node->add_post_set_parameters_callback(
-    [this](const std::vector<rclcpp::Parameter> & /*params*/) {
+    [this, node](const std::vector<rclcpp::Parameter> & /*params*/) {
       load_params();
       params_buf_.writeFromNonRT(params_);
+      // Re-load safety limits too so a live `ros2 param set
+      // safety.joints.<j>.<field> ...` from the GUI takes effect at the
+      // next update() without restarting the controller. Matches the
+      // pendulum_pvt_control behaviour the tuner was written against.
+      limits_ = robot_safety::loadSafetyLimits(*node, joints_, "safety.");
     });
 
   return controller_interface::CallbackReturn::SUCCESS;
@@ -269,6 +314,56 @@ controller_interface::CallbackReturn RobotPVTController::on_deactivate(
   preempt_goal("controller deactivating");
   write_free_outputs();
   return controller_interface::CallbackReturn::SUCCESS;
+}
+
+void RobotPVTController::write_free_outputs_for(std::size_t j)
+{
+  if (command_interfaces_.empty()) {
+    return;
+  }
+  if (drive_side_pd_) {
+    double q = 0.0;
+    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+    if (pos_opt) {
+      q = pos_opt.value();
+    }
+    (void)command_interfaces_[kDriveStride * j + kOffPosition].set_value(q);
+    (void)command_interfaces_[kDriveStride * j + kOffVelocity].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffEffort].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffKp].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffKd].set_value(0.0);
+  } else {
+    (void)command_interfaces_[kSimStride * j + kSimOffEffort].set_value(0.0);
+  }
+}
+
+void RobotPVTController::write_damping_outputs_for(std::size_t j, double qd)
+{
+  if (command_interfaces_.empty()) {
+    return;
+  }
+  if (drive_side_pd_) {
+    // Drive's MIT/PVT law collapses to tau = 0*(q_des-q) + Kd_damp*(0 - qd)
+    // = -Kd_damp * qd. q_des is pinned to measured to keep the position
+    // error term zero even if Kp drifts above 0 due to ordering effects.
+    double q = 0.0;
+    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+    if (pos_opt) {
+      q = pos_opt.value();
+    }
+    (void)command_interfaces_[kDriveStride * j + kOffPosition].set_value(q);
+    (void)command_interfaces_[kDriveStride * j + kOffVelocity].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffEffort].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffKp].set_value(0.0);
+    (void)command_interfaces_[kDriveStride * j + kOffKd].set_value(params_.Kd_damp[j]);
+  } else {
+    // Sim path has no drive-side PD — compute the brake torque host-side
+    // and clamp to the joint's effort envelope so the GUI's safety panel
+    // still bounds output.
+    const auto & L = limits_.limitsFor(joints_[j]);
+    const double tau = robot_safety::clampEffort(-params_.Kd_damp[j] * qd, L);
+    (void)command_interfaces_[kSimStride * j + kSimOffEffort].set_value(tau);
+  }
 }
 
 void RobotPVTController::write_free_outputs()
@@ -372,6 +467,23 @@ controller_interface::return_type RobotPVTController::update(
     return controller_interface::return_type::OK;
   }
 
+  // DAMPING — controller-internal mode, no e-stop equivalent (the supervisor's
+  // EstopAction enum only covers FREE/HOLD). Each active joint runs the brake
+  // pattern; inactive joints in the body group stay back-drivable (FREE).
+  if (mode == Mode::DAMPING && !safety.estop_active) {
+    for (auto & r : rate_limiters_) {
+      r.reset();
+    }
+    for (std::size_t j = 0; j < num_joints_; ++j) {
+      if (active_mask_[j]) {
+        write_damping_outputs_for(j, qd[j]);
+      } else {
+        write_free_outputs_for(j);
+      }
+    }
+    return controller_interface::return_type::OK;
+  }
+
   // Resolve the per-joint reference {ref_pos[j], ref_vel[j], ref_acc[j]}.
   std::vector<double> ref_pos(num_joints_, 0.0);
   std::vector<double> ref_vel(num_joints_, 0.0);
@@ -389,16 +501,22 @@ controller_interface::return_type RobotPVTController::update(
     if (!traj_done_.load()) {
       // Sample at the current tv_ first; the lag governor reads the lead
       // before we advance.
-      sample_trajectory(*traj_ptr, tv_, tmp_p_, tmp_v_, tmp_a_);
+      robot_pvt_control::sample_trajectory(
+        *traj_ptr, tv_, tmp_p_, tmp_v_, tmp_a_);
 
-      // Whole-body lag: worst joint's lead in its travel direction.
+      // Whole-body lag: worst active joint's lead in its travel direction.
+      // Skip joints outside the body_group — they're back-drivable, will
+      // always have a huge "lead", and would falsely trip the pause.
       double max_lead = -std::numeric_limits<double>::infinity();
       for (std::size_t j = 0; j < num_joints_; ++j) {
+        if (!active_mask_[j]) continue;
         const double lead = (tmp_p_[j] - q[j]) * dq_sign_[j];
         if (lead > max_lead) {
           max_lead = lead;
         }
       }
+      // No active joints? alpha_target=1 (no lag pressure).
+      if (!std::isfinite(max_lead)) max_lead = 0.0;
       const double denom = std::max(params_.lag_pause - params_.lag_free, 1e-6);
       double alpha_target = (params_.lag_pause - max_lead) / denom;
       alpha_target = std::clamp(alpha_target, 0.0, 1.0);
@@ -435,6 +553,12 @@ controller_interface::return_type RobotPVTController::update(
 
   // Per-joint slew/accel limiting + clamps + drive write.
   for (std::size_t j = 0; j < num_joints_; ++j) {
+    // Inactive joints (outside the body_group scope) stay back-drivable:
+    // write the FREE pattern so the drive's PD law evaluates to zero.
+    if (!active_mask_[j]) {
+      write_free_outputs_for(j);
+      continue;
+    }
     const auto & L = limits_.limitsFor(joints_[j]);
     if (!rate_limiters_[j].seeded()) {
       rate_limiters_[j].seed(q[j]);
@@ -524,6 +648,25 @@ void RobotPVTController::free_service(
   mode_.store(Mode::FREE);
   response->success = true;
   response->message = "FREE mode — zero drive torque";
+}
+
+void RobotPVTController::damp_service(
+  const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+  std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+  // DAMPING has no reference position — the brake settles wherever the joint
+  // is when the operator releases it. Cancel any in-flight action so it
+  // cannot resume PVT tracking under the brake.
+  preempt_goal("preempted by ~/damp");
+  mode_.store(Mode::DAMPING);
+  std::size_t active_count = 0;
+  for (bool a : active_mask_) {
+    if (a) ++active_count;
+  }
+  response->success = true;
+  response->message = "DAMPING — body_group='" + body_group_ + "' (" +
+    std::to_string(active_count) + "/" + std::to_string(num_joints_) +
+    " joints), tau = -Kd_damp[j] * qd";
 }
 
 void RobotPVTController::preempt_goal(const std::string & why)
@@ -731,122 +874,6 @@ void RobotPVTController::on_feedback_tick()
     traj_done_.store(false);
     traj_completed_clean_.store(false);
     active_goal_.reset();
-  }
-}
-
-void RobotPVTController::sample_trajectory(
-  const Trajectory & traj, double t,
-  std::vector<double> & p, std::vector<double> & v,
-  std::vector<double> & a) const
-{
-  if (traj.knots.size() == 1) {
-    p = traj.knots[0].pos;
-    v = traj.knots[0].vel;
-    a = traj.knots[0].acc;
-    return;
-  }
-  if (t <= traj.knots.front().t) {
-    p = traj.knots.front().pos;
-    v = traj.knots.front().vel;
-    a = traj.knots.front().acc;
-    return;
-  }
-  if (t >= traj.knots.back().t) {
-    p = traj.knots.back().pos;
-    v = traj.knots.back().vel;
-    a = traj.knots.back().acc;
-    return;
-  }
-  for (std::size_t i = 1; i < traj.knots.size(); ++i) {
-    if (t <= traj.knots[i].t) {
-      sample_segment(traj.knots[i - 1], traj.knots[i], t, p, v, a);
-      return;
-    }
-  }
-  p = traj.knots.back().pos;
-  std::fill(v.begin(), v.end(), 0.0);
-  std::fill(a.begin(), a.end(), 0.0);
-}
-
-void RobotPVTController::sample_segment(
-  const Knot & a_k, const Knot & b_k, double t,
-  std::vector<double> & p, std::vector<double> & v,
-  std::vector<double> & a_out) const
-{
-  const double h = b_k.t - a_k.t;
-  if (h <= 0.0) {
-    p = b_k.pos;
-    v = b_k.vel;
-    a_out = b_k.acc;
-    return;
-  }
-  const double u = std::clamp((t - a_k.t) / h, 0.0, 1.0);
-  const std::size_t n = num_joints_;
-
-  if (a_k.has_acc && b_k.has_acc) {
-    // Quintic Hermite — matches (p, v, a) at both endpoints.
-    const double u2 = u * u;
-    const double u3 = u2 * u;
-    const double u4 = u3 * u;
-    const double u5 = u4 * u;
-    const double h0 = 1.0 - 10.0 * u3 + 15.0 * u4 - 6.0 * u5;
-    const double h1 = u - 6.0 * u3 + 8.0 * u4 - 3.0 * u5;
-    const double h2 = 0.5 * u2 - 1.5 * u3 + 1.5 * u4 - 0.5 * u5;
-    const double h3 = 10.0 * u3 - 15.0 * u4 + 6.0 * u5;
-    const double h4 = -4.0 * u3 + 7.0 * u4 - 3.0 * u5;
-    const double h5 = 0.5 * u3 - u4 + 0.5 * u5;
-
-    const double h0p = -30.0 * u2 + 60.0 * u3 - 30.0 * u4;
-    const double h1p = 1.0 - 18.0 * u2 + 32.0 * u3 - 15.0 * u4;
-    const double h2p = u - 4.5 * u2 + 6.0 * u3 - 2.5 * u4;
-    const double h3p = 30.0 * u2 - 60.0 * u3 + 30.0 * u4;
-    const double h4p = -12.0 * u2 + 28.0 * u3 - 15.0 * u4;
-    const double h5p = 1.5 * u2 - 4.0 * u3 + 2.5 * u4;
-
-    const double h0pp = -60.0 * u + 180.0 * u2 - 120.0 * u3;
-    const double h1pp = -36.0 * u + 96.0 * u2 - 60.0 * u3;
-    const double h2pp = 1.0 - 9.0 * u + 18.0 * u2 - 10.0 * u3;
-    const double h3pp = 60.0 * u - 180.0 * u2 + 120.0 * u3;
-    const double h4pp = -24.0 * u + 84.0 * u2 - 60.0 * u3;
-    const double h5pp = 3.0 * u - 12.0 * u2 + 10.0 * u3;
-
-    for (std::size_t j = 0; j < n; ++j) {
-      p[j] = h0 * a_k.pos[j] + h1 * (a_k.vel[j] * h) + h2 * (a_k.acc[j] * h * h)
-        + h3 * b_k.pos[j] + h4 * (b_k.vel[j] * h) + h5 * (b_k.acc[j] * h * h);
-      v[j] = (h0p * a_k.pos[j] + h3p * b_k.pos[j]) / h
-        + (h1p * a_k.vel[j] + h4p * b_k.vel[j])
-        + (h2p * a_k.acc[j] + h5p * b_k.acc[j]) * h;
-      a_out[j] = (h0pp * a_k.pos[j] + h3pp * b_k.pos[j]) / (h * h)
-        + (h1pp * a_k.vel[j] + h4pp * b_k.vel[j]) / h
-        + (h2pp * a_k.acc[j] + h5pp * b_k.acc[j]);
-    }
-  } else {
-    // Cubic Hermite — matches (p, v) at both endpoints.
-    const double u2 = u * u;
-    const double u3 = u2 * u;
-    const double h00 = 2.0 * u3 - 3.0 * u2 + 1.0;
-    const double h10 = u3 - 2.0 * u2 + u;
-    const double h01 = -2.0 * u3 + 3.0 * u2;
-    const double h11 = u3 - u2;
-
-    const double h00p = 6.0 * u2 - 6.0 * u;
-    const double h10p = 3.0 * u2 - 4.0 * u + 1.0;
-    const double h01p = -6.0 * u2 + 6.0 * u;
-    const double h11p = 3.0 * u2 - 2.0 * u;
-
-    const double h00pp = 12.0 * u - 6.0;
-    const double h10pp = 6.0 * u - 4.0;
-    const double h01pp = -12.0 * u + 6.0;
-    const double h11pp = 6.0 * u - 2.0;
-
-    for (std::size_t j = 0; j < n; ++j) {
-      p[j] = h00 * a_k.pos[j] + h10 * (a_k.vel[j] * h)
-        + h01 * b_k.pos[j] + h11 * (b_k.vel[j] * h);
-      v[j] = (h00p * a_k.pos[j] + h01p * b_k.pos[j]) / h
-        + h10p * a_k.vel[j] + h11p * b_k.vel[j];
-      a_out[j] = (h00pp * a_k.pos[j] + h01pp * b_k.pos[j]) / (h * h)
-        + (h10pp * a_k.vel[j] + h11pp * b_k.vel[j]) / h;
-    }
   }
 }
 

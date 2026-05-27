@@ -1,0 +1,4 @@
+# Body-group override: arms + waist (13 active joints, 12 inactive).
+robot_pvt_controller:
+  ros__parameters:
+    body_group: "arms_waist"

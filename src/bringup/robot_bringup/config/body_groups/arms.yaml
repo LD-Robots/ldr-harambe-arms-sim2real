@@ -1,0 +1,5 @@
+# Body-group override: arms only (12 active joints, 13 inactive).
+# Loaded after controllers_pvt.yaml so it overrides the default body_group.
+robot_pvt_controller:
+  ros__parameters:
+    body_group: "arms"

@@ -10,6 +10,7 @@
 #include "control_msgs/action/follow_joint_trajectory.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "robot_pvt_control/hermite.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "realtime_tools/realtime_buffer.hpp"
@@ -25,8 +26,9 @@ namespace robot_pvt_control
 
 enum class Mode : uint8_t
 {
-  FREE = 0,   // neutral output — every drive produces zero torque
-  PVT  = 1,   // active — track the streaming setpoint
+  FREE    = 0,   // neutral output — every drive produces zero torque
+  PVT     = 1,   // active — track the streaming setpoint
+  DAMPING = 2,   // brake — drive runs Kp=0, Kd=Kd_damp[j], q_des=q_meas
 };
 
 /// Whole-body PVT controller. Ported from pendulum_pvt_control, generalised to
@@ -39,7 +41,9 @@ enum class Mode : uint8_t
 /// positions/velocities/accelerations arrays index the joints in the same
 /// order as the `joints` parameter. Action server: ~/follow_joint_trajectory
 /// with cubic/quintic-Hermite interpolation at the controller-manager rate.
-/// Services: ~/hold and ~/free (std_srvs/Trigger).
+/// Services: ~/hold, ~/free, ~/damp (std_srvs/Trigger). ~/damp drives Kp=0,
+/// Kd=Kd_damp[j] across the active body group — a pure-brake mode used
+/// during gain ramp-up (see docs/tuning/pvt_tuning_guide.html).
 class RobotPVTController : public controller_interface::ControllerInterface
 {
 public:
@@ -73,24 +77,10 @@ private:
     std::vector<double> acceleration;
   };
 
-  /// One waypoint in an action-driven trajectory. `pos / vel / acc` are sized
-  /// to the controller's joint roster (the action's joint_names may reorder;
-  /// handle_accepted remaps into our internal order). has_acc is per-knot
-  /// (not per-joint) — applies to all joints in a knot uniformly.
-  struct Knot
-  {
-    double t{0.0};
-    std::vector<double> pos;
-    std::vector<double> vel;
-    std::vector<double> acc;
-    bool has_acc{false};
-  };
-
-  struct Trajectory
-  {
-    std::vector<Knot> knots;
-    double duration{0.0};
-  };
+  // Knot / Trajectory live in hermite.hpp now — pure-math types reused by
+  // the unit tests. The action-server callback (handle_accepted) reorders
+  // the inbound action joint_names into our internal order before
+  // populating Knot::pos/vel/acc; that remapping logic still lives here.
 
   /// Hot-reloadable parameter snapshot. Per-joint arrays are sized to
   /// joints_.size() in load_params(); update() reads the snapshot via
@@ -100,6 +90,7 @@ private:
     // Per-joint
     std::vector<double> Kp;            ///< N·m/rad (drive-side or software PD)
     std::vector<double> Kd;            ///< N·m·s/rad
+    std::vector<double> Kd_damp;       ///< N·m·s/rad, used only in Mode::DAMPING
     std::vector<double> mgl;           ///< gravity feedforward magnitude
     std::vector<double> J;             ///< inertia feedforward
     std::vector<double> Fv;            ///< viscous feedforward
@@ -117,12 +108,24 @@ private:
 
   void load_params();
   void write_free_outputs();
+  /// Write the FREE pattern for a single joint slot (q=measured,
+  /// v/eff/kp/kd = 0). Used by update() to leave inactive joints
+  /// back-drivable while still tracking the active set.
+  void write_free_outputs_for(std::size_t j);
+  /// Write the DAMPING pattern for a single joint slot: q_des=measured,
+  /// v_des=0, eff=0, kp=0, kd=Kd_damp[j]. The drive's PD law collapses to
+  /// tau = -Kd_damp[j] * qd, producing pure mechanical brake without
+  /// reference tracking. Sim path: writes tau = -Kd_damp[j] * qd directly.
+  void write_damping_outputs_for(std::size_t j, double qd);
   void setpoint_callback(
     const trajectory_msgs::msg::JointTrajectoryPoint::SharedPtr msg);
   void hold_service(
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
   void free_service(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+  void damp_service(
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
@@ -135,16 +138,8 @@ private:
   void on_feedback_tick();
   void preempt_goal(const std::string & why);
 
-  // Sampling helpers — RT-safe. Output vectors are sized to joints_.size()
-  // by the caller; sample_segment / sample_trajectory only overwrite them.
-  void sample_segment(
-    const Knot & a, const Knot & b, double t,
-    std::vector<double> & p, std::vector<double> & v,
-    std::vector<double> & a_out) const;
-  void sample_trajectory(
-    const Trajectory & traj, double t,
-    std::vector<double> & p, std::vector<double> & v,
-    std::vector<double> & a) const;
+  // Sampling helpers — see robot_pvt_control::sample_segment /
+  // sample_trajectory in hermite.hpp.
 
   // --- configuration ---
   std::vector<std::string> joints_;
@@ -157,6 +152,12 @@ private:
   rclcpp_lifecycle::LifecycleNode::PostSetParametersCallbackHandle::SharedPtr
     post_set_param_cb_;
   bool drive_side_pd_{true};
+
+  // body_group scope. Latched at on_configure — see load_params() for the
+  // string→mask resolution and the post_set_param_cb_ reject. Inactive
+  // slots get write_free_outputs_for(j) every update().
+  std::string body_group_{"full"};
+  std::vector<bool> active_mask_;
 
   // Safety
   robot_safety::SafetyLimitsTable limits_;
@@ -176,6 +177,7 @@ private:
   // Services
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr hold_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr free_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr damp_srv_;
 
   // Action server
   rclcpp_action::Server<FJT>::SharedPtr action_server_;

@@ -21,11 +21,11 @@
          pvt_mode=true: CiA 402 mode 5, 1 kHz, 5 cmd / 8 state interfaces per joint
          pvt_mode=false: legacy CSP/CST path (position + effort + mode_of_operation) -->
     <xacro:if value="$(arg pvt_mode)">
-        <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real_pvt.xacro"/>
+        <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_real_pvt.xacro"/>
         <xacro:dual_arm_ros2_control_real_pvt/>
     </xacro:if>
     <xacro:unless value="$(arg pvt_mode)">
-        <xacro:include filename="$(find dual_arm_description)/urdf/macros/ros2_control_real.xacro"/>
+        <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_real.xacro"/>
         <xacro:dual_arm_ros2_control_real/>
     </xacro:unless>
 

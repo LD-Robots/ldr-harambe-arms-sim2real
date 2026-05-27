@@ -1,0 +1,4 @@
+# Body-group override: legs only (12 active joints, 13 inactive).
+robot_pvt_controller:
+  ros__parameters:
+    body_group: "legs"

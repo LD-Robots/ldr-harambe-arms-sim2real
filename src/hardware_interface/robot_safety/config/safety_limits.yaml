@@ -19,37 +19,37 @@
 robot_safety_supervisor:
   ros__parameters:
     joint_names:
-      - left_shoulder_pitch_X6
-      - left_shoulder_roll_X6
-      - left_shoulder_yaw_X4
-      - left_elbow_pitch_X6
-      - left_wrist_yaw_X4
-      - left_wrist_roll_X4
-      - right_shoulder_pitch_X6
-      - right_shoulder_roll_X6
-      - right_shoulder_yaw_X4
-      - right_elbow_pitch_X6
-      - right_wrist_yaw_X4
-      - right_wrist_roll_X4
-      - waist_yaw_X8
-      - left_hip_pitch_X8
-      - left_hip_roll_X8
-      - left_hip_yaw_X8
-      - left_knee_X8
-      - left_ankle_pitch_X4
-      - left_ankle_roll_X4
-      - right_hip_pitch_X8
-      - right_hip_roll_X8
-      - right_hip_yaw_X8
-      - right_knee_X8
-      - right_ankle_pitch_X4
-      - right_ankle_roll_X4
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_pitch_joint_X4
+      - right_ankle_roll_joint_X4
 
     joint_state_topic: /joint_states
     monitor_temperature: true
-    temperature_topic_motor: /drive_status_broadcaster/motor_temperature
-    temperature_topic_drive: /drive_status_broadcaster/drive_temperature
-    bus_voltage_topic: /drive_status_broadcaster/bus_voltage
+    temperature_topic_motor: /robot_drive_status_broadcaster/motor_temperature
+    temperature_topic_drive: /robot_drive_status_broadcaster/drive_temperature
+    bus_voltage_topic: /robot_drive_status_broadcaster/bus_voltage
     watchdog_rate_hz: 200.0
     # Breach detection arms only after the joint feed is continuously fresh
     # for this long — bringup transients (EtherCAT reaching OP, controller
@@ -97,28 +97,28 @@ robot_safety_supervisor:
 
       joints:
         # ── Wrists (X4, low-inertia, narrow torque envelope) ──
-        left_wrist_yaw_X4:
+        left_wrist_yaw_joint_X4:
           # NEVER lift the limits here without re-validating —
           # [[project-wrist-yaw-incident]] broke this joint at the X4
           # mechanical limit during a CST PD test.
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
-        left_wrist_roll_X4:
+        left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
-        right_wrist_yaw_X4:
+        right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
-        right_wrist_roll_X4:
+        right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
 
         # ── Waist (X8) — single torso joint, moderate envelope ──
-        waist_yaw_X8:
+        waist_yaw_joint_X8:
           effort_limit: 30.0
           sustained_effort_threshold: 22.0
           velocity_limit: 3.0
@@ -126,39 +126,39 @@ robot_safety_supervisor:
           position_max:  1.5708
 
         # ── Hips (X8) — heavy load, full-body weight ──
-        left_hip_pitch_X8:
+        left_hip_pitch_joint_X8:
           effort_limit: 60.0
           sustained_effort_threshold: 45.0
           velocity_limit: 4.0
-        left_hip_roll_X8:
+        left_hip_roll_joint_X8:
           effort_limit: 60.0
           sustained_effort_threshold: 45.0
           velocity_limit: 4.0
-        left_hip_yaw_X8:
+        left_hip_yaw_joint_X8:
           effort_limit: 30.0
           sustained_effort_threshold: 22.0
           velocity_limit: 4.0
-        right_hip_pitch_X8:
+        right_hip_pitch_joint_X8:
           effort_limit: 60.0
           sustained_effort_threshold: 45.0
           velocity_limit: 4.0
-        right_hip_roll_X8:
+        right_hip_roll_joint_X8:
           effort_limit: 60.0
           sustained_effort_threshold: 45.0
           velocity_limit: 4.0
-        right_hip_yaw_X8:
+        right_hip_yaw_joint_X8:
           effort_limit: 30.0
           sustained_effort_threshold: 22.0
           velocity_limit: 4.0
 
         # ── Knees (X8) — single-axis hinge, bends only one way ──
-        left_knee_X8:
+        left_knee_joint_X8:
           effort_limit: 50.0
           sustained_effort_threshold: 38.0
           velocity_limit: 5.0
           position_min: 0.0            # knees only bend forward
           position_max: 2.5
-        right_knee_X8:
+        right_knee_joint_X8:
           effort_limit: 50.0
           sustained_effort_threshold: 38.0
           velocity_limit: 5.0
@@ -166,19 +166,126 @@ robot_safety_supervisor:
           position_max: 2.5
 
         # ── Ankles (X4) — small joint, large mechanical advantage ──
-        left_ankle_pitch_X4:
+        left_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
-        left_ankle_roll_X4:
+        left_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
-        right_ankle_pitch_X4:
+        right_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
-        right_ankle_roll_X4:
+        right_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+
+# ── Controller-side safety mirror ────────────────────────────────────────────
+# robot_pvt_controller links librobot_safety the same way the supervisor does,
+# and looks up `safety.global.*` + `safety.joints.<joint>.*` from its own
+# parameter namespace. Keep this block byte-for-byte identical to the supervisor
+# block above — both nodes must agree on every per-joint envelope.
+robot_pvt_controller:
+  ros__parameters:
+    safety:
+      global:
+        position_limits_enable: true
+        position_min: -3.141592653589793
+        position_max:  3.141592653589793
+        effort_limit: 12.0
+        sustained_effort_threshold: 10.0
+        sustained_effort_window_sec: 1.0
+        velocity_limit: 5.0
+        slew_rate_limit: 2.5
+        acceleration_limit: 30.0
+        motor_temp_warn: 70.0
+        motor_temp_error: 90.0
+        drive_temp_warn: 70.0
+        drive_temp_error: 85.0
+        bus_voltage_min: 40.0
+        bus_voltage_max: 54.0
+        kp_scale_floor: 0.3
+        joint_state_timeout_sec: 0.25
+
+      joints:
+        left_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        left_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        right_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+        right_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+
+        waist_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 3.0
+          position_min: -1.5708
+          position_max:  1.5708
+
+        left_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+        right_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+
+        left_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+        right_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+
+        left_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+        left_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+        right_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+        right_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0

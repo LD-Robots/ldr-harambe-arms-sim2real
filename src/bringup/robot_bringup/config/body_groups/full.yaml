@@ -1,0 +1,6 @@
+# Body-group override: full body (all 25 joints active).
+# Identical to the controllers_pvt.yaml default but kept as an explicit
+# override file so every launch path goes through the same mechanism.
+robot_pvt_controller:
+  ros__parameters:
+    body_group: "full"

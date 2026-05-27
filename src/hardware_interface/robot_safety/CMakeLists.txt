@@ -69,4 +69,13 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${DEPS})
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  ament_add_gmock(test_rate_limiter test/test_rate_limiter.cpp)
+  target_link_libraries(test_rate_limiter ${PROJECT_NAME})
+endif()
+
 ament_package()

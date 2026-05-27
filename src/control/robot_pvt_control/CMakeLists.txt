@@ -45,6 +45,8 @@ set(DEPS
 
 add_library(${PROJECT_NAME} SHARED
   src/robot_pvt_controller.cpp
+  src/hermite.cpp
+  src/body_group.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -69,5 +71,25 @@ install(FILES robot_pvt_controller_plugin.xml
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${DEPS})
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  # Pure-math: cubic + quintic Hermite samplers + trajectory dispatch.
+  ament_add_gmock(test_hermite_sampler test/test_hermite_sampler.cpp)
+  target_link_libraries(test_hermite_sampler ${PROJECT_NAME})
+
+  # body_group classifier — runtime scope decision used by the controller.
+  ament_add_gmock(test_body_group test/test_body_group.cpp)
+  target_link_libraries(test_body_group ${PROJECT_NAME})
+
+  # TODO: test_pvt_controller_lifecycle (FREE/HOLD/e-stop/body_group masking)
+  #       — needs ros2_control_test_assets + loaned command/state interfaces.
+  #       Defer until the fixture pattern is brought in; the math + classifier
+  #       tests above cover the deterministic pieces, and the controller's
+  #       behaviour on real hardware is exercised by the Gate 2 smoke test.
+endif()
 
 ament_package()

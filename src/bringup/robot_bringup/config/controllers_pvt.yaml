@@ -131,6 +131,13 @@ robot_pvt_controller:
 
     drive_side_pd: true       # real hw: drive runs the PD law (mode 5)
 
+    # Active joint scope. `full` commands all 25 joints. `arms`,
+    # `arms_waist`, and `legs` scope the controller — inactive joints get
+    # the FREE pattern (q=measured, v/eff/kp/kd=0) so the drive law
+    # collapses to zero torque and the joint stays back-drivable. NOT
+    # runtime-reconfigurable; the launch passes this per-invocation.
+    body_group: "full"
+
     # FIRST BRINGUP: leave Kp / Kd at 0.0 across the board. Activate the
     # controller, verify ~/setpoint streams reach the drives, then ramp Kd
     # then Kp per the bench-rig protocol (ethercat_control_guide.html §23).
@@ -145,19 +152,58 @@ robot_pvt_controller:
          0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
+    # Pure-brake gain — used only while ~/damp is latched. Drive runs
+    # Kp=0, Kd=Kd_damp[j], q_des=q_meas, so tau = -Kd_damp[j] * qd. Ramp from
+    # 0 per joint family, same discipline as Kd above. Sized to all 25 joints
+    # in roster order.
+    Kd_damp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
     # All host-side feedforward terms OFF on first bringup — easier to debug
     # what's coming from the drive vs the host. Enable per joint once gains
     # are validated.
-    ff_gravity: [false]
+    #
+    # ff_gravity stays all-false even though mgl is now populated below. Per
+    # the wrist-yaw incident and the gravcomp plan, enabling host gravcomp
+    # on hardware is a bench session one joint at a time, with comp_sign
+    # measured by observing whether the joint drifts toward or away from
+    # gravity at zero PD gain. Flip one entry at a time, never the whole
+    # array. Legs stay false unconditionally — closed-chain in stance.
+    ff_gravity: [false, false, false, false, false, false,
+                 false, false, false, false, false, false,
+                 false,
+                 false, false, false, false, false, false,
+                 false, false, false, false, false, false]
     ff_inertia: [false]
     ff_viscous: [false]
 
-    # Per-joint inertia / gravity / viscous magnitudes — placeholder zeros.
-    # These need URDF-derived values before enabling ff_*.
-    mgl: [0.0]
+    # mgl: peak |tau_g(q_j)| per joint at the "relaxed" arm pose, derived
+    # from the URDF via
+    #   src/tools/ethercat_tools/scripts/gravcomp_from_urdf.py evaluate \
+    #     --pose src/bringup/robot_bringup/config/relaxed_pose.yaml
+    # Locally correct around that pose; degrades as the chain articulates
+    # away. Re-run the script if the URDF, the relaxed pose, or the joint
+    # roster changes. Legs zeroed — stance-leg gravcomp needs contact-aware
+    # control, not the dangling-mass formula.
+    mgl: [15.023644113855408,  14.69915934499973,   3.3580002864753824e-05,
+          6.123092501943805,   0.016805755997275146, 1.3141839681386756,
+          15.580628103720382,  15.579996700811535,  4.886243323532209e-07,
+          6.244325894906243,   1.1250474407023594e-07, 1.5350509291426389,
+          0.0,
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     J:   [0.0]
     Fv:  [0.0]
-    comp_sign: [1.0]
+    # comp_sign starts at +1.0 across the board; flip per-joint after the
+    # bench check (see the ff_gravity comment above).
+    comp_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                1.0,
+                1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     hold_position: [0.0]
 
     # Lag governor (global) — defaults from pendulum_pvt_control. Tune at
@@ -166,25 +212,10 @@ robot_pvt_controller:
     lag_pause: 0.14
     alpha_slew: 2.0
 
-    # ── Safety limits (consumed by the limiter library inside the controller).
-    # These shadow the supervisor's safety_limits.yaml — keep the two in sync,
-    # or pass the same file via --params-file to both nodes.
-    safety:
-      global:
-        position_limits_enable: true
-        position_min: -3.141592653589793
-        position_max:  3.141592653589793
-        effort_limit: 12.0
-        sustained_effort_threshold: 10.0
-        sustained_effort_window_sec: 1.0
-        velocity_limit: 5.0
-        slew_rate_limit: 2.5
-        acceleration_limit: 30.0
-        motor_temp_warn: 70.0
-        motor_temp_error: 90.0
-        drive_temp_warn: 70.0
-        drive_temp_error: 85.0
-        bus_voltage_min: 40.0
-        bus_voltage_max: 54.0
-        kp_scale_floor: 0.3
-        joint_state_timeout_sec: 0.25
+    # ── Safety limits ───────────────────────────────────────────────────────
+    # NOT inlined here. The launch passes
+    # robot_safety/config/safety_limits.yaml as a second parameters= file to
+    # ros2_control_node, which carries a `robot_pvt_controller.ros__parameters`
+    # block that the controller's loadSafetyLimits() reads. This keeps the
+    # supervisor and the controller pinned to the same per-joint envelopes —
+    # a divergence here was the wiring bug surfaced by the PVT audit.
