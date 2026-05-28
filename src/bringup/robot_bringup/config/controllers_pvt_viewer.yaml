@@ -1,0 +1,111 @@
+# Read-only PVT viewer — no motion controller, drives stay SWITCH_ON_DISABLED.
+#
+# Broadcaster layout (mirrors controllers_pvt.yaml):
+#   1) joint_state_broadcaster — standard JSB. Publishes raw, unfiltered state
+#      at 1 kHz to /joint_states (remapped to /joint_states_raw by the launch).
+#      Required by host-side position control / 200 Hz interpolation: those
+#      consumers need every drive sample, not a smoothed version.
+#   2) robot_filtered_joint_state_broadcaster — experimental IIR low-pass on
+#      velocity + effort (30 Hz cutoff), publish_rate 100 Hz, topic
+#      /joint_states_filtered. Kept available for dashboards / displays that
+#      want smoothed signals; NOT the primary state feed.
+#   3) robot_drive_status_broadcaster — TxPDO 0x1A02 telemetry (temps, bus
+#      voltage, error codes).
+#
+# The ethercat_pvt_readonly/ slave configs keep the drives in
+# SWITCH_ON_DISABLED — no torque output even if a stale setpoint were
+# published.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 1000   # 1 kHz — matches PVT slave 1 ms interpolation period
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    robot_filtered_joint_state_broadcaster:
+      type: robot_filtered_joint_state_broadcaster/FilteredJointStateBroadcaster
+
+    robot_drive_status_broadcaster:
+      type: robot_drive_status_broadcaster/DriveStatusBroadcaster
+
+# ── Standard joint-state broadcaster (primary, raw, 1 kHz) ───────────────────
+# Publishes to /joint_states; the launch remaps to /joint_states_raw so
+# joint_state_publisher remains the sole publisher on /joint_states.
+joint_state_broadcaster:
+  ros__parameters:
+    publish_rate: 1000
+
+# ── Filtered joint-state broadcaster (secondary, IIR @ 30 Hz, 100 Hz) ────────
+# Same joint roster as the standard JSB. Velocity / effort low-passed at 30 Hz;
+# position passes through unfiltered. Topic is /joint_states_filtered — DO NOT
+# remap to /joint_states_raw, that's now the standard broadcaster's job.
+robot_filtered_joint_state_broadcaster:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_roll_joint_X4
+      - right_ankle_pitch_joint_X4
+    velocity_cutoff_hz: 30.0
+    torque_cutoff_hz: 30.0
+    publish_rate: 100.0
+    topic: /joint_states_filtered
+
+# ── Drive status broadcaster (TxPDO 0x1A02 telemetry) ────────────────────────
+robot_drive_status_broadcaster:
+  ros__parameters:
+    joints:
+      - left_shoulder_pitch_joint_X6
+      - left_shoulder_roll_joint_X6
+      - left_shoulder_yaw_joint_X4
+      - left_elbow_pitch_joint_X6
+      - left_wrist_yaw_joint_X4
+      - left_wrist_roll_joint_X4
+      - right_shoulder_pitch_joint_X6
+      - right_shoulder_roll_joint_X6
+      - right_shoulder_yaw_joint_X4
+      - right_elbow_pitch_joint_X6
+      - right_wrist_yaw_joint_X4
+      - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
+      - left_hip_pitch_joint_X8
+      - left_hip_roll_joint_X8
+      - left_hip_yaw_joint_X8
+      - left_knee_joint_X8
+      - left_ankle_pitch_joint_X4
+      - left_ankle_roll_joint_X4
+      - right_hip_pitch_joint_X8
+      - right_hip_roll_joint_X8
+      - right_hip_yaw_joint_X8
+      - right_knee_joint_X8
+      - right_ankle_roll_joint_X4
+      - right_ankle_pitch_joint_X4
+    publish_rate: 50.0
+    motor_temp_warn: 70.0
+    motor_temp_error: 90.0
+    drive_temp_warn: 70.0
+    drive_temp_error: 85.0
+    bus_voltage_min: 40.0
+    bus_voltage_max: 54.0

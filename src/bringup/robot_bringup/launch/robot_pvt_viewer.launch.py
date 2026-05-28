@@ -1,19 +1,18 @@
-"""robot_pvt.launch.py — whole-body PVT bring-up on real EtherCAT hardware.
+"""robot_pvt_viewer.launch.py — whole-body PVT read-only viewer.
 
-Brings up:
-  - controller_manager with the PVT URDF (mode_of_operation: 5, RxPDO 0x1601)
-  - robot_filtered_joint_state_broadcaster (replaces standard JSB; 30 Hz IIR)
-  - robot_drive_status_broadcaster (telemetry: temps, bus voltage, error code)
-  - robot_safety_supervisor (whole-body watchdog + e-stop / Kp derate)
-  - robot_pvt_controller (INACTIVE; operator activates explicitly)
+Parallel to arm_real_bringup/position_viewer.launch.py but for the PVT stack.
+Brings up the EtherCAT bus with the ethercat_pvt_readonly/ slave configs so
+drives stay in SWITCH_ON_DISABLED — no enable transition, no torque output.
+Only the broadcasters spawn; robot_pvt_controller is NOT loaded.
 
-Order is enforced via OnProcessExit chains so PREOP→SAFEOP completes before
-any controller spawner runs. The PVT controller is spawned INACTIVE so the
-drives stay in mode 5 with Kp=Kd=0 (back-drivable FREE) until the operator
-ramps gains per the bench-rig protocol.
+Use this for:
+  - inspecting live joint positions while back-driving the robot by hand
+  - pre-flight checks before robot_pvt.launch.py
+  - calibration sessions (combine with demo_joint_offset)
 
-The legacy CSP/CST stack (arm_real.launch.py) stays orthogonal — running this
-launch does not touch arm_real_bringup's controller manager spawners.
+Drives can be enabled out from under this viewer ONLY by re-flashing the slave
+configs or relaunching with robot_pvt.launch.py — the read-only YAMLs have
+auto_state_transitions: false / auto_fault_reset: false.
 """
 
 from launch import LaunchDescription
@@ -57,16 +56,18 @@ def _launch_setup(context):
     pkg_robot_bringup = FindPackageShare("robot_bringup")
     pkg_robot_safety = FindPackageShare("robot_safety")
 
-    # PVT URDF always enumerates all 25 joints — the bus is always physically
-    # full, and per-group scope is enforced inside the controller via the
-    # `body_group` parameter (see _make_spawner below). Legs must stay
-    # revolute in the kinematic tree (fixed_legs:=false), or the
-    # controller_manager fails to claim their hardware interfaces.
+    # Resolve the readonly slave config dir to an absolute path so the xacro
+    # arg substitution lands as a literal string, not a launch substitution
+    # object (xacro args are plain strings, no late binding).
+    readonly_dir = PathJoinSubstitution(
+        [pkg_robot_bringup, "config", "ethercat_pvt_readonly"]).perform(context)
+
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
-        " use_sim:=false pvt_mode:=true fixed_legs:=false",
+        " use_sim:=false pvt_mode:=true readonly:=true fixed_legs:=false",
+        " pvt_yaml_dir:=", readonly_dir,
     ])
     robot_description = {
         "robot_description": ParameterValue(
@@ -74,9 +75,11 @@ def _launch_setup(context):
     }
 
     controller_config = PathJoinSubstitution(
-        [pkg_robot_bringup, "config", "controllers_pvt.yaml"])
+        [pkg_robot_bringup, "config", "controllers_pvt_viewer.yaml"])
     safety_limits_yaml = PathJoinSubstitution(
         [pkg_robot_safety, "config", "safety_limits.yaml"])
+    body_group_override = PathJoinSubstitution(
+        [pkg_robot_bringup, "config", "body_groups", robot_group + ".yaml"])
 
     robot_state_publisher = Node(
         package="robot_state_publisher",
@@ -86,18 +89,9 @@ def _launch_setup(context):
         parameters=[robot_description, {"use_sim_time": False}],
     )
 
-    # ros2_control node — standard JSB publishes /joint_states; we remap it to
-    # /joint_states_raw so joint_state_publisher remains the sole publisher on
-    # /joint_states. Raw (unfiltered, 1 kHz) is the primary state feed; the
-    # filtered broadcaster publishes a smoothed copy on /joint_states_filtered.
-    #
-    # Parameter sources, in load order (later overrides earlier):
-    #   1. robot_description           — the URDF
-    #   2. controllers_pvt.yaml        — controllers + body_group default
-    #   3. safety_limits.yaml          — supervisor + controller safety mirror
-    #   4. body_groups/<group>.yaml    — overrides body_group per-launch
-    body_group_override = PathJoinSubstitution(
-        [pkg_robot_bringup, "config", "body_groups", robot_group + ".yaml"])
+    # Standard joint_state_broadcaster publishes to /joint_states; remap so
+    # joint_state_publisher remains the sole publisher on /joint_states and
+    # the EtherCAT feed lands on /joint_states_raw (1 kHz, unfiltered).
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -114,11 +108,10 @@ def _launch_setup(context):
         ],
     )
 
-    # ── Spawners (PVT controller starts INACTIVE) ────────────────────────────
+    # ── Spawners — broadcasters only, no robot_pvt_controller ────────────────
     jsb_spawner = _make_spawner("joint_state_broadcaster")
     filtered_jsb_spawner = _make_spawner("robot_filtered_joint_state_broadcaster")
     drive_status_spawner = _make_spawner("robot_drive_status_broadcaster")
-    pvt_spawner = _make_spawner("robot_pvt_controller", inactive=True)
 
     # ── Safety supervisor (independent node — same executor) ─────────────────
     safety_launch = IncludeLaunchDescription(
@@ -151,12 +144,14 @@ def _launch_setup(context):
     nodes = [
         robot_state_publisher,
         ros2_control_node,
-        # Wait for EtherCAT PREOP→SAFEOP→OP before spawning controllers.
+        # Wait for EtherCAT PREOP→SAFEOP transition before spawning controllers.
+        # Drives stay SWITCH_ON_DISABLED in readonly mode (no OP transition).
         TimerAction(period=4.0, actions=[jsb_spawner]),
     ]
 
-    # Spawn chain: standard JSB → filtered JSB → drive_status → PVT (inactive).
-    # Sequential so the controller-manager service queue stays single-file.
+    # Spawn order: standard JSB (raw, /joint_states_raw) → filtered JSB
+    # (/joint_states_filtered) → drive_status. Sequential so the controller-
+    # manager service queue stays single-file during startup.
     nodes.append(RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=jsb_spawner,
@@ -169,16 +164,7 @@ def _launch_setup(context):
             on_exit=[drive_status_spawner],
         )
     ))
-    nodes.append(RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=drive_status_spawner,
-            on_exit=[pvt_spawner],
-        )
-    ))
 
-    # Safety supervisor + joint_state_publisher + RViz start in parallel with
-    # the controller bring-up; the supervisor's own startup_grace_sec gates
-    # breach detection until the joint feed is healthy.
     nodes.append(safety_launch)
     nodes.append(joint_state_publisher)
     nodes.append(rviz)

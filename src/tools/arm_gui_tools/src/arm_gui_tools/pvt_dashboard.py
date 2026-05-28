@@ -2,7 +2,7 @@
 """Robot PVT dashboard — all 25 joints at a glance, grouped by body part,
 with per-joint sparkline plots of position, velocity, and effort.
 
-Subscribes to /joint_states_raw (the filtered joint-state broadcaster's
+Subscribes to /joint_states_filtered (the filtered joint-state broadcaster's
 output: position + IIR-filtered velocity + IIR-filtered effort at 100 Hz)
 plus /safety/{estop_state, breach_reason}. Fetches per-joint safety envelopes
 once at startup from /robot_safety_supervisor so each sparkline can color its
@@ -137,7 +137,7 @@ ESTOP_LABELS = {
     2: ("E-STOP HOLD", C_RED),
 }
 
-JOINT_STATES_TOPIC      = "/joint_states_raw"
+JOINT_STATES_TOPIC      = "/joint_states_filtered"
 SAFETY_ESTOP_TOPIC      = "/safety/estop_state"
 SAFETY_BREACH_TOPIC     = "/safety/breach_reason"
 SAFETY_KP_SCALE_TOPIC   = "/safety/kp_scale"

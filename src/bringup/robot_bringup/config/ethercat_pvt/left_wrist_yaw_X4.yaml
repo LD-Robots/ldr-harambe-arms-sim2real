@@ -44,7 +44,7 @@ rpdo:
       # [2 B] control_word — managed by CiA 402 driver
       - {index: 0x6040, sub_index: 0, type: uint16, command_interface: ~,        default: 0}
       # [4 B] target_position (0x607A) — drive PD setpoint, in encoder counts (factor includes direction sign)
-      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -41721.513}
+      - {index: 0x607a, sub_index: 0, type: int32,  command_interface: position, factor: -41721.513, offset: 7460}
       # [4 B] target_velocity (0x60FF) — drive PD velocity setpoint
       - {index: 0x60ff, sub_index: 0, type: int32,  command_interface: velocity, factor: -41721.513, default: 0}
       # [2 B] torque feedforward (0x6071) — added to PD output inside the drive
@@ -67,7 +67,7 @@ tpdo:
       # [2 B] status_word (0x6041) — exposed for safety supervisor + diagnostics
       - {index: 0x6041, sub_index: 0, type: uint16, state_interface: status_word}
       # [4 B] actual_position (0x6064)
-      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -2.39684e-05}
+      - {index: 0x6064, sub_index: 0, type: int32,  state_interface: position, factor: -2.39684e-05, offset: 0.178805}
       # [4 B] actual_velocity (0x606C)
       - {index: 0x606c, sub_index: 0, type: int32,  state_interface: velocity, factor: -2.39684e-05}
       # [2 B] actual_torque (0x6077)

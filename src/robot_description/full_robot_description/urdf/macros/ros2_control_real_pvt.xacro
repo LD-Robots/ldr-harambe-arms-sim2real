@@ -6,10 +6,17 @@
     <!-- and 8 state interfaces (position, velocity, effort, motor_temperature, -->
     <!-- drive_temperature, bus_voltage, error_code, status_word). The mode_of_operation -->
     <!-- command interface is NOT exposed in PVT — the firmware locks the PDO to mode 5. -->
+
+    <!-- Launches override pvt_yaml_dir to point at a sibling directory
+         (e.g. ethercat_pvt_readonly/ generated at build time) so the same
+         xacro macro can drive both live PVT and the read-only viewer.
+         Default = canonical config used by robot_pvt.launch.py. -->
+    <xacro:arg name="pvt_yaml_dir" default="$(find robot_bringup)/config/ethercat_pvt"/>
+
     <xacro:macro name="dual_arm_ros2_control_real_pvt">
 
         <xacro:property name="ctrl_freq" value="1000"/>
-        <xacro:property name="pvt_yaml_dir" value="$(find robot_bringup)/config/ethercat_pvt"/>
+        <xacro:property name="pvt_yaml_dir" value="$(arg pvt_yaml_dir)"/>
 
         <xacro:macro name="ec_pvt_joint" params="name bus_pos slave_file ec_name">
             <joint name="${name}">
