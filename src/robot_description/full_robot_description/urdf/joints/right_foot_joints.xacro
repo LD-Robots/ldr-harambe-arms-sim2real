@@ -16,7 +16,7 @@
   <joint name="right_hip_roll_joint_X8" type="${leg_joint_type}">
     <origin xyz="0.053 -0.062 0" rpy="0 0 0"/>
     <parent link="urdf_hip_assembly_2"/>
-    <child link="urdf_r_upper_femur_assemby"/>
+    <child link="urdf_r_upper_femur_assembly"/>
     <axis xyz="1 0 0"/>
     <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-3.22886" upper="0.383972"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
@@ -24,7 +24,7 @@
 
   <joint name="right_hip_yaw_joint_X8" type="${leg_joint_type}">
     <origin xyz="-0.053 0 -0.217" rpy="0 0 0"/>
-    <parent link="urdf_r_upper_femur_assemby"/>
+    <parent link="urdf_r_upper_femur_assembly"/>
     <child link="urdf_lower_femur_assembly_2"/>
     <axis xyz="0 0 1"/>
     <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-1.5708" upper="1.5708"/>
@@ -36,14 +36,14 @@
     <parent link="urdf_lower_femur_assembly_2"/>
     <child link="urdf_r_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-1.52716" upper="1.52716"/>
+    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="0" upper="1.51844"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
   <joint name="right_ankle_roll_joint_X4" type="${leg_joint_type}">
     <origin xyz="0 0.059 -0.395" rpy="0 0 0"/>
     <parent link="urdf_r_tibia_assembly"/>
-    <child link="udrf_ankle_assembly_2"/>
+    <child link="urdf_ankle_assembly_2"/>
     <axis xyz="0 1 0"/>
     <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-0.785398" upper="0.785398"/>
     <dynamics damping="${X4_damping}" friction="${X4_friction}"/>
@@ -51,7 +51,7 @@
 
   <joint name="right_ankle_pitch_joint_X4" type="${leg_joint_type}">
     <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0"/>
-    <parent link="udrf_ankle_assembly_2"/>
+    <parent link="urdf_ankle_assembly_2"/>
     <child link="urdf_foot_assembly_2"/>
     <axis xyz="1 0 0"/>
     <limit effort="${X4_moderate_effort}" velocity="${X4_rated_velocity}" lower="-0.785398" upper="0.785398"/>

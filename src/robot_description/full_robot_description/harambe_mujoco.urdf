@@ -802,7 +802,7 @@
     <parent link="urdf_lower_femur_assembly" />
     <child link="urdf_l_tibia_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="43" velocity="13.3" lower="-0.17" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="0" upper="1.51844" />
     <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="left_hip_yaw_joint_X8" type="revolute">
@@ -860,7 +860,7 @@
       </material>
     </visual>
   </link>
-  <link name="urdf_r_upper_femur_assemby">
+  <link name="urdf_r_upper_femur_assembly">
     <inertial>
       <origin xyz="-0.0457092 -0.000405162 -0.147963" rpy="0 0 0" />
       <mass value="1.912" />
@@ -1063,12 +1063,12 @@
     <parent link="urdf_lower_femur_assembly_2" />
     <child link="urdf_r_tibia_assembly" />
     <axis xyz="0 1 0" />
-    <limit effort="43" velocity="13.3" lower="-0.17" upper="1.57" />
+    <limit effort="43" velocity="13.3" lower="0" upper="1.51844" />
     <dynamics friction="3.21" damping="0.321" />
   </joint>
   <joint name="right_hip_yaw_joint_X8" type="revolute">
     <origin xyz="-0.053 7.97086e-07 -0.217" rpy="0 0 0" />
-    <parent link="urdf_r_upper_femur_assemby" />
+    <parent link="urdf_r_upper_femur_assembly" />
     <child link="urdf_lower_femur_assembly_2" />
     <axis xyz="0 0 1" />
     <limit effort="43" velocity="13.3" lower="-1.57" upper="1.57" />
@@ -1077,7 +1077,7 @@
   <joint name="right_hip_roll_joint_X8" type="revolute">
     <origin xyz="0.055 -0.078 0" rpy="0 0 0" />
     <parent link="urdf_hip_assembly_2" />
-    <child link="urdf_r_upper_femur_assemby" />
+    <child link="urdf_r_upper_femur_assembly" />
     <axis xyz="1 0 0" />
     <limit effort="43" velocity="13.3" lower="-3.14" upper="0.35" />
     <dynamics friction="3.21" damping="0.321" />
