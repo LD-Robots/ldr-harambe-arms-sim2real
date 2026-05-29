@@ -13,6 +13,11 @@
 #include "robot_pvt_control/body_group.hpp"
 #include "robot_safety/clamp.hpp"
 
+#include <pinocchio/multibody/data.hpp>
+#include <pinocchio/multibody/model.hpp>
+#include <pinocchio/parsers/urdf.hpp>
+#include <pinocchio/algorithm/rnea.hpp>
+
 namespace robot_pvt_control
 {
 
@@ -91,6 +96,10 @@ controller_interface::CallbackReturn RobotPVTController::on_init()
     auto_declare<double>("lag_free", 0.04);
     auto_declare<double>("lag_pause", 0.14);
     auto_declare<double>("alpha_slew", 2.0);
+    // robot_description is normally injected by the controller_manager from
+    // its own `robot_description` parameter, but declaring it here makes the
+    // dependency explicit and gives us a useful fallback to empty string.
+    auto_declare<std::string>("robot_description", "");
   } catch (const std::exception & e) {
     RCLCPP_ERROR(get_node()->get_logger(), "on_init failed: %s", e.what());
     return controller_interface::CallbackReturn::ERROR;
@@ -252,6 +261,63 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     std::chrono::milliseconds(100),
     [this]() { this->on_feedback_tick(); });
 
+  // ── Pinocchio gravity model ────────────────────────────────────────────
+  // Build once from the URDF. Each update() will call computeGeneralizedGravity
+  // with the live q vector and use the result as the per-joint FF term. If the
+  // URDF parameter is empty or fails to parse, fall back to the static
+  // mgl·sin(q−q_eq) path so a misconfigured launch can still run on the bench.
+  const std::string urdf_xml =
+    node->get_parameter("robot_description").as_string();
+  pin_gravity_available_ = false;
+  if (urdf_xml.empty()) {
+    RCLCPP_WARN(node->get_logger(),
+      "robot_pvt_controller: robot_description is empty — runtime gravity FF "
+      "disabled; falling back to mgl·sin(q−q_eq).");
+  } else {
+    try {
+      pin_model_ = std::make_unique<pinocchio::Model>();
+      pinocchio::urdf::buildModelFromXML(urdf_xml, *pin_model_);
+      pin_data_ = std::make_unique<pinocchio::Data>(*pin_model_);
+      q_pin_ = Eigen::VectorXd::Zero(pin_model_->nq);
+
+      pin_q_idx_of_j_.assign(num_joints_, -1);
+      pin_v_idx_of_j_.assign(num_joints_, -1);
+      std::vector<std::string> missing;
+      for (std::size_t j = 0; j < num_joints_; ++j) {
+        if (!pin_model_->existJointName(joints_[j])) {
+          missing.push_back(joints_[j]);
+          continue;
+        }
+        const auto jid = pin_model_->getJointId(joints_[j]);
+        pin_q_idx_of_j_[j] = pin_model_->joints[jid].idx_q();
+        pin_v_idx_of_j_[j] = pin_model_->joints[jid].idx_v();
+      }
+      if (!missing.empty()) {
+        std::ostringstream oss;
+        for (std::size_t i = 0; i < missing.size(); ++i) {
+          if (i) oss << ", ";
+          oss << missing[i];
+        }
+        RCLCPP_ERROR(node->get_logger(),
+          "robot_pvt_controller: %zu joint(s) from `joints` not present in URDF: "
+          "[%s] — refusing to start.", missing.size(), oss.str().c_str());
+        return controller_interface::CallbackReturn::ERROR;
+      }
+      pin_gravity_available_ = true;
+      RCLCPP_INFO(node->get_logger(),
+        "robot_pvt_controller: pinocchio model loaded (nq=%d, nv=%d); runtime "
+        "gravity FF active over %zu controlled joints.",
+        pin_model_->nq, pin_model_->nv, num_joints_);
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(node->get_logger(),
+        "robot_pvt_controller: pinocchio failed to parse robot_description "
+        "(%s) — falling back to mgl·sin(q−q_eq).", e.what());
+      pin_model_.reset();
+      pin_data_.reset();
+      pin_gravity_available_ = false;
+    }
+  }
+
   post_set_param_cb_ = node->add_post_set_parameters_callback(
     [this, node](const std::vector<rclcpp::Parameter> & /*params*/) {
       load_params();
@@ -260,7 +326,10 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
       // safety.joints.<j>.<field> ...` from the GUI takes effect at the
       // next update() without restarting the controller. Matches the
       // pendulum_pvt_control behaviour the tuner was written against.
-      limits_ = robot_safety::loadSafetyLimits(*node, joints_, "safety.");
+      // Goes through the realtime buffer so update() reads a complete
+      // snapshot rather than a half-rebuilt unordered_map.
+      limits_buf_.writeFromNonRT(
+        robot_safety::loadSafetyLimits(*node, joints_, "safety."));
     });
 
   return controller_interface::CallbackReturn::SUCCESS;
@@ -341,7 +410,8 @@ void RobotPVTController::write_free_outputs_for(std::size_t j)
   }
 }
 
-void RobotPVTController::write_damping_outputs_for(std::size_t j, double qd)
+void RobotPVTController::write_damping_outputs_for(
+  std::size_t j, double qd, const robot_safety::SafetyLimits & L)
 {
   if (command_interfaces_.empty()) {
     return;
@@ -364,7 +434,6 @@ void RobotPVTController::write_damping_outputs_for(std::size_t j, double qd)
     // Sim path has no drive-side PD — compute the brake torque host-side
     // and clamp to the joint's effort envelope so the GUI's safety panel
     // still bounds output.
-    const auto & L = limits_.limitsFor(joints_[j]);
     const double tau = robot_safety::clampEffort(-params_.Kd_damp[j] * qd, L);
     (void)command_interfaces_[kSimStride * j + kSimOffEffort].set_value(tau);
   }
@@ -401,6 +470,7 @@ controller_interface::return_type RobotPVTController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
 {
   params_ = *params_buf_.readFromRT();
+  const auto & limits = *limits_buf_.readFromRT();
 
   const robot_safety::SafetySignal safety = safety_.get();
   const auto mode = mode_.load();
@@ -430,7 +500,7 @@ controller_interface::return_type RobotPVTController::update(
   if (safety.estop_active && !estop_was_active_) {
     if (safety.action == robot_safety::EstopAction::HOLD) {
       for (std::size_t j = 0; j < num_joints_; ++j) {
-        const auto & L = limits_.limitsFor(joints_[j]);
+        const auto & L = limits.limitsFor(joints_[j]);
         const double accel = L.acceleration_limit > 0.0 ? L.acceleration_limit : 60.0;
         double v0 = qd[j];
         if (L.slew_rate_limit > 0.0) {
@@ -444,7 +514,7 @@ controller_interface::return_type RobotPVTController::update(
     } else {
       for (std::size_t j = 0; j < num_joints_; ++j) {
         estop_hold_pos_[j] = robot_safety::clampPosition(
-          q[j], limits_.limitsFor(joints_[j]));
+          q[j], limits.limitsFor(joints_[j]));
       }
     }
   }
@@ -452,7 +522,7 @@ controller_interface::return_type RobotPVTController::update(
   if (!safety.estop_active && estop_was_active_) {
     for (std::size_t j = 0; j < num_joints_; ++j) {
       resume_hold_pos_[j] = robot_safety::clampPosition(
-        q[j], limits_.limitsFor(joints_[j]));
+        q[j], limits.limitsFor(joints_[j]));
       rate_limiters_[j].seed(q[j]);
     }
     waiting_for_setpoint_.store(true);
@@ -480,7 +550,7 @@ controller_interface::return_type RobotPVTController::update(
     }
     for (std::size_t j = 0; j < num_joints_; ++j) {
       if (active_mask_[j]) {
-        write_damping_outputs_for(j, qd[j]);
+        write_damping_outputs_for(j, qd[j], limits.limitsFor(joints_[j]));
       } else {
         write_free_outputs_for(j);
       }
@@ -555,6 +625,19 @@ controller_interface::return_type RobotPVTController::update(
     }
   }
 
+  // Runtime gravity feedforward: one O(n) RNEA pass for the whole chain.
+  // pin_data_->g[v_idx] is the actuator torque required to hold the joint
+  // static against gravity at the current q — replaces mgl·sin(q−q_eq).
+  // Joints not in the controller roster (e.g. the inspire hand fingers) stay
+  // at q=0 in the Pinocchio config, which matches the hand mounts' frozen
+  // reference pose used by the URDF.
+  if (pin_gravity_available_) {
+    for (std::size_t j = 0; j < num_joints_; ++j) {
+      q_pin_[pin_q_idx_of_j_[j]] = q[j];
+    }
+    pinocchio::computeGeneralizedGravity(*pin_model_, *pin_data_, q_pin_);
+  }
+
   // Per-joint slew/accel limiting + clamps + drive write.
   for (std::size_t j = 0; j < num_joints_; ++j) {
     // Inactive joints (outside the body_group scope) stay back-drivable:
@@ -563,7 +646,7 @@ controller_interface::return_type RobotPVTController::update(
       write_free_outputs_for(j);
       continue;
     }
-    const auto & L = limits_.limitsFor(joints_[j]);
+    const auto & L = limits.limitsFor(joints_[j]);
     if (!rate_limiters_[j].seeded()) {
       rate_limiters_[j].seed(q[j]);
     }
@@ -572,8 +655,13 @@ controller_interface::return_type RobotPVTController::update(
     p_cmd = robot_safety::clampPosition(p_cmd, L);
     const double v_cmd = robot_safety::clampVelocity(ref_vel[j], L);
 
-    const double tau_g = params_.ff_gravity[j] ?
-      params_.mgl[j] * std::sin(q[j] - params_.q_eq[j]) : 0.0;
+    // Gravity FF: prefer runtime Pinocchio RNEA (true chain physics).
+    // Fall back to the static mgl·sin(q−q_eq) pendulum approximation only
+    // when the URDF wasn't loaded (empty robot_description, parse failure).
+    const double tau_g_raw = pin_gravity_available_
+      ? pin_data_->g[pin_v_idx_of_j_[j]]
+      : params_.mgl[j] * std::sin(q[j] - params_.q_eq[j]);
+    const double tau_g = params_.ff_gravity[j] ? tau_g_raw : 0.0;
     const double tau_J = params_.ff_inertia[j] ?
       params_.J[j] * ref_acc[j] : 0.0;
     const double tau_v = params_.ff_viscous[j] ?

@@ -25,6 +25,8 @@ find_package(trajectory_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(robot_safety REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 set(DEPS
   controller_interface
@@ -53,6 +55,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(${PROJECT_NAME} ${DEPS})
+target_link_libraries(${PROJECT_NAME} pinocchio::pinocchio Eigen3::Eigen)
 
 pluginlib_export_plugin_description_file(controller_interface
   robot_pvt_controller_plugin.xml)

@@ -157,6 +157,25 @@ SafetySupervisor::SafetySupervisor(const rclcpp::NodeOptions & options)
   watchdog_timer_ = create_wall_timer(
     period, std::bind(&SafetySupervisor::onWatchdog, this));
 
+  // Hot-reload limits_ when the PVT tuner (or any client) writes a safety.*
+  // parameter. The controller mirrors this in robot_pvt_controller.cpp so
+  // the supervisor and controller agree on the live envelope. Runs on the
+  // same single executor thread as onWatchdog, so no locking is needed.
+  post_set_param_cb_ = add_post_set_parameters_callback(
+    [this](const std::vector<rclcpp::Parameter> & params) {
+      const bool safety_changed = std::any_of(
+        params.begin(), params.end(),
+        [](const rclcpp::Parameter & p) {
+          return p.get_name().rfind("safety.", 0) == 0;
+        });
+      if (!safety_changed) {
+        return;
+      }
+      limits_ = loadSafetyLimits(*this, joint_names_, "safety.");
+      RCLCPP_INFO(get_logger(),
+        "safety limits reloaded (post_set_parameters)");
+    });
+
   RCLCPP_INFO(
     get_logger(),
     "robot_safety_supervisor active — %zu joints, watchdog %.0f Hz, "

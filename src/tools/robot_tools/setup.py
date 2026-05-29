@@ -21,6 +21,7 @@ setup(
         'console_scripts': [
             'pvt_tuner = robot_tools.pvt_tuner:main',
             'pvt_dashboard = robot_tools.pvt_dashboard:main',
+            'bus_voltage_viewer = robot_tools.bus_voltage_viewer:main',
         ],
     },
 )

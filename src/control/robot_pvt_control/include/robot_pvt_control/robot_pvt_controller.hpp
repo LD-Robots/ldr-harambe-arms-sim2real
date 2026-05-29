@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "control_msgs/action/follow_joint_trajectory.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -20,6 +22,20 @@
 #include "robot_safety/safety_limits.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "trajectory_msgs/msg/joint_trajectory_point.hpp"
+
+// Forward-declarations to keep heavy Pinocchio templates out of every
+// translation unit that pulls in this header.
+namespace pinocchio
+{
+template <typename Scalar, int Options, template <typename, int> class JointCollectionTpl>
+struct ModelTpl;
+template <typename Scalar, int Options, template <typename, int> class JointCollectionTpl>
+struct DataTpl;
+template <typename Scalar, int Options>
+struct JointCollectionDefaultTpl;
+using Model = ModelTpl<double, 0, JointCollectionDefaultTpl>;
+using Data  = DataTpl<double, 0, JointCollectionDefaultTpl>;
+}  // namespace pinocchio
 
 namespace robot_pvt_control
 {
@@ -206,6 +222,20 @@ private:
 
   std::shared_ptr<GoalHandleFJT> active_goal_;
   rclcpp::TimerBase::SharedPtr feedback_timer_;
+
+  // ── Runtime gravity feedforward (Pinocchio) ─────────────────────────────
+  // Built once at on_configure() from the robot_description parameter.
+  // computeGeneralizedGravity() is called every update() with the current q
+  // vector; pin_data_->g[v_idx] is the actuator torque required to hold the
+  // joint static against gravity at the current chain configuration. This
+  // replaces the static mgl·sin(q−q_eq) approximation, which only held near
+  // the relaxed pose.
+  std::unique_ptr<pinocchio::Model> pin_model_;
+  std::unique_ptr<pinocchio::Data>  pin_data_;
+  Eigen::VectorXd q_pin_;                          // scratch q vector, size nq
+  std::vector<int> pin_q_idx_of_j_;                // controller idx → pin q idx
+  std::vector<int> pin_v_idx_of_j_;                // controller idx → pin v idx
+  bool pin_gravity_available_{false};              // false → falls back to mgl·sin
 };
 
 }  // namespace robot_pvt_control

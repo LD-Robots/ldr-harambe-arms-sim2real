@@ -122,6 +122,7 @@ private:
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diag_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr estop_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_srv_;
+  rclcpp::Node::PostSetParametersCallbackHandle::SharedPtr post_set_param_cb_;
 };
 
 }  // namespace robot_safety

@@ -191,6 +191,10 @@ class PvtTunerWindow(QMainWindow):
     _drive_temp_sig = pyqtSignal(float)
     _error_code_sig = pyqtSignal(float)
     _following_err_sig = pyqtSignal(float)
+    # cur, min-so-far, max-so-far — per selected joint, all in joint-native
+    # units (rad/s for velocity, N·m for effort).
+    _velocity_sig = pyqtSignal(float, float, float)
+    _effort_sig = pyqtSignal(float, float, float)
     _kp_scale_sig = pyqtSignal(float)
     _estop_state_sig = pyqtSignal(int)
     _breach_sig = pyqtSignal(str)
@@ -199,7 +203,11 @@ class PvtTunerWindow(QMainWindow):
     _gains_loaded_sig = pyqtSignal(str, object)  # ctrl, {param_name: list}
     _gains_applied_sig = pyqtSignal(object)      # list of (name, ok, msg)
     _all_params_sig = pyqtSignal(str, object)    # ctrl, {name: value}
-    _param_set_sig = pyqtSignal(str, bool, str)  # name, ok, message
+    # All-parameters sub-tab "Set" result. Carries the Qt widgets so the
+    # GUI-thread slot can flash the right Set button and the right per-tab
+    # status label without keeping a global editor registry.
+    _subtab_set_sig = pyqtSignal(object, object, str, bool, str)
+    #   (set_btn, status_label, name, ok, msg)
     # Safety panel — loaded per joint: {field: (sup_global, sup_jt, ctrl_global, ctrl_jt)}
     _safety_loaded_sig = pyqtSignal(object)
     # Apply result: [(field, sup_ok, ctrl_ok, msg)]
@@ -235,6 +243,16 @@ class PvtTunerWindow(QMainWindow):
         # setpoint (legacy streaming path). q_meas from /joint_states.
         self._q_cmd: dict[str, float] = {}
         self._q_meas: dict[str, float] = {}
+
+        # Per-joint live velocity / effort tracking. Min and max persist
+        # across joint switches — Reset zeroes them for the selected joint
+        # only (so the operator can scope a measurement to one motion).
+        self._qd_meas: dict[str, float] = {}
+        self._eff_meas: dict[str, float] = {}
+        self._qd_min: dict[str, float] = {}
+        self._qd_max: dict[str, float] = {}
+        self._eff_min: dict[str, float] = {}
+        self._eff_max: dict[str, float] = {}
 
         # Subscriptions that depend on a discovered broadcaster — rebuilt
         # when the broadcaster namespace changes.
@@ -292,6 +310,8 @@ class PvtTunerWindow(QMainWindow):
         self._drive_temp_sig.connect(self._on_drive_temp)
         self._error_code_sig.connect(self._on_error_code)
         self._following_err_sig.connect(self._on_following_err)
+        self._velocity_sig.connect(self._on_velocity)
+        self._effort_sig.connect(self._on_effort)
         self._kp_scale_sig.connect(self._on_kp_scale)
         self._estop_state_sig.connect(self._on_estop_state)
         self._breach_sig.connect(self._on_breach)
@@ -300,7 +320,7 @@ class PvtTunerWindow(QMainWindow):
         self._gains_loaded_sig.connect(self._on_gains_loaded)
         self._gains_applied_sig.connect(self._on_gains_applied)
         self._all_params_sig.connect(self._on_all_params_loaded)
-        self._param_set_sig.connect(self._on_param_set)
+        self._subtab_set_sig.connect(self._on_subtab_set_result)
         self._safety_loaded_sig.connect(self._on_safety_loaded)
         self._safety_applied_sig.connect(self._on_safety_applied)
 
@@ -548,54 +568,104 @@ class PvtTunerWindow(QMainWindow):
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(6)
 
-        def mk_label():
+        def mk_value():
             lab = QLabel("—")
             lab.setFont(QFont("monospace", 12, QFont.Bold))
             lab.setStyleSheet(f"color: {C_SUBTEXT};")
             return lab
 
-        grid.addWidget(QLabel("bus voltage"), 0, 0)
-        self._voltage_label = mk_label()
-        grid.addWidget(self._voltage_label, 0, 1)
+        def mk_minmax():
+            lab = QLabel("—")
+            lab.setFont(QFont("monospace", 9))
+            lab.setStyleSheet(f"color: {C_SUBTEXT};")
+            lab.setMinimumWidth(110)
+            return lab
 
-        grid.addWidget(QLabel("motor temp"), 1, 0)
-        self._motor_temp_label = mk_label()
-        grid.addWidget(self._motor_temp_label, 1, 1)
+        row = 0
+        # Rows with no min/max/reset span the value across cols 1..4 so
+        # the layout stays consistent with the velocity / effort rows.
+        grid.addWidget(QLabel("bus voltage"), row, 0)
+        self._voltage_label = mk_value()
+        grid.addWidget(self._voltage_label, row, 1, 1, 4)
+        row += 1
 
-        grid.addWidget(QLabel("drive temp"), 2, 0)
-        self._drive_temp_label = mk_label()
-        grid.addWidget(self._drive_temp_label, 2, 1)
+        grid.addWidget(QLabel("motor temp"), row, 0)
+        self._motor_temp_label = mk_value()
+        grid.addWidget(self._motor_temp_label, row, 1, 1, 4)
+        row += 1
 
-        grid.addWidget(QLabel("following error"), 3, 0)
-        self._foll_err_label = mk_label()
+        grid.addWidget(QLabel("drive temp"), row, 0)
+        self._drive_temp_label = mk_value()
+        grid.addWidget(self._drive_temp_label, row, 1, 1, 4)
+        row += 1
+
+        # Velocity — current + persistent min/max + per-joint reset.
+        grid.addWidget(QLabel("velocity"), row, 0)
+        self._vel_cur_label = mk_value()
+        grid.addWidget(self._vel_cur_label, row, 1)
+        self._vel_min_label = mk_minmax()
+        grid.addWidget(self._vel_min_label, row, 2)
+        self._vel_max_label = mk_minmax()
+        grid.addWidget(self._vel_max_label, row, 3)
+        self._vel_reset_btn = QPushButton("Reset")
+        self._vel_reset_btn.setFixedWidth(60)
+        self._vel_reset_btn.setToolTip(
+            "Reset velocity min/max for the selected joint only."
+        )
+        self._vel_reset_btn.clicked.connect(self._reset_velocity_minmax)
+        grid.addWidget(self._vel_reset_btn, row, 4)
+        row += 1
+
+        # Effort — current + persistent min/max + per-joint reset.
+        grid.addWidget(QLabel("effort"), row, 0)
+        self._eff_cur_label = mk_value()
+        grid.addWidget(self._eff_cur_label, row, 1)
+        self._eff_min_label = mk_minmax()
+        grid.addWidget(self._eff_min_label, row, 2)
+        self._eff_max_label = mk_minmax()
+        grid.addWidget(self._eff_max_label, row, 3)
+        self._eff_reset_btn = QPushButton("Reset")
+        self._eff_reset_btn.setFixedWidth(60)
+        self._eff_reset_btn.setToolTip(
+            "Reset effort min/max for the selected joint only."
+        )
+        self._eff_reset_btn.clicked.connect(self._reset_effort_minmax)
+        grid.addWidget(self._eff_reset_btn, row, 4)
+        row += 1
+
+        grid.addWidget(QLabel("following error"), row, 0)
+        self._foll_err_label = mk_value()
         self._foll_err_label.setToolTip(
             "Computed in the tuner: q_cmd (last ~/setpoint) − q_meas "
             "(/joint_states). Will be stale during a ~/follow_joint_trajectory "
             "action goal — the controller does not republish its interpolated "
             "target."
         )
-        grid.addWidget(self._foll_err_label, 3, 1)
+        grid.addWidget(self._foll_err_label, row, 1, 1, 4)
+        row += 1
 
-        grid.addWidget(QLabel("error code"), 4, 0)
-        self._error_code_label = mk_label()
+        grid.addWidget(QLabel("error code"), row, 0)
+        self._error_code_label = mk_value()
         self._error_code_label.setToolTip(
             "CiA 402 error register from /robot_drive_status_broadcaster/"
             "error_code. Nonzero → drive fault."
         )
-        grid.addWidget(self._error_code_label, 4, 1)
+        grid.addWidget(self._error_code_label, row, 1, 1, 4)
+        row += 1
 
-        grid.addWidget(QLabel("kp scale"), 5, 0)
-        self._kp_scale_label = mk_label()
+        grid.addWidget(QLabel("kp scale"), row, 0)
+        self._kp_scale_label = mk_value()
         self._kp_scale_label.setToolTip(
             "Per-joint Kp multiplier from /safety/kp_scale. <1.0 → thermal "
             "or sustained-effort derate."
         )
-        grid.addWidget(self._kp_scale_label, 5, 1)
+        grid.addWidget(self._kp_scale_label, row, 1, 1, 4)
+        row += 1
 
         self._broadcaster_label = QLabel("(searching for drive_status_broadcaster…)")
         self._broadcaster_label.setFont(QFont("monospace", 9))
         self._broadcaster_label.setStyleSheet(f"color: {C_SUBTEXT};")
-        grid.addWidget(self._broadcaster_label, 6, 0, 1, 2)
+        grid.addWidget(self._broadcaster_label, row, 0, 1, 5)
         grid.setColumnStretch(1, 1)
         parent.addWidget(box)
 
@@ -1409,6 +1479,9 @@ class PvtTunerWindow(QMainWindow):
             self._error_code_sig.emit(self._last_error_code[j])
         if self._last_kp_scale and j < len(self._last_kp_scale):
             self._kp_scale_sig.emit(self._last_kp_scale[j])
+        # Velocity / effort come from /joint_states — refresh whenever the
+        # selected joint changes so the labels switch in the same tick.
+        self._refresh_velocity_effort()
 
     def _on_voltage(self, v: float):
         color = C_GREEN if BUS_V_MIN <= v <= BUS_V_MAX else C_RED
@@ -1453,6 +1526,89 @@ class PvtTunerWindow(QMainWindow):
         self._foll_err_label.setText(f"{e:+8.4f} rad")
         self._foll_err_label.setStyleSheet(f"color: {color};")
 
+    @staticmethod
+    def _frac_color(frac: float) -> str:
+        if frac >= 0.9:
+            return C_RED
+        if frac >= 0.75:
+            return C_YELLOW
+        return C_GREEN
+
+    def _on_velocity(self, v: float, vmin: float, vmax: float):
+        # Colour by % of the loaded safety velocity_limit (per-joint resolved
+        # value lives in the Safety limits panel's spin widget). Fall back to
+        # the controllers_pvt.yaml global default if not yet loaded.
+        limit = float(self._safety_spins["velocity_limit"].value()) or 5.0
+        color = self._frac_color(abs(v) / limit) if limit > 0 else C_TEXT
+        self._vel_cur_label.setText(f"{v:+7.3f} rad/s")
+        self._vel_cur_label.setStyleSheet(f"color: {color};")
+        self._vel_min_label.setText(f"min {vmin:+7.3f}")
+        self._vel_max_label.setText(f"max {vmax:+7.3f}")
+        # Color min/max by the extreme magnitude — the more interesting end.
+        ext = max(abs(vmin), abs(vmax))
+        ext_color = self._frac_color(ext / limit) if limit > 0 else C_SUBTEXT
+        self._vel_min_label.setStyleSheet(f"color: {ext_color};")
+        self._vel_max_label.setStyleSheet(f"color: {ext_color};")
+
+    def _on_effort(self, e: float, emin: float, emax: float):
+        limit = float(self._safety_spins["effort_limit"].value()) or 12.0
+        color = self._frac_color(abs(e) / limit) if limit > 0 else C_TEXT
+        self._eff_cur_label.setText(f"{e:+7.3f} N·m")
+        self._eff_cur_label.setStyleSheet(f"color: {color};")
+        self._eff_min_label.setText(f"min {emin:+7.3f}")
+        self._eff_max_label.setText(f"max {emax:+7.3f}")
+        ext = max(abs(emin), abs(emax))
+        ext_color = self._frac_color(ext / limit) if limit > 0 else C_SUBTEXT
+        self._eff_min_label.setStyleSheet(f"color: {ext_color};")
+        self._eff_max_label.setStyleSheet(f"color: {ext_color};")
+
+    def _refresh_velocity_effort(self):
+        """Emit cached velocity / effort for the currently-selected joint.
+        Called on every /joint_states tick and after a joint switch — the
+        latter so the labels update immediately without waiting for the
+        next sample."""
+        if self._joint_idx < 0 or not self._joints:
+            return
+        name = self._joints[self._joint_idx]
+        v = self._qd_meas.get(name)
+        if v is not None:
+            self._velocity_sig.emit(
+                v,
+                self._qd_min.get(name, v),
+                self._qd_max.get(name, v),
+            )
+        e = self._eff_meas.get(name)
+        if e is not None:
+            self._effort_sig.emit(
+                e,
+                self._eff_min.get(name, e),
+                self._eff_max.get(name, e),
+            )
+
+    def _reset_velocity_minmax(self):
+        if self._joint_idx < 0 or not self._joints:
+            return
+        name = self._joints[self._joint_idx]
+        cur = self._qd_meas.get(name)
+        if cur is None:
+            return
+        # Reseed both bounds to the latest sample so the next tick can
+        # start a fresh measurement window.
+        self._qd_min[name] = cur
+        self._qd_max[name] = cur
+        self._refresh_velocity_effort()
+
+    def _reset_effort_minmax(self):
+        if self._joint_idx < 0 or not self._joints:
+            return
+        name = self._joints[self._joint_idx]
+        cur = self._eff_meas.get(name)
+        if cur is None:
+            return
+        self._eff_min[name] = cur
+        self._eff_max[name] = cur
+        self._refresh_velocity_effort()
+
     # ─── FOLLOWING-ERROR SOURCES ────────────────────────────
 
     def _setup_joint_states_sub(self):
@@ -1462,10 +1618,31 @@ class PvtTunerWindow(QMainWindow):
 
     def _on_joint_state(self, msg):
         # Cache q_meas keyed by joint name; cheaper than rebuilding the lookup
-        # on every joint-picker change.
-        for name, pos in zip(msg.name, msg.position):
-            self._q_meas[name] = float(pos)
+        # on every joint-picker change. Also feeds the velocity / effort
+        # rows in the telemetry panel (min/max bookkeeping is per-joint and
+        # persists across the joint dropdown).
+        n = len(msg.name)
+        has_vel = len(msg.velocity) == n
+        has_eff = len(msg.effort) == n
+        for i, name in enumerate(msg.name):
+            if i < len(msg.position):
+                self._q_meas[name] = float(msg.position[i])
+            if has_vel:
+                v = float(msg.velocity[i])
+                self._qd_meas[name] = v
+                prev_min = self._qd_min.get(name)
+                self._qd_min[name] = v if prev_min is None else min(prev_min, v)
+                prev_max = self._qd_max.get(name)
+                self._qd_max[name] = v if prev_max is None else max(prev_max, v)
+            if has_eff:
+                e = float(msg.effort[i])
+                self._eff_meas[name] = e
+                prev_min = self._eff_min.get(name)
+                self._eff_min[name] = e if prev_min is None else min(prev_min, e)
+                prev_max = self._eff_max.get(name)
+                self._eff_max[name] = e if prev_max is None else max(prev_max, e)
         self._refresh_following_error()
+        self._refresh_velocity_effort()
 
     def _setup_controller_subs(self, ctrl: str):
         for sub in self._controller_subs:
@@ -1501,7 +1678,7 @@ class PvtTunerWindow(QMainWindow):
             return
         self._following_err_sig.emit(q_cmd - q_meas)
 
-    # ─── ALL-PARAMETERS TAB ─────────────────────────────────
+    # ─── ALL-PARAMETERS TAB (sub-tabbed: Global + one per joint) ───────
 
     _PARAMS_HIDDEN = frozenset({
         "use_sim_time",
@@ -1509,10 +1686,51 @@ class PvtTunerWindow(QMainWindow):
         "start_type_description_service",
     })
 
+    # Per-joint array params on the controller. Each appears as a single
+    # scalar editor on every per-joint sub-tab; Set does read-modify-write
+    # on the cached full array (critical: never push a length-1 array — the
+    # controller's normalize() would broadcast it to every joint).
+    _PER_JOINT_DOUBLE_PARAMS = (
+        "Kp", "Kd", "Kd_damp",
+        "mgl", "q_eq", "J", "Fv", "comp_sign",
+        "hold_position",
+    )
+    _PER_JOINT_BOOL_PARAMS = ("ff_gravity", "ff_inertia", "ff_viscous")
+
+    # Section grouping for the per-joint sub-tab — keeps related params
+    # together regardless of alphabetical name order.
+    _PER_JOINT_SECTIONS = (
+        ("PD gains", ("Kp", "Kd", "Kd_damp")),
+        ("Feedforward",
+         ("mgl", "q_eq", "J", "Fv", "comp_sign",
+          "ff_gravity", "ff_inertia", "ff_viscous")),
+        ("Hold position", ("hold_position",)),
+    )
+
+    @staticmethod
+    def _short_tab_label(joint: str) -> str:
+        """`left_shoulder_pitch_joint_X6` → `L shoulder pitch X6`. Compact
+        enough for the West-positioned tab strip on a 1080 p monitor."""
+        name = joint
+        side = ""
+        if name.startswith("left_"):
+            name, side = name[5:], "L"
+        elif name.startswith("right_"):
+            name, side = name[6:], "R"
+        motor = ""
+        for suf in ("_joint_X4", "_joint_X6", "_joint_X8"):
+            if name.endswith(suf):
+                motor = suf[-2:]
+                name = name[: -len(suf)]
+                break
+        name = name.replace("_", " ")
+        parts = [p for p in (side, name, motor) if p]
+        return " ".join(parts)
+
     def _build_params_tab(self, root: QWidget):
         layout = QVBoxLayout(root)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         header = QHBoxLayout()
         self._params_tab_status = QLabel("(select a controller in the Tuner tab)")
@@ -1526,28 +1744,16 @@ class PvtTunerWindow(QMainWindow):
         header.addWidget(self._params_refresh_btn)
         layout.addLayout(header)
 
-        # Scrollable grid: name | editor | Set
-        self._params_grid_host = QWidget()
-        self._params_grid = QGridLayout(self._params_grid_host)
-        self._params_grid.setColumnStretch(1, 1)
-        self._params_grid.setHorizontalSpacing(10)
-        self._params_grid.setVerticalSpacing(4)
+        # Nested tab widget — "Global" + one tab per joint.
+        self._params_subtabs = QTabWidget()
+        self._params_subtabs.setTabPosition(QTabWidget.West)
+        self._params_subtabs.setUsesScrollButtons(True)
+        layout.addWidget(self._params_subtabs, 1)
 
-        scroll = QScrollArea()
-        scroll.setWidget(self._params_grid_host)
-        scroll.setWidgetResizable(True)
-        layout.addWidget(scroll, 1)
-
-        # name -> (editor, get_value_fn, set_btn)
-        self._params_editors: dict[str, tuple] = {}
-
-    def _clear_params_grid(self):
-        while self._params_grid.count():
-            item = self._params_grid.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-        self._params_editors.clear()
+        # Cache for per-joint arrays. Each Set on a per-joint slot reads
+        # this, splices the new value at the joint's index, and writes the
+        # full array back to the controller.
+        self._params_arrays: dict[str, list] = {}
 
     def _refresh_all_params_async(self):
         ctrl = self._current_ctrl
@@ -1573,15 +1779,53 @@ class PvtTunerWindow(QMainWindow):
         if not names:
             self._all_params_sig.emit(ctrl, {})
             return
-        values = self._rclpy_get_params(ctrl, names, timeout=10.0)
+        # Batch get_parameters. A single request with several hundred names
+        # can overflow the rcl_interfaces service buffer and SIGSEGV the C
+        # client — the safety.joints.<j>.<field> tree alone is 17 × 25 ≈ 425
+        # names on the whole-body controller. 64 per batch leaves headroom.
+        BATCH = 64
+        values: dict[str, object] = {}
+        for start in range(0, len(names), BATCH):
+            chunk = names[start : start + BATCH]
+            chunk_vals = self._rclpy_get_params(ctrl, chunk, timeout=10.0)
+            values.update(chunk_vals)
+            print(
+                f"[pvt_tuner] get_parameters batch [{start}:{start + len(chunk)}] "
+                f"-> {len(chunk_vals)}/{len(chunk)} values",
+                file=sys.stderr, flush=True,
+            )
         self._all_params_sig.emit(ctrl, values)
 
     def _on_all_params_loaded(self, ctrl: str, values: dict):
-        """GUI-thread handler — rebuild the grid."""
+        """GUI-thread handler — rebuild the sub-tabbed Parameters view.
+
+        Wrapped in try/except: building 26 sub-tabs with ~30 rows each is
+        thousands of QWidgets, and a single bad value could otherwise SIGSEGV
+        Qt and take the whole tuner with it."""
         self._params_refresh_btn.setEnabled(True)
         if self._current_ctrl != ctrl:
             return  # stale response
-        self._clear_params_grid()
+        try:
+            self._rebuild_params_subtabs(ctrl, values)
+        except Exception as e:
+            import traceback
+            print(
+                f"[pvt_tuner] _on_all_params_loaded crashed: {e!r}\n"
+                f"{traceback.format_exc()}",
+                file=sys.stderr, flush=True,
+            )
+            self._params_tab_status.setText(f"build failed: {e!r}")
+            self._params_tab_status.setStyleSheet(f"color: {C_RED};")
+
+    def _rebuild_params_subtabs(self, ctrl: str, values: dict):
+        # Tear down existing sub-tabs.
+        while self._params_subtabs.count():
+            w = self._params_subtabs.widget(0)
+            self._params_subtabs.removeTab(0)
+            if w is not None:
+                w.deleteLater()
+        self._params_arrays.clear()
+
         if not values:
             self._params_tab_status.setText(
                 f"no parameters returned for {ctrl}"
@@ -1589,35 +1833,262 @@ class PvtTunerWindow(QMainWindow):
             self._params_tab_status.setStyleSheet(f"color: {C_YELLOW};")
             return
 
+        # Cache per-joint arrays so each Set can RMW the full vector.
+        per_joint_names = (
+            set(self._PER_JOINT_DOUBLE_PARAMS) | set(self._PER_JOINT_BOOL_PARAMS)
+        )
+        for n in per_joint_names:
+            v = values.get(n)
+            if isinstance(v, list):
+                self._params_arrays[n] = list(v)
+
+        # Joint roster — prefer the cached list from the Tuner tab; fall
+        # back to the `joints` parameter on the controller.
+        joints: list[str] = list(self._joints) if self._joints else []
+        if not joints:
+            joints_param = values.get("joints")
+            if isinstance(joints_param, list):
+                joints = [str(j) for j in joints_param]
+
+        # 1) Global tab — scalars + safety.global.* + roster (read-only).
+        self._params_subtabs.addTab(
+            self._build_global_subtab(ctrl, values, joints), "Global"
+        )
+
+        # 2) One tab per joint, in roster order.
+        for j_idx, j_name in enumerate(joints):
+            tab = self._build_joint_subtab(ctrl, j_idx, j_name, values)
+            self._params_subtabs.addTab(tab, self._short_tab_label(j_name))
+            self._params_subtabs.setTabToolTip(
+                self._params_subtabs.count() - 1, j_name
+            )
+
         self._params_tab_status.setText(
-            f"{ctrl}  ({len(values)} parameters)"
+            f"{ctrl}  ({len(values)} parameters · {len(joints)} joints)"
         )
         self._params_tab_status.setStyleSheet(f"color: {C_GREEN};")
 
-        for row, (name, value) in enumerate(values.items()):
-            label = QLabel(name)
-            label.setFont(QFont("monospace", 10))
-            self._params_grid.addWidget(label, row, 0)
+    # ─── Sub-tab builders ───────────────────────────────────
 
-            editor, get_fn = self._make_param_editor(value)
-            self._params_grid.addWidget(editor, row, 1)
+    def _build_global_subtab(
+        self, ctrl: str, values: dict, joints: list,
+    ) -> QWidget:
+        tab, grid, status = self._make_subtab_scaffold()
+        row = 0
 
-            set_btn = QPushButton("Set")
-            set_btn.setFixedWidth(60)
-            set_btn.setStyleSheet(
-                f"background-color: {C_SURFACE0}; color: {C_GREEN}; "
-                f"border: 1px solid {C_GREEN};"
+        # Roster (read-only) — show first so the joint order is obvious.
+        if joints:
+            row = self._add_section_header(grid, row, "Roster")
+            row = self._add_readonly_row(
+                grid, row, "joints", ", ".join(joints),
             )
-            set_btn.clicked.connect(
-                lambda _checked=False, n=name, g=get_fn: self._set_one_param(n, g())
-            )
-            self._params_grid.addWidget(set_btn, row, 2)
 
-            self._params_editors[name] = (editor, get_fn, set_btn)
+        # Controller scalars (everything that isn't per-joint or safety.*).
+        scalar_items = []
+        for name, v in sorted(values.items()):
+            if name == "joints":
+                continue
+            if name.startswith("safety."):
+                continue
+            if (name in self._PER_JOINT_DOUBLE_PARAMS or
+                    name in self._PER_JOINT_BOOL_PARAMS):
+                continue
+            scalar_items.append((name, v))
+        if scalar_items:
+            row = self._add_section_header(grid, row, "Controller")
+            for name, v in scalar_items:
+                row = self._add_scalar_row(grid, row, ctrl, status, name, v)
+
+        # safety.global.<field>
+        safety_global = sorted(
+            (n, v) for n, v in values.items() if n.startswith("safety.global.")
+        )
+        if safety_global:
+            row = self._add_section_header(grid, row, "safety.global")
+            for name, v in safety_global:
+                row = self._add_scalar_row(grid, row, ctrl, status, name, v)
+
+        grid.setRowStretch(row, 1)
+        return tab
+
+    def _build_joint_subtab(
+        self, ctrl: str, j_idx: int, j_name: str, values: dict,
+    ) -> QWidget:
+        tab, grid, status = self._make_subtab_scaffold()
+        row = 0
+
+        # Title strip — full joint name + roster index so the operator can
+        # always disambiguate which array slot they're editing.
+        title = QLabel(f"{j_name}    (index {j_idx})")
+        title.setFont(QFont("monospace", 10, QFont.Bold))
+        title.setStyleSheet(f"color: {C_PEACH};")
+        grid.addWidget(title, row, 0, 1, 3)
+        row += 1
+
+        # Per-joint param sections.
+        for section, names in self._PER_JOINT_SECTIONS:
+            section_rows = []
+            for name in names:
+                arr = self._params_arrays.get(name)
+                if not arr or j_idx >= len(arr):
+                    continue
+                section_rows.append((name, arr[j_idx]))
+            if not section_rows:
+                continue
+            row = self._add_section_header(grid, row, section)
+            for name, scalar_val in section_rows:
+                row = self._add_joint_slot_row(
+                    grid, row, ctrl, status, name, scalar_val, j_idx,
+                )
+
+        # Per-joint safety overrides. The C++ loader declares
+        # safety.joints.<j>.<field> for every (joint × field) pair, defaulting
+        # to the global value when there's no YAML override — so a naive
+        # filter on the prefix would dump 17 "override" rows per joint that
+        # are really just declared defaults. Show only the ones whose value
+        # actually differs from safety.global.<field>. New overrides can't
+        # be created from the GUI; SetParameters fails on undeclared keys
+        # (edit safety_limits.yaml and reconfigure to add new fields).
+        prefix = f"safety.joints.{j_name}."
+        overrides = []
+        for name, v in values.items():
+            if not name.startswith(prefix):
+                continue
+            field = name[len(prefix):]
+            global_v = values.get(f"safety.global.{field}")
+            if isinstance(v, (int, float)) and isinstance(global_v, (int, float)):
+                if abs(float(v) - float(global_v)) <= 1e-9:
+                    continue
+            elif v == global_v:
+                continue
+            overrides.append((name, v))
+        overrides.sort()
+        row = self._add_section_header(grid, row, "safety override")
+        if overrides:
+            for name, v in overrides:
+                row = self._add_scalar_row(grid, row, ctrl, status, name, v)
+        else:
+            note = QLabel("(no per-joint override differs from global)")
+            note.setFont(QFont("monospace", 9))
+            note.setStyleSheet(f"color: {C_SUBTEXT};")
+            grid.addWidget(note, row, 0, 1, 3)
+            row += 1
+
+        grid.setRowStretch(row, 1)
+        return tab
+
+    # ─── Sub-tab building blocks ────────────────────────────
+
+    def _make_subtab_scaffold(self) -> tuple:
+        """Build (tab_widget, grid, status_label) wrapped in a scroll area.
+        The grid is `name | editor | Set` (cols 0/1/2). The status label
+        sits below the scroll area and is updated by Set callbacks."""
+        tab = QWidget()
+        outer = QVBoxLayout(tab)
+        outer.setContentsMargins(8, 8, 8, 8)
+        outer.setSpacing(4)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        host = QWidget()
+        scroll.setWidget(host)
+        grid = QGridLayout(host)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(4)
+        grid.setColumnStretch(1, 1)
+        outer.addWidget(scroll, 1)
+
+        status = QLabel(" ")
+        status.setFont(QFont("monospace", 9))
+        status.setStyleSheet(f"color: {C_SUBTEXT};")
+        outer.addWidget(status)
+        return tab, grid, status
+
+    @staticmethod
+    def _add_section_header(grid: QGridLayout, row: int, text: str) -> int:
+        sep = QLabel(f"── {text} ──")
+        sep.setFont(QFont("monospace", 9, QFont.Bold))
+        sep.setStyleSheet(f"color: {C_PEACH}; padding-top: 6px;")
+        grid.addWidget(sep, row, 0, 1, 3)
+        return row + 1
+
+    @staticmethod
+    def _add_readonly_row(grid: QGridLayout, row: int, name: str,
+                          display_value: str) -> int:
+        label = QLabel(name)
+        label.setFont(QFont("monospace", 9))
+        grid.addWidget(label, row, 0)
+        field = QLineEdit(display_value)
+        field.setReadOnly(True)
+        field.setStyleSheet(f"color: {C_SUBTEXT};")
+        grid.addWidget(field, row, 1, 1, 2)
+        return row + 1
+
+    def _add_scalar_row(self, grid: QGridLayout, row: int, ctrl: str,
+                        status: QLabel, name: str, value) -> int:
+        """Direct scalar parameter — Set writes `value` to the controller
+        unchanged."""
+        label = QLabel(name)
+        label.setFont(QFont("monospace", 9))
+        grid.addWidget(label, row, 0)
+        editor, get_fn = self._make_param_editor(value)
+        grid.addWidget(editor, row, 1)
+        set_btn = self._make_set_btn()
+        # Arrays land in _make_param_editor's read-only fallback (get_fn
+        # returns None). Disable Set so we don't dispatch a no-op.
+        if isinstance(value, list):
+            set_btn.setEnabled(False)
+        grid.addWidget(set_btn, row, 2)
+        set_btn.clicked.connect(
+            lambda _checked=False, n=name, g=get_fn, b=set_btn:
+                self._set_subtab_param(ctrl, n, g(), b, status)
+        )
+        return row + 1
+
+    def _add_joint_slot_row(self, grid: QGridLayout, row: int, ctrl: str,
+                            status: QLabel, name: str, scalar_value,
+                            j_idx: int) -> int:
+        """One slot of a per-joint array. Set splices the new value into
+        the cached full array and writes it back. The cache is also
+        updated locally on success (the post-Set refresh of the Tuner tab
+        re-syncs the canonical view)."""
+        label = QLabel(name)
+        label.setFont(QFont("monospace", 9))
+        grid.addWidget(label, row, 0)
+        editor, get_fn = self._make_param_editor(scalar_value)
+        grid.addWidget(editor, row, 1)
+        set_btn = self._make_set_btn()
+        grid.addWidget(set_btn, row, 2)
+
+        def on_click(_checked=False, n=name, g=get_fn, b=set_btn, idx=j_idx):
+            new_val = g()
+            if new_val is None:
+                return
+            arr = self._params_arrays.get(n)
+            if not arr or idx >= len(arr):
+                return
+            new_arr = list(arr)
+            new_arr[idx] = new_val
+            self._params_arrays[n] = new_arr
+            self._set_subtab_param(ctrl, n, new_arr, b, status)
+        set_btn.clicked.connect(on_click)
+        return row + 1
+
+    @staticmethod
+    def _make_set_btn() -> QPushButton:
+        btn = QPushButton("Set")
+        btn.setFixedWidth(60)
+        btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_GREEN}; "
+            f"border: 1px solid {C_GREEN};"
+        )
+        return btn
 
     @staticmethod
     def _make_param_editor(value):
-        """Return (widget, get_value_callable) appropriate for ``value`` type."""
+        """Return (widget, get_value_callable) appropriate for ``value`` type.
+        Arrays land in the read-only fallback — the per-joint sub-tabs are
+        the proper editor for per-joint array slots."""
         if isinstance(value, bool):
             w = QCheckBox()
             w.setChecked(value)
@@ -1637,49 +2108,51 @@ class PvtTunerWindow(QMainWindow):
         if isinstance(value, str):
             w = QLineEdit(value)
             return w, w.text
-        # Arrays etc.: read-only repr. The per-joint widget is the editor for
-        # tuning arrays — this tab is a visibility surface.
+        # Arrays etc.: read-only repr. Per-joint slot editors use
+        # _add_joint_slot_row, which constructs a scalar editor for the
+        # j-th element; this fallback only fires for raw array params on
+        # the Global tab (which are shown for visibility only).
         w = QLineEdit(repr(value))
         w.setReadOnly(True)
         w.setStyleSheet(f"color: {C_SUBTEXT};")
         return w, lambda: None
 
-    def _set_one_param(self, name: str, value):
-        ctrl = self._current_ctrl
+    # ─── Set dispatch (worker thread → GUI thread) ──────────
+
+    def _set_subtab_param(self, ctrl: str, name: str, value,
+                          set_btn: QPushButton, status: QLabel):
         if not ctrl or value is None:
             return
-        editor_tuple = self._params_editors.get(name)
-        if editor_tuple is not None:
-            editor_tuple[2].setEnabled(False)
-        threading.Thread(
-            target=self._set_one_worker, args=(ctrl, name, value), daemon=True
-        ).start()
+        set_btn.setEnabled(False)
 
-    def _set_one_worker(self, ctrl, name, value):
-        print(f"[pvt_tuner] set_one {name}={value!r}",
-              file=sys.stderr, flush=True)
-        results = self._rclpy_set_params(ctrl, [(name, value)])
-        if results:
-            n, ok, msg = results[0]
-            self._param_set_sig.emit(n, ok, msg)
-        else:
-            self._param_set_sig.emit(name, False, "no response")
+        def worker():
+            preview = (
+                f"[{len(value)} elems]" if isinstance(value, list)
+                else repr(value)
+            )
+            print(f"[pvt_tuner] subtab set {name}={preview}",
+                  file=sys.stderr, flush=True)
+            results = self._rclpy_set_params(ctrl, [(name, value)])
+            if results:
+                n, ok, msg = results[0]
+            else:
+                n, ok, msg = name, False, "no response"
+            self._subtab_set_sig.emit(set_btn, status, n, ok, msg)
 
-    def _on_param_set(self, name: str, ok: bool, msg: str):
-        editor_tuple = self._params_editors.get(name)
-        if editor_tuple is None:
-            return
-        editor, _, set_btn = editor_tuple
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_subtab_set_result(self, set_btn, status, name: str, ok: bool,
+                              msg: str):
         set_btn.setEnabled(True)
         color = C_GREEN if ok else C_RED
         set_btn.setStyleSheet(
             f"background-color: {C_SURFACE0}; color: {color}; "
             f"border: 1px solid {color};"
         )
-        self._params_tab_status.setText(
+        status.setText(
             f"{name}: {'OK' if ok else 'FAIL'}" + (f" — {msg}" if msg else "")
         )
-        self._params_tab_status.setStyleSheet(f"color: {color};")
+        status.setStyleSheet(f"color: {color};")
 
     def _rclpy_list_params(self, ctrl: str, timeout: float = 5.0):
         client = self._node.create_client(ListParameters, f"{ctrl}/list_parameters")

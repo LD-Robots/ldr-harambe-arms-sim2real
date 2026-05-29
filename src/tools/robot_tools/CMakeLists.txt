@@ -27,6 +27,12 @@ install(PROGRAMS
   RENAME pvt_dashboard
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/bus_voltage_viewer.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME bus_voltage_viewer
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
