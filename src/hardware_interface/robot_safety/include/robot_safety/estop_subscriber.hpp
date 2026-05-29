@@ -24,7 +24,7 @@ struct SafetySignal
 
 /// Consumer-side helper shared by every control path that consumes the
 /// supervisor's safety topics. Owns two latched subscriptions:
-///   /safety/estop_state   std_msgs/Int8                — 0 clear, 1 FREE, 2 HOLD
+///   /safety/estop_state   std_msgs/Int8                — 0 clear, 1 FREE, 2 HOLD, 3 DAMP
 ///   /safety/kp_scale      std_msgs/Float64MultiArray   — N-joint Kp multipliers
 ///
 /// The e-stop state is whole-robot (a single Int8 stored in an atomic). The
@@ -82,7 +82,11 @@ public:
     SafetySignal signal;
     const int8_t state = estop_state_.load();
     signal.estop_active = (state != 0);
-    signal.action = (state == 2) ? EstopAction::HOLD : EstopAction::FREE;
+    switch (state) {
+      case 2:  signal.action = EstopAction::HOLD; break;
+      case 3:  signal.action = EstopAction::DAMP; break;
+      default: signal.action = EstopAction::FREE; break;
+    }
     return signal;
   }
 

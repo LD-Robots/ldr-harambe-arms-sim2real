@@ -135,6 +135,7 @@ ESTOP_LABELS = {
     0: ("CLEAR", C_GREEN),
     1: ("E-STOP FREE", C_RED),
     2: ("E-STOP HOLD", C_RED),
+    3: ("E-STOP DAMP", C_RED),
 }
 
 JOINT_STATES_TOPIC      = "/joint_states_filtered"

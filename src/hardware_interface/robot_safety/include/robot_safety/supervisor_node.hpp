@@ -26,7 +26,7 @@ namespace robot_safety
 /// manually-reset e-stop.
 ///
 /// Published surface:
-///   /safety/estop_state   std_msgs/Int8                latched (0/1/2)
+///   /safety/estop_state   std_msgs/Int8                latched (0/1/2/3)
 ///   /safety/kp_scale      std_msgs/Float64MultiArray   latched, N entries
 ///   /safety/breach_reason std_msgs/String              latched ("JOINT: REASON")
 ///   /diagnostics          diagnostic_msgs/DiagnosticArray

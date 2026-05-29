@@ -26,6 +26,9 @@ EstopAction parseAction(const std::string & text, EstopAction fallback)
   if (text == "free" || text == "FREE") {
     return EstopAction::FREE;
   }
+  if (text == "damp" || text == "DAMP") {
+    return EstopAction::DAMP;
+  }
   return fallback;
 }
 
@@ -311,9 +314,15 @@ void SafetySupervisor::latch(BreachReason reason, int joint_idx)
 void SafetySupervisor::publishEstopState()
 {
   std_msgs::msg::Int8 state;
-  state.data = !estop_latched_
-    ? 0
-    : (latched_action_ == EstopAction::HOLD ? 2 : 1);
+  int8_t code = 0;
+  if (estop_latched_) {
+    switch (latched_action_) {
+      case EstopAction::HOLD: code = 2; break;
+      case EstopAction::DAMP: code = 3; break;
+      case EstopAction::FREE: code = 1; break;
+    }
+  }
+  state.data = code;
   estop_pub_->publish(state);
 
   std_msgs::msg::String breach;

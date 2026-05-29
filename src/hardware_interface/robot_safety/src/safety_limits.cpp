@@ -27,6 +27,7 @@ const char * to_string(EstopAction action)
   switch (action) {
     case EstopAction::FREE: return "FREE";
     case EstopAction::HOLD: return "HOLD";
+    case EstopAction::DAMP: return "DAMP";
   }
   return "UNKNOWN";
 }

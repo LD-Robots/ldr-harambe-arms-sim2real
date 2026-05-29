@@ -70,6 +70,7 @@ C_YELLOW = "#f9e2af"
 C_RED = "#f38ba8"
 C_BLUE = "#89b4fa"
 C_PEACH = "#fab387"
+C_MAUVE = "#cba6f7"
 
 GLOBAL_STYLESHEET = f"""
 QMainWindow {{ background-color: {C_BASE}; color: {C_TEXT}; }}
@@ -115,6 +116,7 @@ ESTOP_LABELS = {
     0: ("CLEAR", C_GREEN),
     1: ("E-STOP FREE", C_RED),
     2: ("E-STOP HOLD", C_RED),
+    3: ("E-STOP DAMP", C_RED),
 }
 
 # Supervisor node + safety topic namespace — both moved when the pendulum
@@ -223,6 +225,9 @@ class PvtTunerWindow(QMainWindow):
 
         self._node = node
         self._controllers: list[str] = []
+        # Lifecycle state per discovered PVT controller — populated by
+        # _apply_discovery and consumed by _update_ctrl_state_label.
+        self._pvt_states: dict[str, str] = {}
         self._current_ctrl: str | None = None
         self._joints: list[str] = []          # full roster (25 names)
         self._joint_idx: int = -1              # index into self._joints
@@ -355,6 +360,41 @@ class PvtTunerWindow(QMainWindow):
         h1.addWidget(self._refresh_btn)
         v.addLayout(h1)
 
+        # Row 1b: lifecycle controls — Activate / Deactivate the selected
+        # controller via /controller_manager/switch_controller. State label
+        # tracks the result of the last discovery (or the last switch call).
+        h1b = QHBoxLayout()
+        h1b.setSpacing(10)
+        self._activate_btn = QPushButton("Activate")
+        self._activate_btn.setFixedWidth(90)
+        self._activate_btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_GREEN}; "
+            f"border: 1px solid {C_GREEN};"
+        )
+        self._activate_btn.clicked.connect(
+            lambda: self._switch_controller_async(activate=True)
+        )
+        h1b.addWidget(self._activate_btn)
+
+        self._deactivate_btn = QPushButton("Deactivate")
+        self._deactivate_btn.setFixedWidth(90)
+        self._deactivate_btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_YELLOW}; "
+            f"border: 1px solid {C_YELLOW};"
+        )
+        self._deactivate_btn.clicked.connect(
+            lambda: self._switch_controller_async(activate=False)
+        )
+        h1b.addWidget(self._deactivate_btn)
+
+        h1b.addWidget(QLabel("state:"))
+        self._ctrl_state_label = QLabel("(unknown)")
+        self._ctrl_state_label.setFont(QFont("monospace", 10, QFont.Bold))
+        self._ctrl_state_label.setStyleSheet(f"color: {C_SUBTEXT};")
+        h1b.addWidget(self._ctrl_state_label)
+        h1b.addStretch()
+        v.addLayout(h1b)
+
         # Row 2: joint dropdown
         h2 = QHBoxLayout()
         h2.setSpacing(10)
@@ -462,6 +502,25 @@ class PvtTunerWindow(QMainWindow):
         )
         self._damp_btn.clicked.connect(lambda: self._call_controller_trigger("damp"))
         h.addWidget(self._damp_btn)
+
+        # GRAVCOMP — runtime mode that zeroes Kp only on joints with
+        # ff_gravity=true; others stay in normal PVT tracking. Equivalent
+        # to the manual "zero Kp + HOLD" workflow but parameter values are
+        # NOT modified, so exiting via HOLD restores tuned Kp instantly.
+        self._gravcomp_btn = QPushButton("GRAVCOMP")
+        self._gravcomp_btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_MAUVE}; "
+            f"border: 2px solid {C_MAUVE};"
+        )
+        self._gravcomp_btn.setToolTip(
+            "Zero Kp only on joints with ff_gravity=true — gravity FF alone "
+            "holds them. Other joints continue PVT tracking. Parameter "
+            "values are not modified; click HOLD to return to normal PVT."
+        )
+        self._gravcomp_btn.clicked.connect(
+            lambda: self._call_controller_trigger("gravcomp")
+        )
+        h.addWidget(self._gravcomp_btn)
         v.addLayout(h)
 
         self._mode_label = QLabel("last action: —")
@@ -720,16 +779,19 @@ class PvtTunerWindow(QMainWindow):
             controllers = self._list_controllers_subprocess(timeout=30)
             source = "subprocess"
 
-        pvt: list[str] = []
+        # Keep INACTIVE PVT controllers in the dropdown too — otherwise the
+        # Activate button has nothing to point at when the controller was
+        # spawned with --inactive (the launch's default). The broadcaster
+        # filter still requires `active` since we only display its telemetry
+        # when it's actually publishing.
+        pvt: list[tuple[str, str]] = []
         broadcaster_ns: str | None = None
         for name, ctype, state in controllers:
             print(f"[pvt_tuner]   - {name!r}  type={ctype!r}  state={state!r}",
                   file=sys.stderr, flush=True)
-            if state != "active":
-                continue
             if ctype.endswith("PVTController"):
-                pvt.append(f"/{name}")
-            elif ctype.endswith("DriveStatusBroadcaster"):
+                pvt.append((f"/{name}", state))
+            elif ctype.endswith("DriveStatusBroadcaster") and state == "active":
                 broadcaster_ns = f"/{name}"
 
         pvt.sort()
@@ -818,16 +880,20 @@ class PvtTunerWindow(QMainWindow):
 
     def _apply_discovery(
         self,
-        pvt: list[str],
+        pvt: list,                 # list[tuple[str, str]] of (name, state)
         broadcaster_ns: str | None,
         total_controllers: int,
         source: str,
     ):
+        names: list[str] = [n for (n, _s) in pvt]
+        self._pvt_states = {n: s for (n, s) in pvt}
+
         domain = os.environ.get("ROS_DOMAIN_ID", "0")
-        if pvt:
+        if names:
+            tagged = ", ".join(f"{n}({s})" for n, s in pvt)
             msg = (
-                f"found {len(pvt)} PVT controller(s) via {source} "
-                f"on domain {domain}: {', '.join(pvt)}"
+                f"found {len(names)} PVT controller(s) via {source} "
+                f"on domain {domain}: {tagged}"
             )
             self._discovery_status.setStyleSheet(f"color: {C_GREEN};")
         else:
@@ -846,23 +912,97 @@ class PvtTunerWindow(QMainWindow):
             )
 
         # Update controller dropdown without losing the current selection.
-        if pvt != self._controllers:
-            self._controllers = pvt
+        if names != self._controllers:
+            self._controllers = names
             current = self._ctrl_combo.currentText()
             self._ctrl_combo.blockSignals(True)
             self._ctrl_combo.clear()
-            self._ctrl_combo.addItems(pvt)
-            if current in pvt:
+            self._ctrl_combo.addItems(names)
+            if current in names:
                 self._ctrl_combo.setCurrentText(current)
-            elif pvt:
+            elif names:
                 self._ctrl_combo.setCurrentIndex(0)
             self._ctrl_combo.blockSignals(False)
             self._on_controller_changed(self._ctrl_combo.currentText())
+
+        # Refresh the lifecycle state label for whatever's currently selected.
+        self._update_ctrl_state_label()
 
         if broadcaster_ns and broadcaster_ns != self._broadcaster_ns:
             self._broadcaster_ns = broadcaster_ns
             self._setup_telemetry_subs(broadcaster_ns)
             self._broadcaster_label.setText(f"broadcaster: {broadcaster_ns}")
+
+    def _update_ctrl_state_label(self):
+        ctrl = self._current_ctrl
+        if not ctrl or not hasattr(self, "_pvt_states"):
+            self._ctrl_state_label.setText("(unknown)")
+            self._ctrl_state_label.setStyleSheet(f"color: {C_SUBTEXT};")
+            return
+        state = self._pvt_states.get(ctrl, "(unknown)")
+        color = {
+            "active": C_GREEN,
+            "inactive": C_YELLOW,
+            "unconfigured": C_RED,
+        }.get(state, C_SUBTEXT)
+        self._ctrl_state_label.setText(state)
+        self._ctrl_state_label.setStyleSheet(f"color: {color};")
+
+    def _switch_controller_async(self, activate: bool):
+        ctrl = self._current_ctrl
+        if not ctrl:
+            self._mode_label.setText("last action: (no controller selected)")
+            return
+        # SwitchController takes bare names, not topics — strip the leading /.
+        name = ctrl.lstrip("/")
+        leaf = "activate" if activate else "deactivate"
+        # Disable both buttons during the in-flight call; re-enabled when the
+        # result signal fires (or after the discovery refresh re-emits).
+        self._activate_btn.setEnabled(False)
+        self._deactivate_btn.setEnabled(False)
+
+        def worker():
+            from controller_manager_msgs.srv import SwitchController
+            client = self._node.create_client(
+                SwitchController, "/controller_manager/switch_controller",
+            )
+            try:
+                if not client.wait_for_service(timeout_sec=5.0):
+                    self._service_result_sig.emit(
+                        leaf, False,
+                        "/controller_manager/switch_controller unavailable",
+                    )
+                    return
+                req = SwitchController.Request()
+                if activate:
+                    req.activate_controllers = [name]
+                else:
+                    req.deactivate_controllers = [name]
+                # STRICT: report failures (e.g. activate-on-already-active)
+                # rather than silently no-op, which would be misleading here.
+                req.strictness = SwitchController.Request.STRICT
+                future = client.call_async(req)
+                deadline = time.time() + 10.0
+                while not future.done() and time.time() < deadline:
+                    time.sleep(0.02)
+                if not future.done():
+                    self._service_result_sig.emit(leaf, False, "timeout")
+                    return
+                resp = future.result()
+                ok = bool(resp.ok)
+                msg = "" if ok else "switch returned ok=false"
+                self._service_result_sig.emit(leaf, ok, msg)
+            finally:
+                self._node.destroy_client(client)
+                # Re-discover so the state label reflects reality even if
+                # the switch reported failure (state may still have changed).
+                QTimer.singleShot(0, self._discover_async)
+                QTimer.singleShot(0, lambda: (
+                    self._activate_btn.setEnabled(True),
+                    self._deactivate_btn.setEnabled(True),
+                ))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # ─── CONTROLLER PARAMS ──────────────────────────────────
 
@@ -870,8 +1010,10 @@ class PvtTunerWindow(QMainWindow):
         name = name.strip()
         if not name:
             self._current_ctrl = None
+            self._update_ctrl_state_label()
             return
         self._current_ctrl = name
+        self._update_ctrl_state_label()
         # Subscribe to this controller's ~/setpoint so we can compute
         # following error. Tear down any subs from a previous controller.
         self._setup_controller_subs(name)

@@ -59,15 +59,22 @@ robot_safety_supervisor:
     # calls ~/reset. Reset is gated on detection being armed.
     start_latched: true
 
-    # Per-trigger FREE / HOLD action. Position / overspeed / stale faults hold
-    # the joints (safer for an already-moving robot); thermal / sustained / manual
-    # release torque (recoverable conditions where coasting is preferred).
+    # Per-trigger action — one of:
+    #   free  — zero drive torque; joint coasts.
+    #   hold  — latch a clamped setpoint at the brake-distance prediction.
+    #   damp  — controller applies tau = -Kd_damp[j] * qd on every active
+    #           body_group joint (others stay back-drivable). Reuses the
+    #           Kd_damp gains from controllers_pvt.yaml.
+    # Position / overspeed / stale faults hold the joints (safer for an
+    # already-moving robot); thermal / manual release torque (recoverable
+    # conditions where coasting is preferred); sustained-effort damps so
+    # loaded joints decelerate gracefully instead of coasting under gravity.
     action.temperature: free
     action.overspeed: hold
     action.position: hold
     action.manual: free
     action.stale_joint_state: hold
-    action.sustained_effort: free
+    action.sustained_effort: damp
 
     safety:
       global:

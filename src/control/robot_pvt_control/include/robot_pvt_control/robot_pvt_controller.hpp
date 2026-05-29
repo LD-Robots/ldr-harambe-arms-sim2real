@@ -42,9 +42,11 @@ namespace robot_pvt_control
 
 enum class Mode : uint8_t
 {
-  FREE    = 0,   // neutral output — every drive produces zero torque
-  PVT     = 1,   // active — track the streaming setpoint
-  DAMPING = 2,   // brake — drive runs Kp=0, Kd=Kd_damp[j], q_des=q_meas
+  FREE     = 0,   // neutral output — every drive produces zero torque
+  PVT      = 1,   // active — track the streaming setpoint
+  DAMPING  = 2,   // brake — drive runs Kp=0, Kd=Kd_damp[j], q_des=q_meas
+  GRAVCOMP = 3,   // PVT with Kp[j] forced to 0 on joints where
+                  // ff_gravity[j] is set; others track normally.
 };
 
 /// Whole-body PVT controller. Ported from pendulum_pvt_control, generalised to
@@ -57,9 +59,13 @@ enum class Mode : uint8_t
 /// positions/velocities/accelerations arrays index the joints in the same
 /// order as the `joints` parameter. Action server: ~/follow_joint_trajectory
 /// with cubic/quintic-Hermite interpolation at the controller-manager rate.
-/// Services: ~/hold, ~/free, ~/damp (std_srvs/Trigger). ~/damp drives Kp=0,
-/// Kd=Kd_damp[j] across the active body group — a pure-brake mode used
-/// during gain ramp-up (see docs/tuning/pvt_tuning_guide.html).
+/// Services: ~/hold, ~/free, ~/damp, ~/gravcomp (std_srvs/Trigger). ~/damp
+/// drives Kp=0, Kd=Kd_damp[j] across the active body group — a pure-brake
+/// mode used during gain ramp-up. ~/gravcomp captures q_meas as the setpoint
+/// (like ~/hold) and runs PVT with Kp[j]=0 on every joint where
+/// ff_gravity[j] is set, so the gravity feedforward alone holds those joints
+/// while the rest of the body keeps tracking. See
+/// docs/tuning/pvt_tuning_guide.html.
 class RobotPVTController : public controller_interface::ControllerInterface
 {
 public:
@@ -147,6 +153,9 @@ private:
   void damp_service(
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+  void gravcomp_service(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,
@@ -203,6 +212,7 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr hold_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr free_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr damp_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr gravcomp_srv_;
 
   // Action server
   rclcpp_action::Server<FJT>::SharedPtr action_server_;

@@ -237,6 +237,10 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     "~/damp",
     std::bind(&RobotPVTController::damp_service, this,
       std::placeholders::_1, std::placeholders::_2));
+  gravcomp_srv_ = node->create_service<std_srvs::srv::Trigger>(
+    "~/gravcomp",
+    std::bind(&RobotPVTController::gravcomp_service, this,
+      std::placeholders::_1, std::placeholders::_2));
 
   // Action server.
   traj_buf_.writeFromNonRT(nullptr);
@@ -541,10 +545,12 @@ controller_interface::return_type RobotPVTController::update(
     return controller_interface::return_type::OK;
   }
 
-  // DAMPING — controller-internal mode, no e-stop equivalent (the supervisor's
-  // EstopAction enum only covers FREE/HOLD). Each active joint runs the brake
-  // pattern; inactive joints in the body group stay back-drivable (FREE).
-  if (mode == Mode::DAMPING && !safety.estop_active) {
+  // E-stop latched with action=DAMP, OR controller-internal Mode::DAMPING.
+  // Both apply the same per-joint brake pattern via write_damping_outputs_for.
+  // Scope follows body_group: inactive joints stay back-drivable (FREE).
+  const bool estop_damp =
+    safety.estop_active && safety.action == robot_safety::EstopAction::DAMP;
+  if (estop_damp || (mode == Mode::DAMPING && !safety.estop_active)) {
     for (auto & r : rate_limiters_) {
       r.reset();
     }
@@ -668,7 +674,14 @@ controller_interface::return_type RobotPVTController::update(
       params_.Fv[j] * qd[j] : 0.0;
     const double tau_ff = params_.comp_sign[j] * (tau_g + tau_J + tau_v);
 
-    const double kp_eff = params_.Kp[j] * safety_.kpScale(j);
+    double kp_eff = params_.Kp[j] * safety_.kpScale(j);
+    // GRAVCOMP filter — on joints with gravity feedforward configured,
+    // zero out Kp so the FF torque alone supports the joint (no position
+    // correction). Joints without ff_gravity keep their tuned Kp and
+    // continue normal PVT tracking.
+    if (mode == Mode::GRAVCOMP && params_.ff_gravity[j]) {
+      kp_eff = 0.0;
+    }
 
     if (drive_side_pd_) {
       (void)command_interfaces_[kDriveStride * j + kOffPosition].set_value(p_cmd);
@@ -759,6 +772,47 @@ void RobotPVTController::damp_service(
   response->message = "DAMPING — body_group='" + body_group_ + "' (" +
     std::to_string(active_count) + "/" + std::to_string(num_joints_) +
     " joints), tau = -Kd_damp[j] * qd";
+}
+
+void RobotPVTController::gravcomp_service(
+  const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+  std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+  // Same setpoint capture as ~/hold — the FF chain still needs a reference
+  // position so the lag governor and rate limiter don't snap on entry. The
+  // GRAVCOMP-vs-PVT distinction is enforced at the per-joint write site in
+  // update(): mode==GRAVCOMP && ff_gravity[j] forces kp_eff = 0.
+  preempt_goal("preempted by ~/gravcomp");
+  Setpoint sp;
+  sp.position.assign(num_joints_, 0.0);
+  sp.velocity.assign(num_joints_, 0.0);
+  sp.acceleration.assign(num_joints_, 0.0);
+  for (std::size_t j = 0; j < num_joints_; ++j) {
+    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+    sp.position[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+  }
+  setpoint_buf_.writeFromNonRT(std::move(sp));
+  mode_.store(Mode::GRAVCOMP);
+  waiting_for_setpoint_.store(false);
+
+  // Report the filter scope so the operator sees which joints will actually
+  // drop to Kp=0. ff_gravity[] is per-joint, but only joints in the active
+  // body group ever get written to anyway.
+  std::size_t ff_count = 0;
+  for (std::size_t j = 0; j < num_joints_; ++j) {
+    if (active_mask_[j] && j < params_.ff_gravity.size() &&
+        params_.ff_gravity[j]) {
+      ++ff_count;
+    }
+  }
+  std::size_t active_count = 0;
+  for (bool a : active_mask_) {
+    if (a) ++active_count;
+  }
+  response->success = true;
+  response->message = "GRAVCOMP — Kp=0 on " + std::to_string(ff_count) +
+    "/" + std::to_string(active_count) +
+    " active joints with ff_gravity=true; others track normally";
 }
 
 void RobotPVTController::preempt_goal(const std::string & why)

@@ -28,6 +28,7 @@ enum class EstopAction : uint8_t
 {
   FREE = 0,   ///< zero all torque — every joint coasts
   HOLD = 1,   ///< hold the position latched when the e-stop fired
+  DAMP = 2,   ///< per-joint brake: tau = -Kd_damp[j] * qd (controller applies)
 };
 
 /// Per-joint plain-data limit set. POD: trivially copyable into a realtime
