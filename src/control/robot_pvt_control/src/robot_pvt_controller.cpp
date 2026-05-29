@@ -78,6 +78,7 @@ controller_interface::CallbackReturn RobotPVTController::on_init()
     auto_declare<std::vector<double>>("Kd", std::vector<double>{});
     auto_declare<std::vector<double>>("Kd_damp", std::vector<double>{});
     auto_declare<std::vector<double>>("mgl", std::vector<double>{});
+    auto_declare<std::vector<double>>("q_eq", std::vector<double>{});
     auto_declare<std::vector<double>>("J", std::vector<double>{});
     auto_declare<std::vector<double>>("Fv", std::vector<double>{});
     auto_declare<std::vector<double>>("comp_sign", std::vector<double>{});
@@ -108,6 +109,7 @@ void RobotPVTController::load_params()
   params_.Kd            = node->get_parameter("Kd").as_double_array();
   params_.Kd_damp       = node->get_parameter("Kd_damp").as_double_array();
   params_.mgl           = node->get_parameter("mgl").as_double_array();
+  params_.q_eq          = node->get_parameter("q_eq").as_double_array();
   params_.J             = node->get_parameter("J").as_double_array();
   params_.Fv            = node->get_parameter("Fv").as_double_array();
   params_.comp_sign     = node->get_parameter("comp_sign").as_double_array();
@@ -125,6 +127,7 @@ void RobotPVTController::load_params()
   normalize(params_.Kd, num_joints_, 0.0);
   normalize(params_.Kd_damp, num_joints_, 0.0);
   normalize(params_.mgl, num_joints_, 0.0);
+  normalize(params_.q_eq, num_joints_, 0.0);
   normalize(params_.J, num_joints_, 0.0);
   normalize(params_.Fv, num_joints_, 0.0);
   normalize(params_.comp_sign, num_joints_, 1.0);
@@ -569,7 +572,7 @@ controller_interface::return_type RobotPVTController::update(
     const double v_cmd = robot_safety::clampVelocity(ref_vel[j], L);
 
     const double tau_g = params_.ff_gravity[j] ?
-      params_.mgl[j] * std::sin(q[j]) : 0.0;
+      params_.mgl[j] * std::sin(q[j] - params_.q_eq[j]) : 0.0;
     const double tau_J = params_.ff_inertia[j] ?
       params_.J[j] * ref_acc[j] : 0.0;
     const double tau_v = params_.ff_viscous[j] ?

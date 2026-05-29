@@ -77,6 +77,15 @@ private:
     double bus_voltage_max  = 54.0;
   } thr_;
 
+  // Per-joint bus-voltage envelopes. Sized to joints_.size() in on_configure;
+  // each entry defaults to thr_.bus_voltage_min/max unless overridden by the
+  // joints.<name>.bus_voltage_min/max parameter pair. Required because the X4
+  // joints sit on a 24 V rail and the X6/X8 joints on a 48 V rail — a single
+  // global envelope cannot cover both without losing under/over-voltage
+  // discrimination.
+  std::vector<double> bus_voltage_min_per_joint_;
+  std::vector<double> bus_voltage_max_per_joint_;
+
   // One publisher per signal (4 total). Each carries N=joints_.size() doubles.
   std::vector<std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64MultiArray>>>
     signal_pubs_;

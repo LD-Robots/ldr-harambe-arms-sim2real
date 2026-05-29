@@ -330,6 +330,71 @@ def peak_mgl(joint, robot, parent_joint, children, q_by_joint):
     return peak, M, r_perp_norm, axis, r
 
 
+def find_q_eq(joint, robot, parent_joint, children, q_by_joint, n_samples=721):
+    """Find the stable gravity equilibrium q_eq[j] for joint j with the rest
+    of the chain held at `q_by_joint`.
+
+    The PVT controller's gravity FF is `mgl[j] * sin(q[j] - q_eq[j])`. The
+    `sin(q)` model is anchored at q=0, but for a chained joint the actual
+    gravity-zero pose is shifted — at the URDF reference, every shoulder /
+    elbow / wrist sits in a configuration where the COM is offset from
+    "straight under the axis". `q_eq[j]` is the angle that makes the
+    feedforward vanish at the operating pose, so it doesn't jerk the joint
+    on activation.
+
+    Definition: q_eq is the q at which `tau_g(q) = 0` AND `dtau_g/dq < 0`
+    (stable equilibrium — gravity pulls back toward q_eq if you displace it).
+    When the subtree is rigid (no inner joints articulate while joint j
+    sweeps), `tau_g(q) = mgl * sin(q - q_eq)` exactly — analytic.
+
+    Numerical because robust to: vertical axes (no equilibrium → returns 0),
+    multi-branch subtrees (waist sees both arms), and saves the closed-form
+    bookkeeping. Cost is 721 FK evaluations per joint; negligible at this
+    chain size.
+
+    Returns 0.0 when the joint can't couple gravity at this pose (vertical
+    axis, massless subtree) — that makes `sin(q − 0) = sin(q)` and the
+    controller's feedforward stays at 0 anyway because mgl is also 0.
+    """
+    pose = dict(q_by_joint)
+    name = joint.name
+
+    peak, _, _, _, _ = peak_mgl(
+        joint, robot, parent_joint, children, pose)
+    if peak < 1e-9:
+        return 0.0
+
+    angles = np.linspace(-np.pi, np.pi, n_samples)
+    taus = np.empty(n_samples)
+    for i, q in enumerate(angles):
+        pose[name] = q
+        taus[i] = gravity_torque_about_joint(
+            joint, robot, parent_joint, children, pose)
+
+    # Walk adjacent samples, find sign changes with negative slope (stable).
+    candidates = []
+    for i in range(n_samples - 1):
+        if taus[i] * taus[i + 1] < 0.0:
+            slope = (taus[i + 1] - taus[i]) / (angles[i + 1] - angles[i])
+            if slope < 0.0:
+                t = -taus[i] / (taus[i + 1] - taus[i])
+                q_eq = angles[i] + t * (angles[i + 1] - angles[i])
+                candidates.append(q_eq)
+
+    if not candidates:
+        return 0.0
+
+    # If the reference pose has joint j at a specific angle, pick the
+    # equilibrium nearest it — the operating-pose interpretation. (For a
+    # rigid pendulum there's exactly one stable solution in (-π, π], so this
+    # only matters at edge cases with multiple sign changes due to inertial
+    # asymmetry in branched subtrees.)
+    target = q_by_joint.get(name, 0.0)
+    # Cast to plain float — numpy scalars repr as np.float64(...) which the
+    # ROS YAML parameter loader rejects when the snippet is pasted.
+    return float(min(candidates, key=lambda q: abs(q - target)))
+
+
 # ── URDF loading ────────────────────────────────────────────────────────────
 
 def load_urdf(xacro_path=None, urdf_path=None, mappings=None):
@@ -508,13 +573,21 @@ def cmd_evaluate(args):
             j, robot, parent_joint, children, pose)
         tau = gravity_torque_about_joint(
             j, robot, parent_joint, children, pose)
+        q_eq = find_q_eq(j, robot, parent_joint, children, pose)
+        # Predicted feedforward at the reference pose with the q_eq fix:
+        #   tau_ff = mgl * sin(q[j] - q_eq)
+        # Should be ~0 for every coupled joint at the pose used as reference,
+        # which is the whole point — no phantom FF on activation.
+        q_here = pose.get(name, 0.0)
+        tau_ff_predicted = peak * np.sin(q_here - q_eq)
         rows.append({
             "joint": name,
             "M_sub": M,
             "r_perp": r_perp,
-            "a_z": float(axis[2]),
             "mgl_peak": peak,
+            "q_eq": q_eq,
             "tau_at_pose": tau,
+            "tau_ff_predicted": float(tau_ff_predicted),
             "is_leg": name in LEG_JOINTS,
         })
 
@@ -524,33 +597,41 @@ def cmd_evaluate(args):
         f"Gravity:        {GRAVITY.tolist()} m/s^2\n\n"
     )
     header = (
-        f"  {'joint':38s} {'M_sub':>8s} {'|r⊥|':>8s} {'|a_h|':>7s} "
-        f"{'mgl_peak':>10s} {'tau@pose':>10s}  leg\n"
-        f"  {'':38s} {'kg':>8s} {'m':>8s} {'':>7s} "
-        f"{'N·m':>10s} {'N·m':>10s}\n"
+        f"  {'joint':38s} {'M_sub':>7s} {'|r⊥|':>7s} "
+        f"{'mgl':>9s} {'q_eq':>8s} {'tau@pose':>9s} {'tau_ff':>8s}  leg\n"
+        f"  {'':38s} {'kg':>7s} {'m':>7s} "
+        f"{'N·m':>9s} {'rad':>8s} {'N·m':>9s} {'N·m':>8s}\n"
     )
     sys.stdout.write(header)
-    sys.stdout.write("  " + "─" * 96 + "\n")
+    sys.stdout.write("  " + "─" * 100 + "\n")
     for r in rows:
-        a_h = float(np.sqrt(max(0.0, 1.0 - r["a_z"] ** 2)))
         leg_mark = " ✓" if r["is_leg"] else ""
         sys.stdout.write(
-            f"  {r['joint']:38s} {r['M_sub']:8.3f} {r['r_perp']:8.4f} "
-            f"{a_h:7.3f} {r['mgl_peak']:10.4f} {r['tau_at_pose']:+10.4f}{leg_mark}\n"
+            f"  {r['joint']:38s} {r['M_sub']:7.3f} {r['r_perp']:7.4f} "
+            f"{r['mgl_peak']:9.4f} {r['q_eq']:+8.4f} "
+            f"{r['tau_at_pose']:+9.4f} {r['tau_ff_predicted']:+8.4f}{leg_mark}\n"
         )
-    sys.stdout.write("\n")
+    sys.stdout.write(
+        "\n  tau_ff = mgl·sin(q[j] - q_eq[j]) at the reference pose.\n"
+        "  Should equal −tau@pose for every coupled joint: the FF cancels\n"
+        "  the actual gravity torque, leaving zero net torque on the joint.\n"
+        "  Activation at this pose produces no jerk — phantom-FF gone.\n\n"
+    )
 
     # Paste-ready snippet for controllers_pvt.yaml
     mgl_vals = []
+    qeq_vals = []
     ff_vals = []
     for r in rows:
         if r["is_leg"]:
             mgl_vals.append(0.0)
+            qeq_vals.append(0.0)
             ff_vals.append(False)
         else:
             # No rounding — preserve full IEEE-double precision so the YAML
             # round-trips back to the same number the script computed.
             mgl_vals.append(r["mgl_peak"])
+            qeq_vals.append(r["q_eq"])
             # Waist axis is vertical -> mgl_peak == 0 -> feedforward is a no-op.
             ff_vals.append(r["mgl_peak"] > 1e-9)
 
@@ -561,10 +642,14 @@ def cmd_evaluate(args):
         "# comp_sign is left at 1.0; flip per-joint at bench time after\n"
         "# observing whether the joint drifts toward or away from gravity\n"
         "# when ff_gravity is enabled at zero PD gain.\n"
+        "# q_eq anchors the sin(q-q_eq) FF model at the reference pose so\n"
+        "# tau_ff is zero there — re-run the script (and update q_eq) if you\n"
+        "# change the operating pose.\n"
         "robot_pvt_controller:\n"
         "  ros__parameters:\n"
     )
     sys.stdout.write("    mgl: " + _fmt_yaml_list(mgl_vals) + "\n")
+    sys.stdout.write("    q_eq: " + _fmt_yaml_list(qeq_vals) + "\n")
     sys.stdout.write("    ff_gravity: " + _fmt_yaml_list(ff_vals) + "\n")
     sys.stdout.write("    comp_sign: " + _fmt_yaml_list([1.0] * len(rows)) + "\n")
 

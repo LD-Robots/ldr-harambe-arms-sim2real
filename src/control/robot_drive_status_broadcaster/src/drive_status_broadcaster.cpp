@@ -60,6 +60,29 @@ controller_interface::CallbackReturn DriveStatusBroadcaster::on_configure(
   thr_.bus_voltage_min  = node->get_parameter("bus_voltage_min").as_double();
   thr_.bus_voltage_max  = node->get_parameter("bus_voltage_max").as_double();
 
+  // Per-joint bus-voltage envelopes. Declare-if-absent so a partially-specified
+  // YAML (only the X4 joints overridden, say) still yields a valid table. The
+  // pattern matches robot_safety/src/param_loader.cpp:14-21. Namespace is
+  // `joint_overrides.<name>.bus_voltage_min/max` — separate from the `joints`
+  // sequence parameter to avoid YAML key collision (a single key can be a
+  // sequence OR a map, not both).
+  bus_voltage_min_per_joint_.assign(joints_.size(), thr_.bus_voltage_min);
+  bus_voltage_max_per_joint_.assign(joints_.size(), thr_.bus_voltage_max);
+  for (std::size_t j = 0; j < joints_.size(); ++j) {
+    const std::string min_key =
+      "joint_overrides." + joints_[j] + ".bus_voltage_min";
+    const std::string max_key =
+      "joint_overrides." + joints_[j] + ".bus_voltage_max";
+    if (!node->has_parameter(min_key)) {
+      node->declare_parameter(min_key, thr_.bus_voltage_min);
+    }
+    if (!node->has_parameter(max_key)) {
+      node->declare_parameter(max_key, thr_.bus_voltage_max);
+    }
+    bus_voltage_min_per_joint_[j] = node->get_parameter(min_key).as_double();
+    bus_voltage_max_per_joint_[j] = node->get_parameter(max_key).as_double();
+  }
+
   // Build N-entry publishers, one per signal. The supervisor expects the
   // joint order to match its own joint_names; this is enforced by sharing
   // a single yaml-driven roster across the launch file.
@@ -206,7 +229,8 @@ controller_interface::return_type DriveStatusBroadcaster::update(
       escalate(diagnostic_msgs::msg::DiagnosticStatus::WARN,
         "Drive temperature high");
     }
-    if (bus_v < thr_.bus_voltage_min || bus_v > thr_.bus_voltage_max) {
+    if (bus_v < bus_voltage_min_per_joint_[j] ||
+        bus_v > bus_voltage_max_per_joint_[j]) {
       escalate(diagnostic_msgs::msg::DiagnosticStatus::ERROR,
         "Bus voltage out of range");
     }

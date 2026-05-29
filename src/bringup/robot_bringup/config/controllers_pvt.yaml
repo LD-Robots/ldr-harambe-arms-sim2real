@@ -110,8 +110,25 @@ robot_drive_status_broadcaster:
     motor_temp_error: 90.0
     drive_temp_warn: 70.0
     drive_temp_error: 85.0
+    # Global envelope — applies to every joint without a per-joint override.
+    # Tuned for the 48 V rail that powers all X6 and X8 drives.
     bus_voltage_min: 40.0
     bus_voltage_max: 54.0
+    # Per-joint overrides for joints on the 24 V rail (every X4 drive).
+    # Falling through to the 48 V global here would trip BUS_VOLTAGE_LOW on
+    # every X4 entry as soon as the rail is powered. Namespace is
+    # `joint_overrides.<name>.*` to avoid collision with the `joints` sequence.
+    joint_overrides:
+      left_shoulder_yaw_joint_X4:  {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_wrist_yaw_joint_X4:     {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_wrist_roll_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_shoulder_yaw_joint_X4: {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_wrist_yaw_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_wrist_roll_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_ankle_pitch_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_ankle_roll_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_ankle_pitch_joint_X4:  {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_ankle_roll_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
 
 # ── PVT controller (drive-side PD) ───────────────────────────────────────────
 # All per-joint arrays use the same order as `joints` above. Defaults below
@@ -198,14 +215,20 @@ robot_pvt_controller:
     ff_inertia: [false]
     ff_viscous: [false]
 
-    # mgl: peak |tau_g(q_j)| per joint at the "relaxed" arm pose, derived
-    # from the URDF via
+    # mgl + q_eq: gravity feedforward as `tau_g = mgl[j] * sin(q[j] - q_eq[j])`.
+    # Derived from the URDF at the relaxed arm pose via
     #   src/tools/ethercat_tools/scripts/gravcomp_from_urdf.py evaluate \
     #     --pose src/bringup/robot_bringup/config/relaxed_pose.yaml
-    # Locally correct around that pose; degrades as the chain articulates
-    # away. Re-run the script if the URDF, the relaxed pose, or the joint
-    # roster changes. Legs zeroed — stance-leg gravcomp needs contact-aware
-    # control, not the dangling-mass formula.
+    # mgl  = peak gravity-torque amplitude with the rest of the chain at the
+    #        relaxed pose (single-pendulum approximation about joint j).
+    # q_eq = stable equilibrium angle so that tau_ff cancels the actual
+    #        gravity load at the relaxed pose — no phantom FF on activation
+    #        (the wrong-anchor jerk we hit on the elbow bench test).
+    # Both are locally correct around the relaxed pose; degrades as the chain
+    # articulates away. Re-run the script (and update BOTH arrays) if the
+    # URDF, the relaxed pose, or the joint roster changes. Legs zeroed —
+    # stance-leg gravcomp needs contact-aware control, not the dangling-mass
+    # formula.
     mgl: [15.023644113855408,  14.69915934499973,   3.3580002864753824e-05,
           6.123092501943805,   0.016805755997275146, 1.3141839681386756,
           15.580628103720382,  15.579996700811535,  4.886243323532209e-07,
@@ -213,6 +236,13 @@ robot_pvt_controller:
           0.0,
           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    q_eq: [0.3302934368529545,  -0.20418959429027275, -1.4184744939343696,
+           0.2643872180725887,  -1.5973378059477927,   0.02422357511636253,
+           0.1270421087575907,   0.20598041042699747,  2.040502823734197,
+           0.26778612150933373,  2.8836043378942096,  -0.011821950499859492,
+           0.0,
+           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+           0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     J:   [0.0]
     Fv:  [0.0]
     # comp_sign starts at +1.0 across the board; flip per-joint after the

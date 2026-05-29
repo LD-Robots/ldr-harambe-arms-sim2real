@@ -96,7 +96,17 @@ robot_safety_supervisor:
         joint_state_timeout_sec: 0.25
 
       joints:
-        # ── Wrists (X4, low-inertia, narrow torque envelope) ──
+        # ── Shoulder yaw (X4, 24 V rail) ──
+        # Only override is the bus-voltage envelope — every other field
+        # falls through to the global X6-style envelope.
+        left_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+        # ── Wrists (X4, low-inertia, narrow torque envelope, 24 V rail) ──
         left_wrist_yaw_joint_X4:
           # NEVER lift the limits here without re-validating —
           # [[project-wrist-yaw-incident]] broke this joint at the X4
@@ -104,18 +114,26 @@ robot_safety_supervisor:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
 
         # ── Waist (X8) — single torso joint, moderate envelope ──
         waist_yaw_joint_X8:
@@ -165,23 +183,31 @@ robot_safety_supervisor:
           position_min: 0.0
           position_max: 2.5
 
-        # ── Ankles (X4) — small joint, large mechanical advantage ──
+        # ── Ankles (X4, 24 V rail) — small joint, large mechanical advantage ──
         left_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
 
 # ── Controller-side safety mirror ────────────────────────────────────────────
 # robot_pvt_controller links librobot_safety the same way the supervisor does,
@@ -211,22 +237,38 @@ robot_pvt_controller:
         joint_state_timeout_sec: 0.25
 
       joints:
+        # Mirror of the supervisor block above — keep byte-for-byte identical.
+        left_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
         left_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
 
         waist_yaw_joint_X8:
           effort_limit: 30.0
@@ -277,15 +319,23 @@ robot_pvt_controller:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0

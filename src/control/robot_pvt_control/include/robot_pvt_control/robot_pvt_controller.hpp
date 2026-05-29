@@ -92,6 +92,7 @@ private:
     std::vector<double> Kd;            ///< N·m·s/rad
     std::vector<double> Kd_damp;       ///< N·m·s/rad, used only in Mode::DAMPING
     std::vector<double> mgl;           ///< gravity feedforward magnitude
+    std::vector<double> q_eq;          ///< gravity equilibrium angle (rad); FF uses sin(q - q_eq)
     std::vector<double> J;             ///< inertia feedforward
     std::vector<double> Fv;            ///< viscous feedforward
     std::vector<double> comp_sign;     ///< host-FF sign (drive-side PD ignores)

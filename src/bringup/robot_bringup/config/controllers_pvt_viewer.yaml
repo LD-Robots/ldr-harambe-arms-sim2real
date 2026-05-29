@@ -107,5 +107,20 @@ robot_drive_status_broadcaster:
     motor_temp_error: 90.0
     drive_temp_warn: 70.0
     drive_temp_error: 85.0
+    # Global envelope — applies to every joint without a per-joint override.
+    # Tuned for the 48 V rail that powers all X6 and X8 drives.
     bus_voltage_min: 40.0
     bus_voltage_max: 54.0
+    # Per-joint overrides for joints on the 24 V rail (every X4 drive). See
+    # controllers_pvt.yaml for the rationale and naming convention.
+    joint_overrides:
+      left_shoulder_yaw_joint_X4:  {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_wrist_yaw_joint_X4:     {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_wrist_roll_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_shoulder_yaw_joint_X4: {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_wrist_yaw_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_wrist_roll_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_ankle_pitch_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      left_ankle_roll_joint_X4:    {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_ankle_pitch_joint_X4:  {bus_voltage_min: 20.0, bus_voltage_max: 28.0}
+      right_ankle_roll_joint_X4:   {bus_voltage_min: 20.0, bus_voltage_max: 28.0}

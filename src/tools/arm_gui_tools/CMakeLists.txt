@@ -60,17 +60,7 @@ install(PROGRAMS
   RENAME action_position_sender
 )
 
-install(PROGRAMS
-  src/${PROJECT_NAME}/pvt_tuner.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME pvt_tuner
-)
-
-install(PROGRAMS
-  src/${PROJECT_NAME}/pvt_dashboard.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME pvt_dashboard
-)
+# pvt_tuner / pvt_dashboard moved to the robot_tools package.
 
 install(DIRECTORY ui/
   DESTINATION share/${PROJECT_NAME}/ui
