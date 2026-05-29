@@ -244,6 +244,141 @@ def _discover_actuators_from_configs(ethercat_dir=None, mode=None):
     return actuators, ethercat_dir
 
 
+# ---------------------------------------------------------------------------
+# Ankle eccentric-pushrod linkage — inverse kinematics helper
+# Mirrors the math in harambe_ethercat_driver.cpp (read path).
+#
+# Geometry (same defaults as ros2_control_real_pvt.xacro):
+#   r_exc  = 0.025 m  (eccentric pushrod throw)
+#   d_pitch = 0.030 m  (pitch pushrod moment arm)
+#   d_roll  = 0.056 m  (roll pushrod moment arm)
+#   pitch_sign = -1, roll_sign = 1
+#
+# Forward kinematics (motor → joint, "read" direction):
+#   pitch = arcsin(r_exc * (sin(θA) + sin(θB)) / (2 * d_pitch))
+#   roll  = arcsin(r_exc * (sin(θA) - sin(θB)) / (2 * d_roll))
+#
+# Inverse kinematics (joint → motor, "write" direction):
+#   d_A = d_pitch * sin(pitch_lk) + d_roll * sin(roll_lk)
+#   d_B = d_pitch * sin(pitch_lk) - d_roll * sin(roll_lk)
+#   θA = arcsin(d_A / r_exc)
+#   θB = arcsin(d_B / r_exc)
+#
+# where pitch_lk = pitch_sign * pitch_urdf  and  roll_lk = roll_sign * roll_urdf.
+# ---------------------------------------------------------------------------
+
+# Linkage geometry constants — must match ros2_control_real_pvt.xacro params
+_ANKLE_R_EXC    = 0.025
+_ANKLE_D_PITCH  = 0.030
+_ANKLE_D_ROLL   = 0.056
+_ANKLE_PITCH_SIGN = -1.0
+_ANKLE_ROLL_SIGN  =  1.0
+
+# Pairs: (left|right) → (pitch_joint_name, roll_joint_name, motor_A_config, motor_B_config)
+# These must match `ankle_linkage_pairs` in ros2_control_real_pvt.xacro exactly.
+#
+# xacro: ankle_linkage_pairs = "left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;..."
+#   → C++ parseAnkleLinkages: first name → pitch_idx/motor A; second → roll_idx/motor B
+# Therefore:
+#   left_ankle_roll_joint_X4  is motor A  (uses left_ankle_roll_X4.yaml)
+#   left_ankle_pitch_joint_X4 is motor B  (uses left_ankle_pitch_X4.yaml)
+#
+# The "pitch_joint" / "roll_joint" fields below name the URDF kinematic joints that
+# the tool reads from /joint_states to derive the motor-A/B positions via IK.
+_ANKLE_LINKAGE_PAIRS = [
+    {
+        "side": "left",
+        "pitch_joint": "left_ankle_pitch_joint_X4",   # kinematic pitch (ros2_ctrl view)
+        "roll_joint":  "left_ankle_roll_joint_X4",    # kinematic roll  (ros2_ctrl view)
+        "motor_A_config": "left_ankle_roll_X4.yaml",  # roll YAML → motor A (xacro first)
+        "motor_B_config": "left_ankle_pitch_X4.yaml", # pitch YAML → motor B (xacro second)
+    },
+    {
+        "side": "right",
+        "pitch_joint": "right_ankle_pitch_joint_X4",
+        "roll_joint":  "right_ankle_roll_joint_X4",
+        "motor_A_config": "right_ankle_roll_X4.yaml",
+        "motor_B_config": "right_ankle_pitch_X4.yaml",
+    },
+]
+
+
+def _safe_asin(x):
+    """Clamp to [-1, 1] before asin to avoid domain errors near singularity."""
+    return math.asin(max(-1.0, min(1.0, x)))
+
+
+def _ankle_pitch_roll_to_motors(pitch_urdf, roll_urdf):
+    """Inverse kinematics: URDF pitch/roll → raw motor angles θA, θB (radians).
+
+    Mirrors HarambeEthercatDriver::write() in harambe_ethercat_driver.cpp.
+    Returns (theta_A, theta_B) in radians, or (None, None) near singularity.
+    """
+    pitch_lk = _ANKLE_PITCH_SIGN * pitch_urdf
+    roll_lk  = _ANKLE_ROLL_SIGN  * roll_urdf
+    d_A = _ANKLE_D_PITCH * math.sin(pitch_lk) + _ANKLE_D_ROLL * math.sin(roll_lk)
+    d_B = _ANKLE_D_PITCH * math.sin(pitch_lk) - _ANKLE_D_ROLL * math.sin(roll_lk)
+    arg_A = d_A / _ANKLE_R_EXC
+    arg_B = d_B / _ANKLE_R_EXC
+    if abs(arg_A) > 1.0 or abs(arg_B) > 1.0:
+        return None, None  # out of linkage range — do not display garbage
+    return _safe_asin(arg_A), _safe_asin(arg_B)
+
+
+def _build_ankle_raw_motor_actuators(base_actuators):
+    """Build synthetic raw-motor actuator entries for ankle A/B joints.
+
+    Each returned entry has the same structure as a normal actuator dict but
+    carries extra fields:
+        "ankle_raw": True           — flag that marks this as a derived virtual entry
+        "motor_role": "A" or "B"   — which motor of the differential pair
+        "pitch_joint": <str>        — name of the kinematic pitch joint to read from
+        "roll_joint": <str>         — name of the kinematic roll joint to read from
+
+    The "joint" field is set to a synthetic name (e.g.
+    "left_ankle_motor_A_raw") that will NOT appear on /joint_states.  The
+    tool's _update_calibration() special-cases these entries.
+
+    The "config" field is the same YAML filename as the matching kinematic
+    actuator, so _write_offset_for_joint() writes to the correct file without
+    any changes to that method.
+
+    Joint limits are set to ±π/4 (~±45°), which is roughly the physical range
+    of a single ankle motor in this linkage geometry.  They are used only for
+    sweep-coverage display in the calibration table; they do not gate motor
+    commands.
+    """
+    # Build a quick lookup from existing actuators: config filename → existing offsets
+    by_config = {a["config"]: a for a in base_actuators}
+
+    raw_entries = []
+    for pair in _ANKLE_LINKAGE_PAIRS:
+        for role, config_key, joint_name_suffix in (
+            ("A", "motor_A_config", "motor_A_raw"),
+            ("B", "motor_B_config", "motor_B_raw"),
+        ):
+            config_fname = pair[config_key]
+            base = by_config.get(config_fname, {})
+            entry = {
+                "joint":       f"{pair['side']}_ankle_{joint_name_suffix}",
+                "motor":       "X4",
+                "slave":       base.get("slave", 0),
+                "direction":   base.get("direction", 1),
+                "lower":       -math.pi / 4.0,
+                "upper":        math.pi / 4.0,
+                "config":      config_fname,
+                "existing_rpdo": base.get("existing_rpdo", 0),
+                "existing_tpdo": base.get("existing_tpdo", 0.0),
+                # --- ankle-raw marker fields ---
+                "ankle_raw":   True,
+                "motor_role":  role,
+                "pitch_joint": pair["pitch_joint"],
+                "roll_joint":  pair["roll_joint"],
+            }
+            raw_entries.append(entry)
+    return raw_entries
+
+
 def _apply_urdf_limits(actuators, ros_node):
     """Get URDF from /robot_description and apply joint limits to actuator dicts."""
     urdf_string = _get_urdf_string_for_limits(ros_node)
@@ -551,7 +686,18 @@ class CalibrationWindow(QMainWindow):
             self._ethercat_dir, self._ethercat_mode,
         )
         _apply_urdf_limits(self._actuators, ros_node)
+
+        # Build synthetic raw-motor entries for ankle A/B joints and append them.
+        # These are virtual: their "joint" name never appears on /joint_states.
+        # Position is derived on-the-fly from pitch/roll via inverse kinematics.
+        # Offsets write to the same per-motor YAML as the kinematic joints.
+        self._ankle_raw_actuators = _build_ankle_raw_motor_actuators(self._actuators)
+
+        # All actuators: kinematic joints first, then the 4 raw-motor entries.
+        # _actuator_map covers both so that _write_offset_for_joint works uniformly.
         self._actuator_map = {act["joint"]: act for act in self._actuators}
+        for raw_act in self._ankle_raw_actuators:
+            self._actuator_map[raw_act["joint"]] = raw_act
 
         if self._actuators:
             dir_label = (
@@ -560,18 +706,20 @@ class CalibrationWindow(QMainWindow):
             )
             ros_node.get_logger().info(
                 f"Discovered {len(self._actuators)} actuators from "
-                f"{dir_label}/ ({self._ethercat_mode})"
+                f"{dir_label}/ ({self._ethercat_mode}); "
+                f"{len(self._ankle_raw_actuators)} ankle raw-motor entries added"
             )
         else:
             ros_node.get_logger().warn(
                 "No EtherCAT configs found — calibration features limited"
             )
 
-        # Calibration state (for discovered actuators)
-        self._current_raw = {act["joint"]: 0 for act in self._actuators}
-        self._offsets = {act["joint"]: None for act in self._actuators}
+        # Calibration state — covers kinematic actuators AND the 4 raw-motor entries
+        all_tracked = self._actuators + self._ankle_raw_actuators
+        self._current_raw = {act["joint"]: 0 for act in all_tracked}
+        self._offsets = {act["joint"]: None for act in all_tracked}
         self._real_limits = {
-            act["joint"]: {"min": None, "max": None} for act in self._actuators
+            act["joint"]: {"min": None, "max": None} for act in all_tracked
         }
 
         # Mode detection (SIM or REAL)
@@ -816,14 +964,25 @@ class CalibrationWindow(QMainWindow):
 
         for row, joint_name in enumerate(self._visible_joints):
             act = self._actuator_map.get(joint_name)
-            self._set_cell(table, row, self.COL_NAME, joint_name)
+            # Show a concise display name for ankle raw-motor virtual entries
+            if act and act.get("ankle_raw"):
+                display_name = f"{joint_name}  [RAW motor {act.get('motor_role','?')}]"
+                self._set_cell(table, row, self.COL_NAME, display_name)
+            else:
+                self._set_cell(table, row, self.COL_NAME, joint_name)
 
             if act:
                 self._set_cell(table, row, self.COL_MOTOR, act["motor"])
                 lo_deg = math.degrees(act["lower"])
                 hi_deg = math.degrees(act["upper"])
-                self._set_cell(table, row, self.COL_URDF_LIMITS,
-                               f"{lo_deg:+.0f} .. {hi_deg:+.0f}", _SUBTEXT)
+                # For ankle raw-motor entries, the limits are motor-space (not URDF kinematic).
+                # Label accordingly so the operator is not confused.
+                limits_label = (
+                    f"{lo_deg:+.0f} .. {hi_deg:+.0f}  (motor)"
+                    if act.get("ankle_raw") else
+                    f"{lo_deg:+.0f} .. {hi_deg:+.0f}"
+                )
+                self._set_cell(table, row, self.COL_URDF_LIMITS, limits_label, _SUBTEXT)
 
                 # Show current offset from YAML config
                 cur_tpdo = act.get("existing_tpdo", 0.0)
@@ -1013,7 +1172,8 @@ class CalibrationWindow(QMainWindow):
         self._duration_value.setText(f"{h:02d}:{m:02d}:{s:02d}")
 
         captured = sum(1 for v in self._offsets.values() if v is not None)
-        total = len(self._actuators)
+        # Count kinematic actuators + the 4 ankle raw-motor virtual entries
+        total = len(self._actuators) + len(self._ankle_raw_actuators)
         self._captured_value.setText(f"{captured} / {total}")
         if captured == total:
             self._captured_value.setStyleSheet(
@@ -1024,17 +1184,96 @@ class CalibrationWindow(QMainWindow):
                 "font-size: 13px; font-weight: bold; font-family: monospace;"
             )
 
+    def _resolve_ankle_raw_motor_position(self, act):
+        """Derive raw motor angle (radians) from pitch/roll joint states.
+
+        For ankle_raw virtual entries, the motor angle is not on /joint_states.
+        It is computed from the current kinematic pitch/roll values via the
+        inverse kinematics of the eccentric-pushrod linkage, mirroring the
+        write() path of HarambeEthercatDriver.
+
+        Returns (motor_rad, data_available: bool).
+        """
+        pitch_joint = act.get("pitch_joint")
+        roll_joint  = act.get("roll_joint")
+        if pitch_joint not in self._joint_state_data or roll_joint not in self._joint_state_data:
+            return 0.0, False
+        pitch_rad = self._joint_state_data[pitch_joint].get("position", 0.0)
+        roll_rad  = self._joint_state_data[roll_joint].get("position", 0.0)
+        theta_A, theta_B = _ankle_pitch_roll_to_motors(pitch_rad, roll_rad)
+        if theta_A is None:
+            return 0.0, False
+        role = act.get("motor_role", "A")
+        motor_rad = theta_A if role == "A" else theta_B
+        return motor_rad, True
+
     def _update_calibration(self):
         table = self._cal_table
 
         for row, joint in enumerate(self._visible_joints):
+            act = self._actuator_map.get(joint)
+
+            # ── Ankle raw-motor virtual entry ──────────────────────────────
+            if act and act.get("ankle_raw"):
+                motor_rad, available = self._resolve_ankle_raw_motor_position(act)
+                if not available:
+                    self._set_cell(table, row, self.COL_CURRENT_DEG, "---", _SUBTEXT)
+                    self._set_cell(table, row, self.COL_CURRENT_RAW, "---", _SUBTEXT)
+                    self._set_cell(table, row, self.COL_STATUS, "No data", _SUBTEXT)
+                    continue
+                motor = act.get("motor", "X4")
+                current_raw = rad_to_raw(motor_rad, motor)
+                current_deg = math.degrees(motor_rad)
+
+                self._current_raw[joint] = current_raw
+                self._set_cell(table, row, self.COL_CURRENT_DEG, f"{current_deg:+8.2f}")
+                self._set_cell(table, row, self.COL_CURRENT_RAW, f"{current_raw:+8d}")
+
+                rl = self._real_limits[joint]
+                if rl["min"] is None or current_raw < rl["min"]:
+                    rl["min"] = current_raw
+                if rl["max"] is None or current_raw > rl["max"]:
+                    rl["max"] = current_raw
+
+                if rl["min"] is not None:
+                    rl_lo = raw_to_deg(rl["min"], motor)
+                    rl_hi = raw_to_deg(rl["max"], motor)
+                    urdf_range = math.degrees(act["upper"] - act["lower"])
+                    real_range = rl_hi - rl_lo
+                    rl_color = _YELLOW if (real_range > 5.0 and abs(real_range - urdf_range) > 10.0) else _FG
+                    self._set_cell(table, row, self.COL_REAL_LIMITS,
+                                   f"{rl_lo:+.0f} .. {rl_hi:+.0f}", rl_color)
+
+                preview_raw, preview_tpdo, _, coverage = _compute_offset_from_sweep(
+                    act, self._real_limits
+                )
+                locked = self._offsets.get(joint)
+                if locked is not None:
+                    self._set_cell(table, row, self.COL_NEW_OFFSET,
+                                   f"{locked['tpdo']:+.4f} rad", _YELLOW)
+                elif preview_tpdo is not None:
+                    self._set_cell(table, row, self.COL_NEW_OFFSET,
+                                   f"({preview_tpdo:+.4f})", _SUBTEXT)
+                if locked is not None:
+                    self._set_cell(table, row, self.COL_STATUS,
+                                   f"Captured ({coverage:.0f}%)", _GREEN)
+                elif coverage >= 90.0:
+                    self._set_cell(table, row, self.COL_STATUS,
+                                   f"Ready {coverage:.0f}%", _GREEN)
+                elif coverage > 0.0:
+                    self._set_cell(table, row, self.COL_STATUS,
+                                   f"Sweep {coverage:.0f}%", _YELLOW)
+                else:
+                    self._set_cell(table, row, self.COL_STATUS, "Pending", _SUBTEXT)
+                continue
+
+            # ── Normal kinematic joint ─────────────────────────────────────
             if joint not in self._joint_state_data:
                 continue  # No data yet
 
             data = self._joint_state_data[joint]
             pos_rad = data.get("position", 0.0)
             current_deg = math.degrees(pos_rad)
-            act = self._actuator_map.get(joint)
             motor = act["motor"] if act else "X6"
             current_raw = rad_to_raw(pos_rad, motor)
 
@@ -1103,6 +1342,53 @@ class CalibrationWindow(QMainWindow):
             return
 
         joint = self._visible_joints[selected]
+        act = self._actuator_map.get(joint)
+
+        # ── Ankle raw-motor virtual entry ──────────────────────────────────
+        if act and act.get("ankle_raw"):
+            motor_rad, available = self._resolve_ankle_raw_motor_position(act)
+            if not available:
+                return
+            motor = act.get("motor", "X4")
+            current_raw = self._current_raw.get(joint, 0)
+            current_deg = math.degrees(motor_rad)
+            locked = self._offsets.get(joint)
+            preview_raw, preview_tpdo, _, coverage = _compute_offset_from_sweep(
+                act, self._real_limits
+            )
+            cur_tpdo = act.get("existing_tpdo", 0.0)
+            if locked is not None:
+                offset_str = f"{locked['tpdo']:+.4f} rad"
+            elif preview_tpdo is not None:
+                offset_str = f"({preview_tpdo:+.4f})"
+            else:
+                offset_str = "    ---"
+            rl = self._real_limits[joint]
+            rl_min = f"{rl['min']:+8d}" if rl["min"] is not None else "    ---"
+            rl_max = f"{rl['max']:+8d}" if rl["max"] is not None else "    ---"
+            pitch_joint = act.get("pitch_joint", "?")
+            roll_joint  = act.get("roll_joint", "?")
+            pitch_rad = self._joint_state_data.get(pitch_joint, {}).get("position", 0.0)
+            roll_rad  = self._joint_state_data.get(roll_joint,  {}).get("position", 0.0)
+            line = (
+                f"[{joint}] (motor {act.get('motor_role','?')})  "
+                f"raw={current_raw:+8d}  "
+                f"deg={current_deg:+8.2f}  "
+                f"min={rl_min}  max={rl_max}  "
+                f"cur_off={cur_tpdo:+.4f}  new_off={offset_str}  cov={coverage:.0f}%  "
+                f"| from: pitch={math.degrees(pitch_rad):+.2f}deg  roll={math.degrees(roll_rad):+.2f}deg"
+            )
+            self._live_text.append(line)
+            doc = self._live_text.document()
+            if doc.blockCount() > 200:
+                cursor = self._live_text.textCursor()
+                cursor.movePosition(cursor.Start)
+                cursor.movePosition(cursor.Down, cursor.KeepAnchor,
+                                    doc.blockCount() - 150)
+                cursor.removeSelectedText()
+            return
+
+        # ── Normal kinematic joint ─────────────────────────────────────────
         if joint not in self._joint_state_data:
             return
 
@@ -1112,7 +1398,6 @@ class CalibrationWindow(QMainWindow):
         eff = data.get("effort", 0.0)
         current_deg = math.degrees(pos_rad)
 
-        act = self._actuator_map.get(joint)
         if act:
             current_raw = self._current_raw.get(joint, 0)
             locked = self._offsets.get(joint)
@@ -1184,7 +1469,8 @@ class CalibrationWindow(QMainWindow):
 
     def _capture_all(self):
         captured = 0
-        for act in self._actuators:
+        all_acts = self._actuators + self._ankle_raw_actuators
+        for act in all_acts:
             joint = act["joint"]
             offset_raw, tpdo, rpdo, coverage = _compute_offset_from_sweep(
                 act, self._real_limits
@@ -1194,8 +1480,9 @@ class CalibrationWindow(QMainWindow):
                 continue
             self._offsets[joint] = {"tpdo": tpdo, "rpdo": rpdo, "raw": offset_raw}
             captured += 1
-        self._log(f"Captured {captured}/{len(self._actuators)} joints from sweep data.")
-        for act in self._actuators:
+        total = len(all_acts)
+        self._log(f"Captured {captured}/{total} joints from sweep data.")
+        for act in all_acts:
             joint = act["joint"]
             off = self._offsets[joint]
             if off is not None:
@@ -1230,6 +1517,7 @@ class CalibrationWindow(QMainWindow):
         self._log("# RxPDO offset (raw):     position command_interface offset field")
         self._log("")
 
+        # Export kinematic joints
         for act in self._actuators:
             joint = act["joint"]
             off = self._offsets[joint]
@@ -1254,6 +1542,37 @@ class CalibrationWindow(QMainWindow):
                     f"Real: {rl_lo:+.0f}..{rl_hi:+.0f} deg"
                 )
             self._log("")
+
+        # Export ankle raw-motor virtual entries (if any captured)
+        raw_captured = [a for a in self._ankle_raw_actuators
+                        if self._offsets.get(a["joint"]) is not None]
+        if raw_captured:
+            self._log("# ── Ankle raw-motor offsets (motor-space) ──")
+            self._log("# NOTE: These write to the same YAML as the kinematic joints.")
+            self._log("# Do NOT apply both kinematic AND raw-motor offsets to the same file.")
+            self._log("")
+            for act in self._ankle_raw_actuators:
+                joint = act["joint"]
+                off = self._offsets[joint]
+                rl = self._real_limits[joint]
+                config = act.get("config", "???")
+                role = act.get("motor_role", "?")
+
+                self._log(f"# {config}  (raw motor {role})")
+                if off is not None:
+                    self._log(f"  tpdo position:  offset: {off['tpdo']:.6f}    # radians (motor-space)")
+                    self._log(f"  rpdo position:  offset: {off['rpdo']}    # raw (motor-space)")
+                else:
+                    self._log("  # NOT CAPTURED")
+
+                if rl["min"] is not None:
+                    motor = act.get("motor", "X4")
+                    rl_lo = raw_to_deg(rl["min"], motor)
+                    rl_hi = raw_to_deg(rl["max"], motor)
+                    self._log(
+                        f"  # motor range: {rl_lo:+.2f}..{rl_hi:+.2f} deg  (motor-space)"
+                    )
+                self._log("")
 
         self._log("# ── End of offset export ──")
         self._diag_tabs.setCurrentIndex(0)
@@ -1289,12 +1608,30 @@ class CalibrationWindow(QMainWindow):
                      "and the ethercat_readonly/ sibling."
             )
 
+            # ── Extra warning for ankle raw-motor entries ──────────────────
+            # The raw-motor YAML is the same file as the corresponding kinematic
+            # joint (e.g. left_ankle_pitch_X4.yaml serves both the kinematic
+            # left_ankle_pitch_joint_X4 AND the virtual left_ankle_motor_A_raw).
+            # Writing a raw-motor offset here replaces whatever kinematic offset
+            # was stored. Warn the operator clearly.
+            ankle_raw_warning = ""
+            if act.get("ankle_raw"):
+                role = act.get("motor_role", "?")
+                kine_joint = act.get("pitch_joint") if role == "A" else act.get("roll_joint")
+                ankle_raw_warning = (
+                    f"\n\nWARNING: This is a RAW MOTOR ({role}) entry.\n"
+                    f"The same YAML also drives kinematic joint:\n  {kine_joint}\n"
+                    f"Writing here will OVERWRITE that joint's kinematic offset.\n"
+                    f"Ensure you are calibrating in motor-space, not kinematic-space."
+                )
+
             reply = QMessageBox.question(
                 self, "Write Offset",
                 f"Write offset to {config}?\n\n"
                 f"  rpdo (raw): {rpdo:+d}\n"
                 f"  tpdo (rad): {tpdo:+.6f}\n\n"
-                f"{dirs_msg}",
+                f"{dirs_msg}"
+                f"{ankle_raw_warning}",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
             )
             if reply != QMessageBox.Yes:
@@ -1438,9 +1775,22 @@ class CalibrationWindow(QMainWindow):
                 "effort": msg.effort[i] if i < len(msg.effort) else 0.0,
             }
 
-        # Discover joints from first message
+        # Discover joints from first message — also append the 4 ankle raw-motor
+        # virtual entries so they appear at the bottom of "All Joints" view.
         if not self._joints_discovered:
+            # Kinematic joints from /joint_states
             self._all_discovered_joints = list(msg.name)
+            # Append ankle raw-motor virtual entries only if the corresponding
+            # kinematic joints were actually discovered in this message.
+            kinematic_names = set(msg.name)
+            raw_motor_names = [
+                act["joint"] for act in self._ankle_raw_actuators
+                if (act.get("pitch_joint") in kinematic_names
+                    and act.get("roll_joint") in kinematic_names)
+            ]
+            if raw_motor_names:
+                self._all_discovered_joints = self._all_discovered_joints + raw_motor_names
+
             # Only populate table if "All Joints" is selected
             if self._ctrl_combo.currentIndex() <= 0:
                 self._visible_joints = list(self._all_discovered_joints)
