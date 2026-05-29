@@ -16,14 +16,17 @@ for the selected joint.
 Single-file by design — palette and ros2-CLI fallback are inlined.
 """
 
+import datetime
 import os
 import re
 import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 import rclpy
+import yaml
 from controller_manager_msgs.srv import ListControllers
 from rcl_interfaces.msg import Parameter as ParameterMsg, ParameterType, ParameterValue
 from rcl_interfaces.srv import GetParameters, ListParameters, SetParameters
@@ -41,6 +44,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -48,6 +52,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSpinBox,
@@ -126,6 +131,24 @@ SAFETY_ESTOP_TOPIC = "/safety/estop_state"
 SAFETY_BREACH_TOPIC = "/safety/breach_reason"
 SAFETY_KP_SCALE_TOPIC = "/safety/kp_scale"
 JOINT_STATES_TOPIC = "/joint_states"
+
+
+# ───────────────────────────────────────────────────────────
+# Snapshot save/load — full tuning checkpoints (gains + safety + scalars).
+# ───────────────────────────────────────────────────────────
+
+SNAPSHOT_DIR = Path.home() / "pvt_tuner_snapshots"
+SNAPSHOT_SCHEMA = 1
+
+# Read-only / topology params we never write back on Load — applying them
+# would either be a no-op (auto-declared roster) or actively dangerous
+# (changing body_group resizes every array under our feet).
+_SNAPSHOT_SKIP = frozenset({
+    "joints",
+    "body_group",
+    "use_sim_time",
+    "start_type_description_service",
+})
 
 
 # ───────────────────────────────────────────────────────────
@@ -214,6 +237,17 @@ class PvtTunerWindow(QMainWindow):
     _safety_loaded_sig = pyqtSignal(object)
     # Apply result: [(field, sup_ok, ctrl_ok, msg)]
     _safety_applied_sig = pyqtSignal(object)
+    # Snapshot Save: (path, n_params, error_msg). error_msg empty on success.
+    _snapshot_saved_sig = pyqtSignal(str, int, str)
+    # Snapshot Load: (path, ctrl_results, sup_results) — same shape as
+    # _rclpy_set_params return: list of (name, ok, msg).
+    _snapshot_loaded_sig = pyqtSignal(str, object, object)
+    # Pre-load confirmation — worker has read the file + computed the diff;
+    # the GUI-thread slot prompts the operator and dispatches the writes.
+    # Payload: (path, ctrl_pairs, sup_pairs, diff_summary).
+    _snapshot_confirm_sig = pyqtSignal(str, object, object, str)
+    # Snapshot status messages routed from worker threads.
+    _snapshot_status_sig = pyqtSignal(str, str)  # message, color
 
     def __init__(self, node: Node):
         super().__init__()
@@ -224,6 +258,12 @@ class PvtTunerWindow(QMainWindow):
         self.setStyleSheet(GLOBAL_STYLESHEET)
 
         self._node = node
+        # Serializes every self._node.{create,destroy}_* call with the
+        # QTimer-driven spin_once tick. rclpy's node lifecycle is not
+        # thread-safe against a concurrently spinning executor; without
+        # this, worker-thread client creation racing with the spin loop
+        # corrupts the wait-set and crashes with malloc tcache errors.
+        self._rclpy_lock = threading.RLock()
         self._controllers: list[str] = []
         # Lifecycle state per discovered PVT controller — populated by
         # _apply_discovery and consumed by _update_ctrl_state_label.
@@ -296,6 +336,7 @@ class PvtTunerWindow(QMainWindow):
         self._build_controller_box(left)
         self._build_gains_box(left)
         self._build_mode_box(left)
+        self._build_snapshot_box(left)
         left.addStretch()
 
         self._build_safety_box(right)
@@ -328,6 +369,14 @@ class PvtTunerWindow(QMainWindow):
         self._subtab_set_sig.connect(self._on_subtab_set_result)
         self._safety_loaded_sig.connect(self._on_safety_loaded)
         self._safety_applied_sig.connect(self._on_safety_applied)
+        self._snapshot_saved_sig.connect(self._on_snapshot_saved)
+        self._snapshot_loaded_sig.connect(self._on_snapshot_loaded)
+        self._snapshot_confirm_sig.connect(self._on_snapshot_confirm)
+        self._snapshot_status_sig.connect(self._on_snapshot_status)
+
+        # Drive the rclpy executor from the GUI thread via a QTimer instead
+        # of a daemon rclpy.spin thread — see _spin_once for why.
+        self._start_ros_spin()
 
         # Subscriptions that don't depend on controller discovery —
         # /safety/* topics (latched, from the supervisor) and /joint_states.
@@ -339,6 +388,21 @@ class PvtTunerWindow(QMainWindow):
         # polling would pile up parallel invocations and never finish.
         self._discovery_in_flight = False
         self._discover_async()
+
+    # ─── RCLPY EXECUTOR (GUI-thread driven) ─────────────────
+
+    def _start_ros_spin(self):
+        self._spin_timer = QTimer(self)
+        self._spin_timer.setInterval(10)  # 100 Hz, matches power_monitor_gui
+        self._spin_timer.timeout.connect(self._spin_once)
+        self._spin_timer.start()
+
+    def _spin_once(self):
+        # Acquire the same lock every other thread uses for node-lifecycle
+        # mutations so spin's wait-set rebuild can't race with a worker
+        # creating/destroying a client.
+        with self._rclpy_lock:
+            rclpy.spin_once(self._node, timeout_sec=0.0)
 
     # ─── UI BUILDERS ────────────────────────────────────────
 
@@ -528,6 +592,351 @@ class PvtTunerWindow(QMainWindow):
         self._mode_label.setStyleSheet(f"color: {C_SUBTEXT};")
         v.addWidget(self._mode_label)
         parent.addWidget(box)
+
+    # ─── SNAPSHOT (save/load full tuning state) ─────────────
+
+    def _build_snapshot_box(self, parent):
+        box = QGroupBox("Snapshot  (gains + safety + scalars)")
+        v = QVBoxLayout(box)
+
+        hint = QLabel(
+            "Save dumps every controller + supervisor param to YAML. "
+            "Load restores them after a confirmation prompt."
+        )
+        hint.setFont(QFont("monospace", 9))
+        hint.setStyleSheet(f"color: {C_SUBTEXT};")
+        hint.setWordWrap(True)
+        v.addWidget(hint)
+
+        h = QHBoxLayout()
+        self._snapshot_save_btn = QPushButton("Save…")
+        self._snapshot_save_btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_BLUE}; "
+            f"border: 1px solid {C_BLUE};"
+        )
+        self._snapshot_save_btn.clicked.connect(self._on_save_snapshot)
+        h.addWidget(self._snapshot_save_btn)
+
+        self._snapshot_load_btn = QPushButton("Load…")
+        self._snapshot_load_btn.setStyleSheet(
+            f"background-color: {C_SURFACE0}; color: {C_GREEN}; "
+            f"border: 1px solid {C_GREEN};"
+        )
+        self._snapshot_load_btn.clicked.connect(self._on_load_snapshot)
+        h.addWidget(self._snapshot_load_btn)
+        h.addStretch()
+        v.addLayout(h)
+
+        self._snapshot_status = QLabel(" ")
+        self._snapshot_status.setFont(QFont("monospace", 9))
+        self._snapshot_status.setStyleSheet(f"color: {C_SUBTEXT};")
+        self._snapshot_status.setWordWrap(True)
+        v.addWidget(self._snapshot_status)
+        parent.addWidget(box)
+
+    # ── Snapshot helpers ────────────────────────────────────
+
+    @staticmethod
+    def _filter_snapshot_name(name: str) -> bool:
+        """True if a parameter name should be persisted in a snapshot."""
+        if name in _SNAPSHOT_SKIP:
+            return False
+        if name.startswith("qos_overrides."):
+            return False
+        return True
+
+    def _suggested_snapshot_path(self) -> str:
+        ctrl_leaf = (self._current_ctrl or "controller").lstrip("/").split("/")[0]
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        return str(SNAPSHOT_DIR / f"{ctrl_leaf}_{ts}.yaml")
+
+    def _set_snapshot_status(self, msg: str, color: str):
+        self._snapshot_status.setText(msg)
+        self._snapshot_status.setStyleSheet(f"color: {color};")
+
+    def _on_snapshot_status(self, msg: str, color: str):
+        self._set_snapshot_status(msg, color)
+
+    # ── Save ────────────────────────────────────────────────
+
+    def _on_save_snapshot(self):
+        ctrl = self._current_ctrl
+        if not ctrl:
+            self._set_snapshot_status("no controller selected", C_YELLOW)
+            return
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save PVT tuner snapshot",
+            self._suggested_snapshot_path(),
+            "YAML (*.yaml *.yml);;All files (*)",
+        )
+        if not path:
+            return
+        self._snapshot_save_btn.setEnabled(False)
+        self._set_snapshot_status(f"saving → {path}", C_BLUE)
+        threading.Thread(
+            target=self._snapshot_save_worker,
+            args=(ctrl, path),
+            daemon=True,
+        ).start()
+
+    def _snapshot_save_worker(self, ctrl: str, path: str):
+        try:
+            ctrl_names = [
+                n for n in self._rclpy_list_params(ctrl)
+                if self._filter_snapshot_name(n)
+            ]
+            ctrl_values = self._batched_get(ctrl, ctrl_names)
+
+            # Pull safety.* from the supervisor too — it owns an independent
+            # copy and is what /safety/* breach decisions read against. On a
+            # Load both nodes get the same values back.
+            sup_names_all = self._rclpy_list_params(SUPERVISOR_NODE)
+            sup_names = [n for n in sup_names_all if n.startswith("safety.")]
+            sup_values = self._batched_get(SUPERVISOR_NODE, sup_names)
+
+            # Merge supervisor entries that the controller doesn't expose
+            # (the controller's safety loader declares the same keys, but
+            # we keep this defensive in case the schemas drift).
+            merged: dict[str, object] = dict(ctrl_values)
+            for k, v in sup_values.items():
+                if k not in merged:
+                    merged[k] = v
+
+            doc = {
+                "schema": SNAPSHOT_SCHEMA,
+                "saved_at": datetime.datetime.now().isoformat(timespec="seconds"),
+                "controller": ctrl,
+                "supervisor": SUPERVISOR_NODE,
+                "joints": list(self._joints),
+                "parameters": dict(sorted(merged.items())),
+            }
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as f:
+                yaml.safe_dump(doc, f, sort_keys=False, default_flow_style=None)
+            self._snapshot_saved_sig.emit(path, len(merged), "")
+        except Exception as e:
+            import traceback
+            print(
+                f"[pvt_tuner] snapshot save failed: {e!r}\n"
+                f"{traceback.format_exc()}",
+                file=sys.stderr, flush=True,
+            )
+            self._snapshot_saved_sig.emit(path, 0, repr(e))
+
+    def _batched_get(self, node: str, names: list[str]) -> dict[str, object]:
+        """Mirror of _all_params_worker's batching — 64-name chunks so the
+        rcl_interfaces buffer doesn't overflow on the whole-body roster."""
+        out: dict[str, object] = {}
+        BATCH = 64
+        for start in range(0, len(names), BATCH):
+            chunk = names[start : start + BATCH]
+            out.update(self._rclpy_get_params(node, chunk, timeout=10.0))
+        return out
+
+    def _on_snapshot_saved(self, path: str, n: int, err: str):
+        self._snapshot_save_btn.setEnabled(True)
+        if err:
+            self._set_snapshot_status(f"save FAILED: {err}", C_RED)
+        else:
+            self._set_snapshot_status(
+                f"saved {n} params → {path}", C_GREEN,
+            )
+
+    # ── Load ────────────────────────────────────────────────
+
+    def _on_load_snapshot(self):
+        if not self._current_ctrl:
+            self._set_snapshot_status("no controller selected", C_YELLOW)
+            return
+        start_dir = str(SNAPSHOT_DIR) if SNAPSHOT_DIR.exists() else str(Path.home())
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load PVT tuner snapshot",
+            start_dir,
+            "YAML (*.yaml *.yml);;All files (*)",
+        )
+        if not path:
+            return
+        self._snapshot_load_btn.setEnabled(False)
+        self._set_snapshot_status(f"reading {path} …", C_BLUE)
+        threading.Thread(
+            target=self._snapshot_load_prepare_worker,
+            args=(self._current_ctrl, path),
+            daemon=True,
+        ).start()
+
+    def _snapshot_load_prepare_worker(self, ctrl: str, path: str):
+        """Phase 1 of Load: read + validate the file, compute the diff
+        against current controller state, then hand off to the GUI thread
+        for the confirmation prompt."""
+        try:
+            with open(path, "r") as f:
+                doc = yaml.safe_load(f)
+            if not isinstance(doc, dict):
+                raise ValueError("snapshot root is not a mapping")
+            schema = doc.get("schema")
+            if schema != SNAPSHOT_SCHEMA:
+                raise ValueError(
+                    f"unsupported schema={schema!r} (expected {SNAPSHOT_SCHEMA})"
+                )
+            params = doc.get("parameters")
+            if not isinstance(params, dict) or not params:
+                raise ValueError("snapshot has no 'parameters' block")
+
+            snap_joints = doc.get("joints") or []
+            if not isinstance(snap_joints, list):
+                raise ValueError("snapshot 'joints' is not a list")
+            cur_joints = list(self._joints)
+            if cur_joints and len(snap_joints) != len(cur_joints):
+                raise ValueError(
+                    f"roster size mismatch: snapshot has {len(snap_joints)} "
+                    f"joints, controller has {len(cur_joints)}"
+                )
+
+            # Split into controller- vs supervisor-bound writes. Both nodes
+            # own the safety.* tree, so safety.* goes to both. The skip-list
+            # filters the unwritable topology knobs.
+            ctrl_pairs: list[tuple[str, object]] = []
+            sup_pairs: list[tuple[str, object]] = []
+            for name, value in params.items():
+                if not self._filter_snapshot_name(name):
+                    continue
+                if name.startswith("safety."):
+                    ctrl_pairs.append((name, value))
+                    sup_pairs.append((name, value))
+                else:
+                    ctrl_pairs.append((name, value))
+
+            # Diff against current controller state — first few changed
+            # names give the operator something concrete to OK against.
+            cur_vals = self._batched_get(
+                ctrl, [n for n, _ in ctrl_pairs],
+            )
+            changed = []
+            for name, value in ctrl_pairs:
+                if cur_vals.get(name) != value:
+                    changed.append(name)
+            sample = changed[:5]
+            sample_txt = (
+                "  • " + "\n  • ".join(sample) if sample else "  (no diff vs controller)"
+            )
+            if len(changed) > len(sample):
+                sample_txt += f"\n  • … (+{len(changed) - len(sample)} more)"
+
+            summary = (
+                f"From: {path}\n"
+                f"Controller: {ctrl}  ({len(ctrl_pairs)} params)\n"
+                f"Supervisor: {SUPERVISOR_NODE}  ({len(sup_pairs)} params)\n"
+                f"Changed vs controller now: {len(changed)}\n"
+                f"{sample_txt}"
+            )
+            joint_warning = ""
+            if cur_joints and snap_joints != cur_joints:
+                joint_warning = (
+                    "\n\nWARNING: roster differs from controller (same length,\n"
+                    "different names). Positional arrays will be written as-is."
+                )
+            self._snapshot_confirm_sig.emit(
+                path, ctrl_pairs, sup_pairs, summary + joint_warning,
+            )
+        except Exception as e:
+            import traceback
+            print(
+                f"[pvt_tuner] snapshot load (prepare) failed: {e!r}\n"
+                f"{traceback.format_exc()}",
+                file=sys.stderr, flush=True,
+            )
+            self._snapshot_loaded_sig.emit(path, [], [])
+            self._snapshot_status_sig.emit(f"load FAILED: {e}", C_RED)
+
+    def _on_snapshot_confirm(self, path: str, ctrl_pairs, sup_pairs, summary: str):
+        """GUI-thread confirmation prompt — runs the QMessageBox, then
+        dispatches the writes (or re-enables the button on cancel)."""
+        ctrl = self._current_ctrl
+        if not ctrl:
+            self._snapshot_load_btn.setEnabled(True)
+            self._set_snapshot_status("controller vanished mid-load", C_YELLOW)
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle("Confirm snapshot load")
+        box.setIcon(QMessageBox.Warning)
+        box.setText("Push snapshot values to the live nodes?")
+        box.setInformativeText(summary)
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        box.setDefaultButton(QMessageBox.Cancel)
+        if box.exec_() != QMessageBox.Yes:
+            self._snapshot_load_btn.setEnabled(True)
+            self._set_snapshot_status("load cancelled", C_YELLOW)
+            return
+        self._set_snapshot_status(
+            f"pushing {len(ctrl_pairs)} ctrl + {len(sup_pairs)} sup params…",
+            C_BLUE,
+        )
+        threading.Thread(
+            target=self._snapshot_load_push_worker,
+            args=(ctrl, path, ctrl_pairs, sup_pairs),
+            daemon=True,
+        ).start()
+
+    def _snapshot_load_push_worker(
+        self, ctrl: str, path: str,
+        ctrl_pairs: list, sup_pairs: list,
+    ):
+        """Phase 2 of Load: send the writes to controller + supervisor and
+        report the per-param result list back to the GUI thread."""
+        try:
+            ctrl_results = (
+                self._rclpy_set_params(ctrl, ctrl_pairs) if ctrl_pairs else []
+            )
+            sup_results = (
+                self._rclpy_set_params(SUPERVISOR_NODE, sup_pairs)
+                if sup_pairs else []
+            )
+            self._snapshot_loaded_sig.emit(path, ctrl_results, sup_results)
+        except Exception as e:
+            import traceback
+            print(
+                f"[pvt_tuner] snapshot load (push) failed: {e!r}\n"
+                f"{traceback.format_exc()}",
+                file=sys.stderr, flush=True,
+            )
+            self._snapshot_loaded_sig.emit(path, [], [])
+            self._snapshot_status_sig.emit(f"load FAILED: {e}", C_RED)
+
+    def _on_snapshot_loaded(self, path: str, ctrl_results, sup_results):
+        self._snapshot_load_btn.setEnabled(True)
+        ctrl_ok = sum(1 for _, ok, _ in ctrl_results if ok)
+        sup_ok = sum(1 for _, ok, _ in sup_results if ok)
+        ctrl_total = len(ctrl_results)
+        sup_total = len(sup_results)
+        ctrl_fails = [n for n, ok, _ in ctrl_results if not ok]
+        sup_fails = [n for n, ok, _ in sup_results if not ok]
+        if not ctrl_results and not sup_results:
+            # Error path already populated the status label.
+            return
+        all_ok = not ctrl_fails and not sup_fails
+        line = (
+            f"loaded {path}: ctrl ok={ctrl_ok}/{ctrl_total}, "
+            f"sup ok={sup_ok}/{sup_total}"
+        )
+        if not all_ok:
+            preview = (ctrl_fails + sup_fails)[:5]
+            line += "  | failed: " + ", ".join(preview)
+            if len(ctrl_fails) + len(sup_fails) > len(preview):
+                line += f" (+{len(ctrl_fails) + len(sup_fails) - len(preview)} more)"
+        self._set_snapshot_status(line, C_GREEN if all_ok else C_RED)
+        # Refresh cached arrays + spinboxes + safety origin tags from
+        # whatever the controller actually latched.
+        if self._current_ctrl:
+            threading.Thread(
+                target=self._load_controller_data,
+                args=(self._current_ctrl,),
+                daemon=True,
+            ).start()
+            self._on_read_safety_limits()
 
     def _build_safety_box(self, parent):
         box = QGroupBox("Safety")
@@ -806,9 +1215,10 @@ class PvtTunerWindow(QMainWindow):
         Verbose stderr logging so we can pin down which step stalls in
         cross-machine setups where DDS discovery is slow."""
         print("[pvt_tuner] rclpy: creating client", file=sys.stderr, flush=True)
-        client = self._node.create_client(
-            ListControllers, "/controller_manager/list_controllers"
-        )
+        with self._rclpy_lock:
+            client = self._node.create_client(
+                ListControllers, "/controller_manager/list_controllers"
+            )
         try:
             print("[pvt_tuner] rclpy: waiting for service (≤30s)",
                   file=sys.stderr, flush=True)
@@ -839,7 +1249,8 @@ class PvtTunerWindow(QMainWindow):
                   file=sys.stderr, flush=True)
             return [(c.name, c.type, c.state) for c in resp.controller]
         finally:
-            self._node.destroy_client(client)
+            with self._rclpy_lock:
+                self._node.destroy_client(client)
 
     @staticmethod
     def _list_controllers_subprocess(timeout=10):
@@ -963,9 +1374,10 @@ class PvtTunerWindow(QMainWindow):
 
         def worker():
             from controller_manager_msgs.srv import SwitchController
-            client = self._node.create_client(
-                SwitchController, "/controller_manager/switch_controller",
-            )
+            with self._rclpy_lock:
+                client = self._node.create_client(
+                    SwitchController, "/controller_manager/switch_controller",
+                )
             try:
                 if not client.wait_for_service(timeout_sec=5.0):
                     self._service_result_sig.emit(
@@ -993,7 +1405,8 @@ class PvtTunerWindow(QMainWindow):
                 msg = "" if ok else "switch returned ok=false"
                 self._service_result_sig.emit(leaf, ok, msg)
             finally:
-                self._node.destroy_client(client)
+                with self._rclpy_lock:
+                    self._node.destroy_client(client)
                 # Re-discover so the state label reflects reality even if
                 # the switch reported failure (state may still have changed).
                 QTimer.singleShot(0, self._discover_async)
@@ -1141,7 +1554,8 @@ class PvtTunerWindow(QMainWindow):
         array types the controller exposes. Unset / unsupported types are
         omitted from the dict so callers can use .get() with sensible
         defaults."""
-        client = self._node.create_client(GetParameters, f"{ctrl}/get_parameters")
+        with self._rclpy_lock:
+            client = self._node.create_client(GetParameters, f"{ctrl}/get_parameters")
         try:
             if not client.wait_for_service(timeout_sec=timeout):
                 print(f"[pvt_tuner] get_parameters: {ctrl}/get_parameters "
@@ -1180,7 +1594,8 @@ class PvtTunerWindow(QMainWindow):
                 # NOT_SET / other types are skipped — caller handles missing keys.
             return out
         finally:
-            self._node.destroy_client(client)
+            with self._rclpy_lock:
+                self._node.destroy_client(client)
 
     def _rclpy_set_params(
         self,
@@ -1192,7 +1607,8 @@ class PvtTunerWindow(QMainWindow):
 
         Returns list of (name, ok, message). Handles scalars (bool, int,
         float, str) and arrays (list[float], list[bool], list[str])."""
-        client = self._node.create_client(SetParameters, f"{ctrl}/set_parameters")
+        with self._rclpy_lock:
+            client = self._node.create_client(SetParameters, f"{ctrl}/set_parameters")
         try:
             if not client.wait_for_service(timeout_sec=timeout):
                 return [(n, False, "service unavailable") for n, _ in pairs]
@@ -1252,7 +1668,8 @@ class PvtTunerWindow(QMainWindow):
                 for (n, _), r in zip(pairs, resp.results)
             ]
         finally:
-            self._node.destroy_client(client)
+            with self._rclpy_lock:
+                self._node.destroy_client(client)
 
     def _on_read_gains(self):
         ctrl = self._current_ctrl
@@ -1492,7 +1909,8 @@ class PvtTunerWindow(QMainWindow):
         result via _service_result_sig so the GUI thread can render it."""
 
         def worker():
-            client = self._node.create_client(Trigger, service)
+            with self._rclpy_lock:
+                client = self._node.create_client(Trigger, service)
             try:
                 if not client.wait_for_service(timeout_sec=2.0):
                     self._service_result_sig.emit(
@@ -1511,7 +1929,8 @@ class PvtTunerWindow(QMainWindow):
                     label, bool(resp.success), resp.message or ""
                 )
             finally:
-                self._node.destroy_client(client)
+                with self._rclpy_lock:
+                    self._node.destroy_client(client)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -1535,18 +1954,19 @@ class PvtTunerWindow(QMainWindow):
 
     def _setup_safety_subs(self):
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self._node.create_subscription(
-            Int8, SAFETY_ESTOP_TOPIC,
-            lambda m: self._estop_state_sig.emit(int(m.data)), latched,
-        )
-        self._node.create_subscription(
-            String, SAFETY_BREACH_TOPIC,
-            lambda m: self._breach_sig.emit(str(m.data)), latched,
-        )
-        self._node.create_subscription(
-            Float64MultiArray, SAFETY_KP_SCALE_TOPIC,
-            self._on_kp_scale_msg, latched,
-        )
+        with self._rclpy_lock:
+            self._node.create_subscription(
+                Int8, SAFETY_ESTOP_TOPIC,
+                lambda m: self._estop_state_sig.emit(int(m.data)), latched,
+            )
+            self._node.create_subscription(
+                String, SAFETY_BREACH_TOPIC,
+                lambda m: self._breach_sig.emit(str(m.data)), latched,
+            )
+            self._node.create_subscription(
+                Float64MultiArray, SAFETY_KP_SCALE_TOPIC,
+                self._on_kp_scale_msg, latched,
+            )
 
     def _on_kp_scale_msg(self, msg):
         self._last_kp_scale = [float(x) for x in msg.data]
@@ -1567,22 +1987,23 @@ class PvtTunerWindow(QMainWindow):
     # ─── TELEMETRY SUBSCRIPTIONS ────────────────────────────
 
     def _setup_telemetry_subs(self, ns: str):
-        # Tear down any subs from a previous broadcaster.
-        for sub in self._broadcaster_subs:
-            self._node.destroy_subscription(sub)
-        self._broadcaster_subs.clear()
+        with self._rclpy_lock:
+            # Tear down any subs from a previous broadcaster.
+            for sub in self._broadcaster_subs:
+                self._node.destroy_subscription(sub)
+            self._broadcaster_subs.clear()
 
-        def sub(topic_leaf, on_msg):
-            topic = f"{ns}/{topic_leaf}"
-            s = self._node.create_subscription(
-                Float64MultiArray, topic, on_msg, 10,
-            )
-            self._broadcaster_subs.append(s)
+            def sub(topic_leaf, on_msg):
+                topic = f"{ns}/{topic_leaf}"
+                s = self._node.create_subscription(
+                    Float64MultiArray, topic, on_msg, 10,
+                )
+                self._broadcaster_subs.append(s)
 
-        sub("motor_temperature", self._on_motor_temp_msg)
-        sub("drive_temperature", self._on_drive_temp_msg)
-        sub("bus_voltage", self._on_bus_voltage_msg)
-        sub("error_code", self._on_error_code_msg)
+            sub("motor_temperature", self._on_motor_temp_msg)
+            sub("drive_temperature", self._on_drive_temp_msg)
+            sub("bus_voltage", self._on_bus_voltage_msg)
+            sub("error_code", self._on_error_code_msg)
 
     def _on_motor_temp_msg(self, msg):
         self._last_motor_temp = [float(x) for x in msg.data]
@@ -1754,9 +2175,10 @@ class PvtTunerWindow(QMainWindow):
     # ─── FOLLOWING-ERROR SOURCES ────────────────────────────
 
     def _setup_joint_states_sub(self):
-        self._node.create_subscription(
-            JointState, JOINT_STATES_TOPIC, self._on_joint_state, 50,
-        )
+        with self._rclpy_lock:
+            self._node.create_subscription(
+                JointState, JOINT_STATES_TOPIC, self._on_joint_state, 50,
+            )
 
     def _on_joint_state(self, msg):
         # Cache q_meas keyed by joint name; cheaper than rebuilding the lookup
@@ -1787,18 +2209,19 @@ class PvtTunerWindow(QMainWindow):
         self._refresh_velocity_effort()
 
     def _setup_controller_subs(self, ctrl: str):
-        for sub in self._controller_subs:
-            self._node.destroy_subscription(sub)
-        self._controller_subs.clear()
-        # ~/setpoint is the legacy streaming path. Action-driven goals don't
-        # republish their interpolated target, so during a FollowJointTrajectory
-        # the cached q_cmd will not reflect what the controller is sending —
-        # callers see a stale following-error display (tooltip on the label).
-        s = self._node.create_subscription(
-            JointTrajectoryPoint, f"{ctrl}/setpoint",
-            self._on_setpoint, 50,
-        )
-        self._controller_subs.append(s)
+        with self._rclpy_lock:
+            for sub in self._controller_subs:
+                self._node.destroy_subscription(sub)
+            self._controller_subs.clear()
+            # ~/setpoint is the legacy streaming path. Action-driven goals don't
+            # republish their interpolated target, so during a FollowJointTrajectory
+            # the cached q_cmd will not reflect what the controller is sending —
+            # callers see a stale following-error display (tooltip on the label).
+            s = self._node.create_subscription(
+                JointTrajectoryPoint, f"{ctrl}/setpoint",
+                self._on_setpoint, 50,
+            )
+            self._controller_subs.append(s)
 
     def _on_setpoint(self, msg):
         # Setpoint positions are indexed by the controller's joints_ order —
@@ -2297,7 +2720,8 @@ class PvtTunerWindow(QMainWindow):
         status.setStyleSheet(f"color: {color};")
 
     def _rclpy_list_params(self, ctrl: str, timeout: float = 5.0):
-        client = self._node.create_client(ListParameters, f"{ctrl}/list_parameters")
+        with self._rclpy_lock:
+            client = self._node.create_client(ListParameters, f"{ctrl}/list_parameters")
         try:
             if not client.wait_for_service(timeout_sec=timeout):
                 return []
@@ -2312,7 +2736,8 @@ class PvtTunerWindow(QMainWindow):
             resp = future.result()
             return list(resp.result.names)
         finally:
-            self._node.destroy_client(client)
+            with self._rclpy_lock:
+                self._node.destroy_client(client)
 
 
 # ───────────────────────────────────────────────────────────
@@ -2324,11 +2749,9 @@ def main():
     rclpy.init(args=sys.argv)
     node = Node("pvt_tuner_gui")
 
-    spin_thread = threading.Thread(
-        target=rclpy.spin, args=(node,), daemon=True
-    )
-    spin_thread.start()
-
+    # The executor is driven from PvtTunerWindow's QTimer on the GUI thread
+    # (see _spin_once). No daemon spin thread → no cross-thread races on
+    # node lifecycle calls.
     app = QApplication(sys.argv)
     win = PvtTunerWindow(node)
     win.show()

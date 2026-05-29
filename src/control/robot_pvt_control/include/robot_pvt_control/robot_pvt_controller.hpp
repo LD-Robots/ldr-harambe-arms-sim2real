@@ -168,6 +168,10 @@ private:
   // Write 'positions' to setpoint_buf_ so the RT fallback path holds there
   // instead of the stale hold_position default when traj_buf_ is cleared.
   void promote_to_setpoint(const std::vector<double> & positions);
+  // Snapshot measured joint positions from state_interfaces_ and promote them
+  // as the streaming setpoint. Must be called from the executor thread while
+  // the controller is ACTIVE (state interfaces are live).
+  void promote_measured_to_setpoint();
 
   // Sampling helpers — see robot_pvt_control::sample_segment /
   // sample_trajectory in hermite.hpp.

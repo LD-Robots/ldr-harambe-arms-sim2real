@@ -380,6 +380,23 @@ controller_interface::CallbackReturn RobotPVTController::on_activate(
 {
   load_params();
   params_buf_.writeFromNonRT(params_);
+
+  // Seed the streaming setpoint from live measured joint positions so that
+  // any path out of FREE mode that does not explicitly overwrite the buffer
+  // (notably a partial ~/setpoint that omits joints) holds where the joint
+  // currently is instead of snapping to hold_position[j] (default 0 rad).
+  // state_interfaces_ are bound by on_activate and continuously refreshed by
+  // the hardware read() loop, so the snapshot here reflects the actual robot.
+  Setpoint init;
+  init.position.assign(num_joints_, 0.0);
+  init.velocity.assign(num_joints_, 0.0);
+  init.acceleration.assign(num_joints_, 0.0);
+  for (std::size_t j = 0; j < num_joints_; ++j) {
+    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+    init.position[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+  }
+  setpoint_buf_.writeFromNonRT(std::move(init));
+
   // Default to FREE on activation so a stale setpoint cannot kick a joint.
   mode_.store(Mode::FREE);
   return controller_interface::CallbackReturn::SUCCESS;
@@ -729,16 +746,18 @@ void RobotPVTController::hold_service(
   const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
   std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
-  preempt_goal("preempted by ~/hold");
-  Setpoint sp;
-  sp.position.assign(num_joints_, 0.0);
-  sp.velocity.assign(num_joints_, 0.0);
-  sp.acceleration.assign(num_joints_, 0.0);
-  for (std::size_t j = 0; j < num_joints_; ++j) {
-    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
-    sp.position[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+  // state_interfaces_ is only assigned between on_activate/on_deactivate.
+  // Indexing into it from the executor thread when INACTIVE dereferences a
+  // dangling handle and segfaults inside LoanedStateInterface::get_optional.
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    response->success = false;
+    response->message = "controller not active; refuse to hold";
+    return;
   }
-  setpoint_buf_.writeFromNonRT(std::move(sp));
+  preempt_goal("preempted by ~/hold");
+  promote_measured_to_setpoint();
   mode_.store(Mode::PVT);
   waiting_for_setpoint_.store(false);
   response->success = true;
@@ -749,6 +768,13 @@ void RobotPVTController::free_service(
   const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
   std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    response->success = false;
+    response->message = "controller not active; refuse to FREE";
+    return;
+  }
   preempt_goal("preempted by ~/free");
   mode_.store(Mode::FREE);
   response->success = true;
@@ -759,6 +785,13 @@ void RobotPVTController::damp_service(
   const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
   std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    response->success = false;
+    response->message = "controller not active; refuse to DAMP";
+    return;
+  }
   // DAMPING has no reference position — the brake settles wherever the joint
   // is when the operator releases it. Cancel any in-flight action so it
   // cannot resume PVT tracking under the brake.
@@ -778,20 +811,19 @@ void RobotPVTController::gravcomp_service(
   const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
   std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    response->success = false;
+    response->message = "controller not active; refuse to GRAVCOMP";
+    return;
+  }
   // Same setpoint capture as ~/hold — the FF chain still needs a reference
   // position so the lag governor and rate limiter don't snap on entry. The
   // GRAVCOMP-vs-PVT distinction is enforced at the per-joint write site in
   // update(): mode==GRAVCOMP && ff_gravity[j] forces kp_eff = 0.
   preempt_goal("preempted by ~/gravcomp");
-  Setpoint sp;
-  sp.position.assign(num_joints_, 0.0);
-  sp.velocity.assign(num_joints_, 0.0);
-  sp.acceleration.assign(num_joints_, 0.0);
-  for (std::size_t j = 0; j < num_joints_; ++j) {
-    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
-    sp.position[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
-  }
-  setpoint_buf_.writeFromNonRT(std::move(sp));
+  promote_measured_to_setpoint();
   mode_.store(Mode::GRAVCOMP);
   waiting_for_setpoint_.store(false);
 
@@ -891,6 +923,18 @@ rclcpp_action::CancelResponse RobotPVTController::handle_cancel(
 void RobotPVTController::handle_accepted(
   const std::shared_ptr<GoalHandleFJT> goal_handle)
 {
+  // handle_goal already rejects when not ACTIVE, but cover the narrow race
+  // where the controller deactivates between accept and the executor
+  // dispatching this callback. state_interfaces_ would be empty here.
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    auto result = std::make_shared<FJT::Result>();
+    result->error_code = FJT::Result::INVALID_GOAL;
+    result->error_string = "controller deactivated before goal could start";
+    goal_handle->abort(result);
+    return;
+  }
   if (active_goal_) {
     preempt_goal("preempted by new goal");
   }
@@ -980,14 +1024,18 @@ void RobotPVTController::on_feedback_tick()
   if (!active_goal_) {
     return;
   }
+  // Wall timer keeps firing across lifecycle transitions. If the controller
+  // was deactivated while a goal was in flight, state_interfaces_ is already
+  // released — touching it segfaults. Drop the active_goal_ silently; the
+  // executor cleans up the goal handle on its own.
+  if (get_lifecycle_state().id() !=
+    lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+  {
+    return;
+  }
 
   if (active_goal_->is_canceling()) {
-    std::vector<double> measured(num_joints_, 0.0);
-    for (std::size_t j = 0; j < num_joints_; ++j) {
-      const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
-      measured[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
-    }
-    promote_to_setpoint(measured);
+    promote_measured_to_setpoint();
     traj_buf_.writeFromNonRT(nullptr);
     traj_done_.store(false);
     traj_completed_clean_.store(false);
@@ -1012,22 +1060,11 @@ void RobotPVTController::on_feedback_tick()
   active_goal_->publish_feedback(feedback);
 
   if (traj_done_.load()) {
-    if (traj_completed_clean_.load()) {
-      // Success: hold the commanded endpoint so FJT semantics are preserved
-      // and the rate limiter can close any residual cleanly.
-      auto traj_ptr = *traj_buf_.readFromNonRT();
-      if (traj_ptr && !traj_ptr->knots.empty()) {
-        promote_to_setpoint(traj_ptr->knots.back().pos);
-      }
-    } else {
-      // Abort (e-stop/external preempt): hold-in-place at measured position.
-      std::vector<double> measured(num_joints_, 0.0);
-      for (std::size_t j = 0; j < num_joints_; ++j) {
-        const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
-        measured[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
-      }
-      promote_to_setpoint(measured);
-    }
+    // Hold at measured position on both success and abort. During PD tuning
+    // the commanded endpoint can sit a few mrad away from where the joint
+    // actually settled; promoting measured avoids any post-completion drive
+    // motion and matches hold_service semantics.
+    promote_measured_to_setpoint();
     traj_buf_.writeFromNonRT(nullptr);
     auto result = std::make_shared<FJT::Result>();
     if (traj_completed_clean_.load()) {
@@ -1054,6 +1091,16 @@ void RobotPVTController::promote_to_setpoint(
   sp.velocity.assign(num_joints_, 0.0);
   sp.acceleration.assign(num_joints_, 0.0);
   setpoint_buf_.writeFromNonRT(std::move(sp));
+}
+
+void RobotPVTController::promote_measured_to_setpoint()
+{
+  std::vector<double> measured(num_joints_, 0.0);
+  for (std::size_t j = 0; j < num_joints_; ++j) {
+    const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+    measured[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+  }
+  promote_to_setpoint(measured);
 }
 
 }  // namespace robot_pvt_control
