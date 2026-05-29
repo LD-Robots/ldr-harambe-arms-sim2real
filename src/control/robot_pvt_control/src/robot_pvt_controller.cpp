@@ -186,7 +186,8 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     active_names.str().c_str());
 
   // Centralised safety: load shared limits and subscribe to the supervisor.
-  limits_ = robot_safety::loadSafetyLimits(*get_node(), joints_, "safety.");
+  limits_buf_.writeFromNonRT(
+    robot_safety::loadSafetyLimits(*get_node(), joints_, "safety."));
   safety_.subscribe(get_node(), num_joints_);
 
   // Preallocate per-joint working state.
@@ -839,6 +840,12 @@ void RobotPVTController::on_feedback_tick()
   }
 
   if (active_goal_->is_canceling()) {
+    std::vector<double> measured(num_joints_, 0.0);
+    for (std::size_t j = 0; j < num_joints_; ++j) {
+      const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+      measured[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+    }
+    promote_to_setpoint(measured);
     traj_buf_.writeFromNonRT(nullptr);
     traj_done_.store(false);
     traj_completed_clean_.store(false);
@@ -863,6 +870,22 @@ void RobotPVTController::on_feedback_tick()
   active_goal_->publish_feedback(feedback);
 
   if (traj_done_.load()) {
+    if (traj_completed_clean_.load()) {
+      // Success: hold the commanded endpoint so FJT semantics are preserved
+      // and the rate limiter can close any residual cleanly.
+      auto traj_ptr = *traj_buf_.readFromNonRT();
+      if (traj_ptr && !traj_ptr->knots.empty()) {
+        promote_to_setpoint(traj_ptr->knots.back().pos);
+      }
+    } else {
+      // Abort (e-stop/external preempt): hold-in-place at measured position.
+      std::vector<double> measured(num_joints_, 0.0);
+      for (std::size_t j = 0; j < num_joints_; ++j) {
+        const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
+        measured[j] = pos_opt ? pos_opt.value() : params_.hold_position[j];
+      }
+      promote_to_setpoint(measured);
+    }
     traj_buf_.writeFromNonRT(nullptr);
     auto result = std::make_shared<FJT::Result>();
     if (traj_completed_clean_.load()) {
@@ -878,6 +901,17 @@ void RobotPVTController::on_feedback_tick()
     traj_completed_clean_.store(false);
     active_goal_.reset();
   }
+}
+
+void RobotPVTController::promote_to_setpoint(
+  const std::vector<double> & positions)
+{
+  Setpoint sp;
+  sp.position = positions;
+  sp.position.resize(num_joints_, 0.0);
+  sp.velocity.assign(num_joints_, 0.0);
+  sp.acceleration.assign(num_joints_, 0.0);
+  setpoint_buf_.writeFromNonRT(std::move(sp));
 }
 
 }  // namespace robot_pvt_control

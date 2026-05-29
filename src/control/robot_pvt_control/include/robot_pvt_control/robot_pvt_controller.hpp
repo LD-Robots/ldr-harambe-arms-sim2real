@@ -116,8 +116,10 @@ private:
   /// Write the DAMPING pattern for a single joint slot: q_des=measured,
   /// v_des=0, eff=0, kp=0, kd=Kd_damp[j]. The drive's PD law collapses to
   /// tau = -Kd_damp[j] * qd, producing pure mechanical brake without
-  /// reference tracking. Sim path: writes tau = -Kd_damp[j] * qd directly.
-  void write_damping_outputs_for(std::size_t j, double qd);
+  /// reference tracking. Sim path: writes tau = -Kd_damp[j] * qd directly,
+  /// clamped to `L`'s effort envelope.
+  void write_damping_outputs_for(
+    std::size_t j, double qd, const robot_safety::SafetyLimits & L);
   void setpoint_callback(
     const trajectory_msgs::msg::JointTrajectoryPoint::SharedPtr msg);
   void hold_service(
@@ -138,6 +140,9 @@ private:
   void handle_accepted(const std::shared_ptr<GoalHandleFJT> goal_handle);
   void on_feedback_tick();
   void preempt_goal(const std::string & why);
+  // Write 'positions' to setpoint_buf_ so the RT fallback path holds there
+  // instead of the stale hold_position default when traj_buf_ is cleared.
+  void promote_to_setpoint(const std::vector<double> & positions);
 
   // Sampling helpers — see robot_pvt_control::sample_segment /
   // sample_trajectory in hermite.hpp.
@@ -160,8 +165,11 @@ private:
   std::string body_group_{"full"};
   std::vector<bool> active_mask_;
 
-  // Safety
-  robot_safety::SafetyLimitsTable limits_;
+  // Safety. limits_buf_ is written from on_configure() and the
+  // post-set-parameters callback (both non-RT); update() reads via
+  // readFromRT() to keep the std::unordered_map lookup race-free against
+  // live `ros2 param set safety.joints.<j>.<field> ...` reloads.
+  realtime_tools::RealtimeBuffer<robot_safety::SafetyLimitsTable> limits_buf_;
   robot_safety::EstopSubscriber safety_;
   std::vector<robot_safety::RateLimiter> rate_limiters_;
   std::vector<double> estop_hold_pos_;
