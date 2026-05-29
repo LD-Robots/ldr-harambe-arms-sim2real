@@ -670,11 +670,25 @@ controller_interface::return_type RobotPVTController::update(
       continue;
     }
     const auto & L = limits.limitsFor(joints_[j]);
-    if (!rate_limiters_[j].seeded()) {
+    // While Kp is zeroed (GRAVCOMP on a gravity-comped joint), the joint can
+    // be back-driven and q[j] diverges from whatever ref_pos[j] / setpoint
+    // says. Pin the rate-limiter to measured each cycle so that the instant
+    // Kp is restored (e.g. operator presses ~/hold) the drive doesn't see a
+    // large (p_cmd - q[j]) error and slam the joint back to the stale
+    // pre-GRAVCOMP command position.
+    const bool kp_zeroed =
+      (mode == Mode::GRAVCOMP && params_.ff_gravity[j]);
+    double p_cmd;
+    if (kp_zeroed) {
       rate_limiters_[j].seed(q[j]);
+      p_cmd = q[j];
+    } else {
+      if (!rate_limiters_[j].seeded()) {
+        rate_limiters_[j].seed(q[j]);
+      }
+      p_cmd = rate_limiters_[j].limit(
+        ref_pos[j], dt, L.slew_rate_limit, L.acceleration_limit);
     }
-    double p_cmd = rate_limiters_[j].limit(
-      ref_pos[j], dt, L.slew_rate_limit, L.acceleration_limit);
     p_cmd = robot_safety::clampPosition(p_cmd, L);
     const double v_cmd = robot_safety::clampVelocity(ref_vel[j], L);
 
