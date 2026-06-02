@@ -633,13 +633,35 @@ class PvtDashboardWindow(QMainWindow):
                               DEFAULT_LIMITS["effort_limit"])
             cell.eff_spark.set_range(-elim, elim)
 
+    @staticmethod
+    def _safe_wait_for_service(client, timeout_sec: float) -> bool:
+        # rclpy.Client.wait_for_service can hang past its declared timeout in
+        # long-lived GUI nodes whose graph cache is driven by an externally
+        # spun executor — observed cross-machine where `ros2 service list`
+        # sees the service but Client.wait_for_service never returns. Enforce
+        # the timeout via a daemon worker + Event.wait; abandon the inner
+        # call on overrun (the daemon dies with the process).
+        done = threading.Event()
+        result = [False]
+
+        def _worker():
+            try:
+                result[0] = client.wait_for_service(timeout_sec=timeout_sec)
+            finally:
+                done.set()
+
+        threading.Thread(target=_worker, daemon=True).start()
+        if not done.wait(timeout=timeout_sec + 1.0):
+            return False
+        return result[0]
+
     def _rclpy_get_params(self, node_name: str, names: list[str],
                           timeout: float = 5.0) -> dict[str, object]:
         client = self._node.create_client(
             GetParameters, f"{node_name}/get_parameters"
         )
         try:
-            if not client.wait_for_service(timeout_sec=timeout):
+            if not self._safe_wait_for_service(client, timeout):
                 print(
                     f"[pvt_dashboard] {node_name}/get_parameters unavailable "
                     f"after {timeout}s — using defaults",

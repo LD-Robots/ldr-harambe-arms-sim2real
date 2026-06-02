@@ -1208,6 +1208,28 @@ class PvtTunerWindow(QMainWindow):
               file=sys.stderr, flush=True)
         self._discovery_sig.emit(pvt, broadcaster_ns, len(controllers), source)
 
+    @staticmethod
+    def _safe_wait_for_service(client, timeout_sec: float) -> bool:
+        # rclpy.Client.wait_for_service can hang past its declared timeout in
+        # long-lived GUI nodes whose graph cache is driven by an externally
+        # spun executor — observed cross-machine where `ros2 service list`
+        # sees the service but Client.wait_for_service never returns. Enforce
+        # the timeout via a daemon worker + Event.wait; abandon the inner
+        # call on overrun (the daemon dies with the process).
+        done = threading.Event()
+        result = [False]
+
+        def _worker():
+            try:
+                result[0] = client.wait_for_service(timeout_sec=timeout_sec)
+            finally:
+                done.set()
+
+        threading.Thread(target=_worker, daemon=True).start()
+        if not done.wait(timeout=timeout_sec + 1.0):
+            return False
+        return result[0]
+
     def _list_controllers_rclpy(self):
         """Call /controller_manager/list_controllers from the GUI's rclpy node.
 
@@ -1220,10 +1242,10 @@ class PvtTunerWindow(QMainWindow):
                 ListControllers, "/controller_manager/list_controllers"
             )
         try:
-            print("[pvt_tuner] rclpy: waiting for service (≤30s)",
+            print("[pvt_tuner] rclpy: waiting for service (≤5s)",
                   file=sys.stderr, flush=True)
             t0 = time.time()
-            ok = client.wait_for_service(timeout_sec=30.0)
+            ok = self._safe_wait_for_service(client, 5.0)
             print(f"[pvt_tuner] rclpy: wait_for_service={ok} "
                   f"after {time.time()-t0:.1f}s", file=sys.stderr, flush=True)
             if not ok:
@@ -1379,7 +1401,7 @@ class PvtTunerWindow(QMainWindow):
                     SwitchController, "/controller_manager/switch_controller",
                 )
             try:
-                if not client.wait_for_service(timeout_sec=5.0):
+                if not self._safe_wait_for_service(client, 5.0):
                     self._service_result_sig.emit(
                         leaf, False,
                         "/controller_manager/switch_controller unavailable",
@@ -1557,7 +1579,7 @@ class PvtTunerWindow(QMainWindow):
         with self._rclpy_lock:
             client = self._node.create_client(GetParameters, f"{ctrl}/get_parameters")
         try:
-            if not client.wait_for_service(timeout_sec=timeout):
+            if not self._safe_wait_for_service(client, timeout):
                 print(f"[pvt_tuner] get_parameters: {ctrl}/get_parameters "
                       f"unavailable after {timeout}s", file=sys.stderr, flush=True)
                 return {}
@@ -1610,7 +1632,7 @@ class PvtTunerWindow(QMainWindow):
         with self._rclpy_lock:
             client = self._node.create_client(SetParameters, f"{ctrl}/set_parameters")
         try:
-            if not client.wait_for_service(timeout_sec=timeout):
+            if not self._safe_wait_for_service(client, timeout):
                 return [(n, False, "service unavailable") for n, _ in pairs]
             req = SetParameters.Request()
             params = []
@@ -1912,7 +1934,7 @@ class PvtTunerWindow(QMainWindow):
             with self._rclpy_lock:
                 client = self._node.create_client(Trigger, service)
             try:
-                if not client.wait_for_service(timeout_sec=2.0):
+                if not self._safe_wait_for_service(client, 2.0):
                     self._service_result_sig.emit(
                         label, False, f"service {service} unavailable"
                     )
@@ -2723,7 +2745,7 @@ class PvtTunerWindow(QMainWindow):
         with self._rclpy_lock:
             client = self._node.create_client(ListParameters, f"{ctrl}/list_parameters")
         try:
-            if not client.wait_for_service(timeout_sec=timeout):
+            if not self._safe_wait_for_service(client, timeout):
                 return []
             req = ListParameters.Request()
             req.depth = 0  # all
