@@ -21,6 +21,7 @@ from launch.actions import (
     DeclareLaunchArgument, RegisterEventHandler, TimerAction,
     IncludeLaunchDescription, OpaqueFunction,
 )
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
     Command, PathJoinSubstitution, LaunchConfiguration,
@@ -141,11 +142,13 @@ def _launch_setup(context):
     )
 
     # ── RViz (visual sanity check) ───────────────────────────────────────────
+    # Skipped on headless nodes (e.g. the on-robot NUC) via use_rviz:=false.
     rviz = Node(
         package="rviz2",
         executable="rviz2",
         name="rviz2",
         additional_env={"OGRE_RTT_MODE": "Copy"},
+        condition=IfCondition(LaunchConfiguration("use_rviz")),
     )
 
     nodes = [
@@ -192,6 +195,12 @@ def generate_launch_description():
             default_value="arms",
             choices=["arms", "arms_waist", "legs", "full"],
             description="Which body groups to include: arms, arms_waist, legs, or full",
+        ),
+        DeclareLaunchArgument(
+            "use_rviz",
+            default_value="true",
+            choices=["true", "false"],
+            description="Launch RViz. Set to false for headless runs on the NUC.",
         ),
         OpaqueFunction(function=_launch_setup),
     ])
