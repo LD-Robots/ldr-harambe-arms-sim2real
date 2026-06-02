@@ -208,6 +208,8 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
   tmp_p_.assign(num_joints_, 0.0);
   tmp_v_.assign(num_joints_, 0.0);
   tmp_a_.assign(num_joints_, 0.0);
+  cmd_pos_.assign(num_joints_, 0.0);
+  cmd_vel_.assign(num_joints_, 0.0);
 
   Setpoint init;
   init.position = params_.hold_position;
@@ -264,6 +266,26 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
   feedback_timer_ = node->create_wall_timer(
     std::chrono::milliseconds(100),
     [this]() { this->on_feedback_tick(); });
+
+  // Tuning diagnostics: per-cycle reference and command publishers. Indexed by
+  // joints_ order. Wrapped in RealtimePublisher so update() never blocks.
+  ref_pub_ = node->create_publisher<JTPoint>(
+    "~/reference", rclcpp::SystemDefaultsQoS());
+  cmd_pub_ = node->create_publisher<JTPoint>(
+    "~/command", rclcpp::SystemDefaultsQoS());
+  rt_ref_pub_ =
+    std::make_unique<realtime_tools::RealtimePublisher<JTPoint>>(ref_pub_);
+  rt_cmd_pub_ =
+    std::make_unique<realtime_tools::RealtimePublisher<JTPoint>>(cmd_pub_);
+  {
+    auto & rmsg = rt_ref_pub_->msg_;
+    rmsg.positions.assign(num_joints_, 0.0);
+    rmsg.velocities.assign(num_joints_, 0.0);
+    rmsg.accelerations.assign(num_joints_, 0.0);
+    auto & cmsg = rt_cmd_pub_->msg_;
+    cmsg.positions.assign(num_joints_, 0.0);
+    cmsg.velocities.assign(num_joints_, 0.0);
+  }
 
   // ── Pinocchio gravity model ────────────────────────────────────────────
   // Build once from the URDF. Each update() will call computeGeneralizedGravity
@@ -667,6 +689,8 @@ controller_interface::return_type RobotPVTController::update(
     // write the FREE pattern so the drive's PD law evaluates to zero.
     if (!active_mask_[j]) {
       write_free_outputs_for(j);
+      cmd_pos_[j] = q[j];   // FREE pattern pins position cmd to measured q
+      cmd_vel_[j] = 0.0;
       continue;
     }
     const auto & L = limits.limitsFor(joints_[j]);
@@ -691,6 +715,8 @@ controller_interface::return_type RobotPVTController::update(
     }
     p_cmd = robot_safety::clampPosition(p_cmd, L);
     const double v_cmd = robot_safety::clampVelocity(ref_vel[j], L);
+    cmd_pos_[j] = p_cmd;
+    cmd_vel_[j] = v_cmd;
 
     // Gravity FF: prefer runtime Pinocchio RNEA (true chain physics).
     // Fall back to the static mgl·sin(q−q_eq) pendulum approximation only
@@ -727,6 +753,26 @@ controller_interface::return_type RobotPVTController::update(
       const double tau = robot_safety::clampEffort(tau_ff + tau_pd, L);
       (void)command_interfaces_[kSimStride * j + kSimOffEffort].set_value(tau);
     }
+  }
+
+  // Publish tuning diagnostics. try_lock skips the cycle if the subscriber
+  // side is mid-read; we never block the RT loop.
+  if (rt_ref_pub_ && rt_ref_pub_->trylock()) {
+    auto & m = rt_ref_pub_->msg_;
+    for (std::size_t j = 0; j < num_joints_; ++j) {
+      m.positions[j] = ref_pos[j];
+      m.velocities[j] = ref_vel[j];
+      m.accelerations[j] = ref_acc[j];
+    }
+    rt_ref_pub_->unlockAndPublish();
+  }
+  if (rt_cmd_pub_ && rt_cmd_pub_->trylock()) {
+    auto & m = rt_cmd_pub_->msg_;
+    for (std::size_t j = 0; j < num_joints_; ++j) {
+      m.positions[j] = cmd_pos_[j];
+      m.velocities[j] = cmd_vel_[j];
+    }
+    rt_cmd_pub_->unlockAndPublish();
   }
   return controller_interface::return_type::OK;
 }

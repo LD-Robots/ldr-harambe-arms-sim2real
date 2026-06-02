@@ -16,6 +16,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "realtime_tools/realtime_buffer.hpp"
+#include "realtime_tools/realtime_publisher.hpp"
 #include "robot_safety/estop_subscriber.hpp"
 #include "robot_safety/param_loader.hpp"
 #include "robot_safety/rate_limiter.hpp"
@@ -233,6 +234,21 @@ private:
   mutable std::vector<double> tmp_p_;
   mutable std::vector<double> tmp_v_;
   mutable std::vector<double> tmp_a_;
+  // Per-cycle command snapshot (post rate-limiter + clamps). Populated in
+  // update() and republished on ~/command for tuning.
+  mutable std::vector<double> cmd_pos_;
+  mutable std::vector<double> cmd_vel_;
+
+  // Tuning diagnostics — published every update() cycle.
+  //   ~/reference : resolved trajectory sample (post lag-governor, pre rate-limiter)
+  //   ~/command   : drive-side write (post rate-limiter, post safety clamps)
+  // Both messages are indexed by joints_ order. RealtimePublisher uses
+  // try_lock so the RT loop never blocks on the subscriber side.
+  using JTPoint = trajectory_msgs::msg::JointTrajectoryPoint;
+  rclcpp::Publisher<JTPoint>::SharedPtr ref_pub_;
+  rclcpp::Publisher<JTPoint>::SharedPtr cmd_pub_;
+  std::unique_ptr<realtime_tools::RealtimePublisher<JTPoint>> rt_ref_pub_;
+  std::unique_ptr<realtime_tools::RealtimePublisher<JTPoint>> rt_cmd_pub_;
 
   std::shared_ptr<GoalHandleFJT> active_goal_;
   rclcpp::TimerBase::SharedPtr feedback_timer_;
