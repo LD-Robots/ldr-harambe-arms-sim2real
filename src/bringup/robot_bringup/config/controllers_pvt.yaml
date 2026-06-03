@@ -19,6 +19,9 @@
 controller_manager:
   ros__parameters:
     update_rate: 1000   # PVT runs at 1 kHz — slave configs set 1 ms cycle
+    lock_memory: true       # mlockall — kills the page-fault stalls
+    thread_priority: 80     # SCHED_FIFO; raise it above the NIC IRQ thread
+    cpu_affinity: 3         # pin to an isolated core (see isolcpus below)
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
