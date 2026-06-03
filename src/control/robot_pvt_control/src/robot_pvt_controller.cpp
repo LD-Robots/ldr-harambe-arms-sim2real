@@ -1120,11 +1120,25 @@ void RobotPVTController::on_feedback_tick()
   active_goal_->publish_feedback(feedback);
 
   if (traj_done_.load()) {
-    // Hold at measured position on both success and abort. During PD tuning
-    // the commanded endpoint can sit a few mrad away from where the joint
-    // actually settled; promoting measured avoids any post-completion drive
-    // motion and matches hold_service semantics.
-    promote_measured_to_setpoint();
+    if (traj_completed_clean_.load()) {
+      // Clean success: hold the commanded endpoint, not measured. With an
+      // under-tuned joint the endpoint sits a steady-state following error
+      // above where it settled; promoting measured would zero kp*(cmd-q) and
+      // let the joint sag (the post-completion transient). Holding the
+      // endpoint keeps that holding torque and leaves the error visible for
+      // tuning — standard JTC "hold last setpoint" semantics. The endpoint is
+      // already where the rate limiter converged, so the command is continuous.
+      auto traj_ptr = *traj_buf_.readFromNonRT();
+      if (traj_ptr && !traj_ptr->knots.empty()) {
+        promote_to_setpoint(traj_ptr->knots.back().pos);
+      } else {
+        promote_measured_to_setpoint();  // defensive fallback
+      }
+    } else {
+      // Preempted (e-stop / external): capture measured so a stale endpoint
+      // cannot slam a back-driven or braked joint when Kp returns.
+      promote_measured_to_setpoint();
+    }
     traj_buf_.writeFromNonRT(nullptr);
     auto result = std::make_shared<FJT::Result>();
     if (traj_completed_clean_.load()) {
