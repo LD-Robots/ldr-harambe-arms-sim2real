@@ -44,7 +44,7 @@
 
         <ros2_control name="EthercatSystem" type="system">
             <hardware>
-                <plugin>harambe_ethercat_driver/HarambeEthercatDriver</plugin>
+                <plugin>harambe_ethercat_driver/HarambePvtDriver</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
                 <!-- Ankle eccentric-pushrod linkage geometry (meters) -->

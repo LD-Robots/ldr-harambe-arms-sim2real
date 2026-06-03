@@ -195,24 +195,32 @@ robot_safety_supervisor:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
 
@@ -326,23 +334,31 @@ robot_pvt_controller:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
           effort_limit: 20.0
           sustained_effort_threshold: 16.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
           effort_limit: 15.0
           sustained_effort_threshold: 12.0
           velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0

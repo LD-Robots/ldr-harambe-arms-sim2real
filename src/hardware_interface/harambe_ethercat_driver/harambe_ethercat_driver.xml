@@ -3,9 +3,20 @@
          type="harambe_ethercat_driver::HarambeEthercatDriver"
          base_class_type="hardware_interface::SystemInterface">
     <description>
-      EtherCAT driver for Harambe humanoid with nonlinear ankle linkage transform.
-      Inherits ethercat_driver/EthercatDriver and adds eccentric-pushrod kinematics
-      for differential ankle mechanism (2 motors per ankle → pitch/roll).
+      CSP/CST EtherCAT driver for Harambe humanoid with nonlinear ankle linkage
+      transform. Command layout: position, effort, mode_of_operation.
+      Inherits ethercat_driver/EthercatDriver and adds eccentric-pushrod
+      kinematics for the differential ankle mechanism (2 motors → pitch/roll).
+    </description>
+  </class>
+  <class name="harambe_ethercat_driver/HarambePvtDriver"
+         type="harambe_ethercat_driver::HarambePvtDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      PVT (CiA 402 mode 5) EtherCAT driver for Harambe humanoid with nonlinear
+      ankle linkage transform. Command layout: position, velocity, effort, kp, kd
+      (kp/kd per-motor passthrough). Shares the ankle kinematics with the CSP/CST
+      driver via AnkleLinkageDriver.
     </description>
   </class>
 </library>
