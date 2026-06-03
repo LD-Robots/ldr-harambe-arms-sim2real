@@ -999,14 +999,27 @@ void RobotPVTController::handle_accepted(
     preempt_goal("preempted by new goal");
   }
 
-  // Snapshot the current joint positions for the implicit start knot and for
-  // any joints the trajectory doesn't reference (those will be held at q_start).
+  // Base for the implicit start knot and for joints the trajectory doesn't
+  // reference (those hold at q_start). Prefer the currently *commanded* hold
+  // position over measured q: the rate limiter is holding the previous PVT
+  // setpoint (a completed trajectory's endpoint, or a measured snapshot
+  // promoted by ~/hold). Seeding the start knot from measured instead would
+  // step the reference by the steady-state following error (endpoint − q) at
+  // trajectory start, jerking the joint (velocity/effort spike + PD ringing).
+  // Only trust the held setpoint when actively holding in PVT; in
+  // FREE/DAMP/GRAVCOMP or post-e-stop the joint is back-driven and the setpoint
+  // is stale, so fall back to measured to avoid slamming it to a stale command.
+  const bool actively_holding =
+    (mode_.load() == Mode::PVT) && !waiting_for_setpoint_.load();
+  const Setpoint held = *setpoint_buf_.readFromNonRT();
   std::vector<double> q_start = params_.hold_position;
   for (std::size_t j = 0; j < num_joints_; ++j) {
     const auto pos_opt = state_interfaces_[kStatePerJoint * j].get_optional();
-    if (pos_opt) {
-      q_start[j] = pos_opt.value();
-    }
+    const double measured =
+      pos_opt ? pos_opt.value() : params_.hold_position[j];
+    q_start[j] = (actively_holding && j < held.position.size())
+      ? held.position[j]
+      : measured;
   }
 
   const auto & goal = goal_handle->get_goal();
