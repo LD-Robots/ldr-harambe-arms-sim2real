@@ -105,10 +105,20 @@ public:
   FkResult first_order_fk(double thetaA, double thetaB) const;
   IkResult first_order_ik(double pitch, double roll) const;
 
-  // Numerical J = d(pitch,roll)/d(thetaA,thetaB) (URDF convention), central
-  // difference of fk() warm-started at (seed_pitch, seed_roll).
+  // J = d(pitch,roll)/d(thetaA,thetaB) (URDF convention). Runs fk() once to
+  // converge the internal angles, then the analytic jacobian_at(). Used by
+  // tests / callers that do not already know the pose.
   Eigen::Matrix2d jacobian(
     double thetaA, double thetaB, double seed_pitch, double seed_roll) const;
+
+  // Analytic J given the pose (URDF pitch/roll) that (thetaA,thetaB) maps to —
+  // no Newton iteration. Via the implicit function theorem on the rod
+  // constraints F(theta, phi)=0:  dphi/dtheta = -(dF/dphi)^{-1} (dF/dtheta),
+  // then mapped through the pitch/roll sign convention. Real-time cheap (~4
+  // residual evals); the driver calls this with the pose it already has (FK
+  // result on read, commanded pose on write), so no extra FK solve is needed.
+  Eigen::Matrix2d jacobian_at(
+    double thetaA, double thetaB, double pitch, double roll) const;
 
 private:
   AnkleParams p_;

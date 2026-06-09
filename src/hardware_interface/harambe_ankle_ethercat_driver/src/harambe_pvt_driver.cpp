@@ -31,8 +31,9 @@ hardware_interface::return_type HarambePvtDriver::write(
         "Ankle pose (pitch=%.3f roll=%.3f) unreachable — motor command clamped", pitch, roll);
     }
 
-    // J = d(pitch,roll)/d(thetaA,thetaB) at the commanded operating point.
-    const Eigen::Matrix2d J = model_.jacobian(ik.thetaA, ik.thetaB, pitch, roll);
+    // J = d(pitch,roll)/d(thetaA,thetaB), analytic at the commanded pose
+    // (internal angles are known from the command — no FK solve here).
+    const Eigen::Matrix2d J = model_.jacobian_at(ik.thetaA, ik.thetaB, pitch, roll);
     const double det = J.determinant();
 
     // Velocity: solve J · [vA;vB] = [vp;vr] → [vA;vB] = J^{-1} [vp;vr].

@@ -30,8 +30,8 @@ hardware_interface::return_type HarambeEthercatDriver::write(
         "Ankle pose (pitch=%.3f roll=%.3f) unreachable — motor command clamped", pitch, roll);
     }
 
-    // Effort: tau_motor = J^T · tau_joint.
-    const Eigen::Matrix2d J = model_.jacobian(ik.thetaA, ik.thetaB, pitch, roll);
+    // Effort: tau_motor = J^T · tau_joint (analytic J at the commanded pose).
+    const Eigen::Matrix2d J = model_.jacobian_at(ik.thetaA, ik.thetaB, pitch, roll);
     const Eigen::Vector2d tm = J.transpose() * Eigen::Vector2d(ca[1], cb[1]);
 
     ca[0] = ik.thetaA;  cb[0] = ik.thetaB;

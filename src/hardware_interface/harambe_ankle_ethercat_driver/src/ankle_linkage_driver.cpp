@@ -139,8 +139,9 @@ hardware_interface::return_type AnkleLinkageDriver::read(
     lk.last_fk_pitch = f.pitch;
     lk.last_fk_roll = f.roll;
 
-    // J = d(pitch,roll)/d(thetaA,thetaB) at the operating point.
-    const Eigen::Matrix2d J = model_.jacobian(theta_a, theta_b, f.pitch, f.roll);
+    // J = d(pitch,roll)/d(thetaA,thetaB), analytic at the just-solved pose
+    // (reuses the FK result — no extra Newton iteration).
+    const Eigen::Matrix2d J = model_.jacobian_at(theta_a, theta_b, f.pitch, f.roll);
 
     // Velocity: [vp;vr] = J · [vA;vB].
     const Eigen::Vector2d vj = J * Eigen::Vector2d(sa[1], sb[1]);

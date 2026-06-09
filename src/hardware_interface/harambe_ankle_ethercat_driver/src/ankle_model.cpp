@@ -277,19 +277,55 @@ FkResult AnkleModel::fk(double thetaA, double thetaB, double seed_pitch, double 
 Eigen::Matrix2d AnkleModel::jacobian(
   double thetaA, double thetaB, double seed_pitch, double seed_roll) const
 {
-  const double hstep = 1e-6;
-  // Warm-start every perturbed fk from the operating-point pose for speed and
-  // branch consistency.
-  const FkResult a_p = fk(thetaA + hstep, thetaB, seed_pitch, seed_roll);
-  const FkResult a_m = fk(thetaA - hstep, thetaB, seed_pitch, seed_roll);
-  const FkResult b_p = fk(thetaA, thetaB + hstep, seed_pitch, seed_roll);
-  const FkResult b_m = fk(thetaA, thetaB - hstep, seed_pitch, seed_roll);
+  // Converge the pose once, then use the analytic Jacobian at it.
+  const FkResult f = fk(thetaA, thetaB, seed_pitch, seed_roll);
+  return jacobian_at(thetaA, thetaB, f.pitch, f.roll);
+}
 
+Eigen::Matrix2d AnkleModel::jacobian_at(
+  double thetaA, double thetaB, double pitch, double roll) const
+{
+  // URDF pose → internal angles (phi_p = -pitch, phi_r = roll in model space).
+  const double phi_p = -(p_.pitch_sign * pitch);
+  const double phi_r = p_.roll_sign * roll;
+
+  // dF/dphi (2x2): central difference of the rod residuals (no Newton).
+  const double hs = 1e-6;
+  const Eigen::Vector2d Fpp = residual(thetaA, thetaB, phi_p + hs, phi_r);
+  const Eigen::Vector2d Fpm = residual(thetaA, thetaB, phi_p - hs, phi_r);
+  const Eigen::Vector2d Frp = residual(thetaA, thetaB, phi_p, phi_r + hs);
+  const Eigen::Vector2d Frm = residual(thetaA, thetaB, phi_p, phi_r - hs);
+  Eigen::Matrix2d dFdphi;
+  dFdphi.col(0) = (Fpp - Fpm) / (2.0 * hs);
+  dFdphi.col(1) = (Frp - Frm) / (2.0 * hs);
+
+  // dF/dtheta (diagonal): F1 depends only on thetaA, F2 only on thetaB.
+  //   dFi/dtheta = 2 (pin - mount) · d(pin)/dtheta
+  const Eigen::Vector3d m_A(p_.Lp, p_.S / 2.0, -p_.delta);
+  const Eigen::Vector3d m_B(p_.Lp, -p_.S / 2.0, -p_.delta);
+  const Eigen::Vector3d MA = mount(m_A, phi_p, phi_r);
+  const Eigen::Vector3d MB = mount(m_B, phi_p, phi_r);
+  const Eigen::Vector3d dpinA(0.0, -p_.r * std::sin(thetaA), p_.r * std::cos(thetaA));
+  const Eigen::Vector3d dpinB(0.0, p_.r * std::sin(thetaB), p_.r * std::cos(thetaB));
+  const double dF1dA = 2.0 * (pin_a(thetaA) - MA).dot(dpinA);
+  const double dF2dB = 2.0 * (pin_b(thetaB) - MB).dot(dpinB);
+  Eigen::Matrix2d dFdtheta;
+  dFdtheta << dF1dA, 0.0,
+              0.0, dF2dB;
+
+  // dphi/dtheta = -(dF/dphi)^{-1} (dF/dtheta).
+  Eigen::Matrix2d dphi;
+  const double det = dFdphi.determinant();
+  if (std::abs(det) < 1e-12) {
+    dphi.setZero();  // singular configuration — driver guards on det too
+  } else {
+    dphi = -dFdphi.inverse() * dFdtheta;
+  }
+
+  // Map internal → URDF: pitch = pitch_sign·(-phi_p), roll = roll_sign·phi_r.
   Eigen::Matrix2d J;
-  J(0, 0) = (a_p.pitch - a_m.pitch) / (2.0 * hstep);  // d pitch / d thetaA
-  J(1, 0) = (a_p.roll  - a_m.roll)  / (2.0 * hstep);  // d roll  / d thetaA
-  J(0, 1) = (b_p.pitch - b_m.pitch) / (2.0 * hstep);  // d pitch / d thetaB
-  J(1, 1) = (b_p.roll  - b_m.roll)  / (2.0 * hstep);  // d roll  / d thetaB
+  J.row(0) = -p_.pitch_sign * dphi.row(0);   // d pitch / d theta
+  J.row(1) = p_.roll_sign * dphi.row(1);     // d roll  / d theta
   return J;
 }
 
