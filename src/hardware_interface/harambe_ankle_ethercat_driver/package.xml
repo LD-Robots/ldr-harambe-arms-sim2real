@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>harambe_ankle_ethercat_driver</name>
+  <version>0.1.0</version>
+  <description>
+    EtherCAT driver with the EXACT differential-ankle serial-chain kinematics for
+    the Harambe humanoid. Replaces harambe_ethercat_driver: provides both the PVT
+    (CiA 402 mode 5) and CSP/CST hardware_interface plugins, each embedding the
+    closed-form IK / Newton FK eccentric-pushrod model.
+  </description>
+  <maintainer email="andrei.dragomir@ldrobots.ro">LD Robots</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>ethercat_driver</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>eigen</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

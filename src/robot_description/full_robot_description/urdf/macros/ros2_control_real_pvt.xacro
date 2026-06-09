@@ -44,13 +44,21 @@
 
         <ros2_control name="EthercatSystem" type="system">
             <hardware>
-                <plugin>harambe_ethercat_driver/HarambePvtDriver</plugin>
+                <plugin>harambe_ankle_ethercat_driver/HarambePvtDriver</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
-                <!-- Ankle eccentric-pushrod linkage geometry (meters) -->
-                <param name="r_exc">0.025</param>
-                <param name="d_pitch">0.03</param>
-                <param name="d_roll">0.056</param>
+                <!-- Exact differential-ankle serial-chain geometry (mm; ASSUMED docs
+                     placeholders — confirm against the real hardware). -->
+                <param name="crank_throw_mm">25.0</param>
+                <param name="mount_foreaft_mm">63.0</param>
+                <param name="mount_separation_mm">60.0</param>
+                <param name="cam_foreaft_mm">78.0</param>
+                <param name="hinge_spacing_mm">28.0</param>
+                <param name="rod_a_length_mm">255.0</param>
+                <param name="rod_b_length_mm">180.0</param>
+                <param name="mount_drop_mm">0.0</param>
+                <param name="lock_heights_to_rods">true</param>
+                <param name="motor_limit_deg">80.0</param>  <!-- CONFIRMED real actuator limit -->
                 <param name="pitch_sign">-1</param>
                 <param name="roll_sign">1</param>
                 <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>

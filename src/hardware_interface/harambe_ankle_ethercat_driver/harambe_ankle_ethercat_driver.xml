@@ -1,0 +1,22 @@
+<library path="harambe_ankle_ethercat_driver">
+  <class name="harambe_ankle_ethercat_driver/HarambeEthercatDriver"
+         type="harambe_ankle_ethercat_driver::HarambeEthercatDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      CSP/CST EtherCAT driver for the Harambe humanoid with the EXACT
+      differential-ankle serial-chain transform (closed-form IK / Newton FK,
+      stacked-hinge cross-coupling). Command layout: position, effort,
+      mode_of_operation. Inherits ethercat_driver/EthercatDriver.
+    </description>
+  </class>
+  <class name="harambe_ankle_ethercat_driver/HarambePvtDriver"
+         type="harambe_ankle_ethercat_driver::HarambePvtDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      PVT (CiA 402 mode 5) EtherCAT driver for the Harambe humanoid with the EXACT
+      differential-ankle serial-chain transform. Command layout: position,
+      velocity, effort, kp, kd (kp/kd per-motor passthrough). Shares the exact
+      ankle kinematics with the CSP/CST driver via AnkleLinkageDriver.
+    </description>
+  </class>
+</library>

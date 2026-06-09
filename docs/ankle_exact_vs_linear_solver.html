@@ -1,0 +1,179 @@
+<h2 class="sr-only">Exact differential-ankle kinematics solver with editable parameters, comparing the exact serial-chain model against the first-order formulas and overlaying their reachable workspaces.</h2>
+<style>
+  .grp{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:2px 0 6px}
+  .boxgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .pf{display:flex;flex-direction:column;gap:3px}
+  .pf label{font-size:11px;color:var(--color-text-secondary);line-height:1.2}
+  .pf input[type=number]{width:100%;box-sizing:border-box;padding:5px 6px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-sm);background:var(--color-background-primary);color:var(--color-text-primary);font-size:13px}
+  .pf input[readonly]{opacity:.55}
+  .chip{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 10px;text-align:center}
+  .chip .lab{font-size:11px;color:var(--color-text-secondary)}
+  .chip .val{font-size:18px;font-weight:500}
+  .slab{font-size:13px;color:var(--color-text-secondary);min-width:108px}
+  .sec{border-top:0.5px solid var(--color-border-tertiary);margin:4px 0 2px}
+  .vcell{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:6px}
+  .cap{font-size:12px;color:var(--color-text-tertiary);text-align:center;margin:0 0 2px}
+  .leg{display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--color-text-secondary);margin-top:4px}
+  .sw{display:inline-block;width:16px;height:0;border-top-width:2px;border-top-style:solid;vertical-align:middle;margin-right:5px}
+</style>
+<div style="display:flex;flex-direction:column;gap:12px;padding:1rem 0">
+
+  <div>
+    <div class="grp">Motion drivers</div>
+    <div class="boxgrid">
+      <div class="pf"><label>Crank throw r (mm)</label><input type="number" id="p_r" value="25" step="0.5"></div>
+      <div class="pf"><label>Mount→hinge fore/aft, L<sub>p</sub> (mm)</label><input type="number" id="p_Lp" value="63" step="0.5"></div>
+      <div class="pf"><label>Mount lateral separation S (mm)</label><input type="number" id="p_Ls" value="60" step="0.5"></div>
+      <div class="pf"><label>Motor limit ± (°)</label><input type="number" id="p_lim" value="80" step="1"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="grp">Geometry &amp; exact-model parameters</div>
+    <div class="boxgrid">
+      <div class="pf"><label>Cam fore/aft from hinge (mm)</label><input type="number" id="p_cam" value="78" step="0.5"></div>
+      <div class="pf"><label>Rod A length (mm)</label><input type="number" id="p_LA" value="255" step="1"></div>
+      <div class="pf"><label>Rod B length (mm)</label><input type="number" id="p_LB" value="180" step="1"></div>
+      <div class="pf"><label>Hinge spacing, stacked (mm)</label><input type="number" id="p_hs" value="28" step="0.5"></div>
+      <div class="pf"><label>Cam A height (mm)</label><input type="number" id="p_HA" value="226.5" step="0.5" readonly></div>
+      <div class="pf"><label>Cam B height (mm)</label><input type="number" id="p_HB" value="151.3" step="0.5" readonly></div>
+      <div class="pf"><label>Rod-mount drop below roll hinge (mm)</label><input type="number" id="p_dd" value="0" step="0.5"></div>
+      <div class="pf" style="justify-content:flex-end;gap:6px"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="autoH" checked> lock heights to rods</label></div>
+    </div>
+  </div>
+
+  <div class="sec"></div>
+
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="slab">Motor A (right)</span>
+    <input type="range" id="thA" min="-80" max="80" value="0" step="0.5" style="flex:1">
+    <span id="thA-out" style="font-size:13px;font-weight:500;min-width:46px;text-align:right">0°</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="slab">Motor B (left)</span>
+    <input type="range" id="thB" min="-80" max="80" value="0" step="0.5" style="flex:1">
+    <span id="thB-out" style="font-size:13px;font-weight:500;min-width:46px;text-align:right">0°</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    <div class="chip"><div class="lab">pitch (exact)</div><div class="val" id="cP">0.0°</div></div>
+    <div class="chip"><div class="lab">roll (exact)</div><div class="val" id="cR">0.0°</div></div>
+    <div class="chip"><div class="lab">Δ pitch vs linear</div><div class="val" id="cDP">0.0°</div></div>
+    <div class="chip"><div class="lab">Δ roll vs linear</div><div class="val" id="cDR">0.0°</div></div>
+  </div>
+
+  <div style="font-size:11px;color:var(--color-text-tertiary);text-align:center" id="info">deriving…</div>
+
+  <div class="vcell">
+    <p class="cap">Reachable workspace — exact (solid) vs first-order (dashed) · pitch horizontal, roll vertical · dot = current pose</p>
+    <svg id="wsSvg" width="100%" viewBox="0 0 680 260" role="img"><title>Exact vs first-order reachable workspace</title><desc>Two overlaid regions of foot angles; the filled dot is the exact pose, the open dot is the first-order prediction.</desc></svg>
+    <div class="leg">
+      <span><span class="sw" style="border-top-color:#D85A30"></span>exact serial-chain</span>
+      <span><span class="sw" style="border-top-color:#534AB7;border-top-style:dashed"></span>first-order formulas</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var D2R=Math.PI/180,R2D=180/Math.PI;
+  var thA=$('thA'),thB=$('thB'),autoH=$('autoH');
+  function num(id,d){var v=parseFloat($(id).value);return isFinite(v)?v:d;}
+  function cl(v){return Math.max(-1,Math.min(1,v));}
+  function rotX(v,a){var c=Math.cos(a),s=Math.sin(a);return [v[0], v[1]*c-v[2]*s, v[1]*s+v[2]*c];}
+  function rotY(v,a){var c=Math.cos(a),s=Math.sin(a);return [v[0]*c+v[2]*s, v[1], -v[0]*s+v[2]*c];}
+  function d2(a,b){var x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];return x*x+y*y+z*z;}
+  function derive(p){
+    var base=(p.cam-p.Lp)*(p.cam-p.Lp)+(p.r-p.Ls/2)*(p.r-p.Ls/2);
+    var HA=Math.sqrt(Math.max(0,p.LA*p.LA-base))-p.hs-p.dd;
+    var HB=Math.sqrt(Math.max(0,p.LB*p.LB-base))-p.hs-p.dd;
+    return [HA,HB];
+  }
+  function mount(pf,pp,pr,p){var rx=rotX(pf,pr);return rotY([rx[0],rx[1],rx[2]-p.hs],pp);}
+  function pinA(t,p){return [p.cam,  p.r*Math.cos(t), p.HA+p.r*Math.sin(t)];}
+  function pinB(t,p){return [p.cam, -p.r*Math.cos(t), p.HB+p.r*Math.sin(t)];}
+  function linear(ta,tb,p){var dA=p.r*Math.sin(ta),dB=p.r*Math.sin(tb);
+    return [Math.asin(cl((dA+dB)/(2*p.Lp))), Math.asin(cl((dA-dB)/p.Ls))];}
+  function fk(ta,tb,p){
+    var pfA=[p.Lp,p.Ls/2,-p.dd], pfB=[p.Lp,-p.Ls/2,-p.dd];
+    function res(pp,pr){return [d2(pinA(ta,p),mount(pfA,pp,pr,p))-p.LA*p.LA, d2(pinB(tb,p),mount(pfB,pp,pr,p))-p.LB*p.LB];}
+    var s=linear(ta,tb,p),pp=s[0],pr=s[1],h=1e-6,i;
+    for(i=0;i<20;i++){
+      var f=res(pp,pr);
+      var a=res(pp+h,pr),b=res(pp-h,pr),c=res(pp,pr+h),d=res(pp,pr-h);
+      var j11=(a[0]-b[0])/(2*h),j12=(c[0]-d[0])/(2*h),j21=(a[1]-b[1])/(2*h),j22=(c[1]-d[1])/(2*h);
+      var det=j11*j22-j12*j21; if(Math.abs(det)<1e-12)break;
+      var dpp=(-f[0]*j22+f[1]*j12)/det, dpr=(-f[1]*j11+f[0]*j21)/det;
+      pp+=dpp; pr+=dpr;
+      if(Math.abs(dpp)+Math.abs(dpr)<1e-9)break;
+    }
+    return [pp,pr];
+  }
+  function readP(){
+    var p={r:num('p_r',25),Lp:num('p_Lp',63),Ls:num('p_Ls',60),lim:num('p_lim',80),
+      cam:num('p_cam',78),LA:num('p_LA',255),LB:num('p_LB',180),hs:num('p_hs',28),dd:num('p_dd',0)};
+    var dh=derive(p);
+    if(autoH.checked){p.HA=dh[0];p.HB=dh[1];$('p_HA').value=dh[0].toFixed(1);$('p_HB').value=dh[1].toFixed(1);$('p_HA').readOnly=true;$('p_HB').readOnly=true;}
+    else{p.HA=num('p_HA',dh[0]);p.HB=num('p_HB',dh[1]);$('p_HA').readOnly=false;$('p_HB').readOnly=false;}
+    return p;
+  }
+  var gE=[],gL=[],gMaxP=1,gMaxR=1,gDp=0,gDr=0;
+  function buildRegion(p){
+    var lim=p.lim,N=16,i,j,t,pts=[];
+    for(i=0;i<=N;i++){t=-lim+2*lim*i/N;pts.push([t,-lim]);}
+    for(i=0;i<=N;i++){t=-lim+2*lim*i/N;pts.push([lim,t]);}
+    for(i=0;i<=N;i++){t=lim-2*lim*i/N;pts.push([t,lim]);}
+    for(i=0;i<=N;i++){t=lim-2*lim*i/N;pts.push([-lim,t]);}
+    gE=[];gL=[];gMaxP=1;gMaxR=1;
+    pts.forEach(function(pp){
+      var E=fk(pp[0]*D2R,pp[1]*D2R,p),L=linear(pp[0]*D2R,pp[1]*D2R,p);
+      var ep=-E[0]*R2D,er=E[1]*R2D,lp=L[0]*R2D,lr=L[1]*R2D;
+      gE.push([ep,er]);gL.push([lp,lr]);
+      gMaxP=Math.max(gMaxP,Math.abs(ep),Math.abs(lp));gMaxR=Math.max(gMaxR,Math.abs(er),Math.abs(lr));
+    });
+    gDp=0;gDr=0;var G=14;
+    for(i=0;i<=G;i++)for(j=0;j<=G;j++){
+      var ta=(-lim+2*lim*i/G)*D2R,tb=(-lim+2*lim*j/G)*D2R;
+      var E=fk(ta,tb,p),L=linear(ta,tb,p);
+      gDp=Math.max(gDp,Math.abs((-E[0]*R2D)-(L[0]*R2D)));
+      gDr=Math.max(gDr,Math.abs((E[1]*R2D)-(L[1]*R2D)));
+    }
+  }
+  function path(arr,map){var d='';arr.forEach(function(q,i){var m=map(q[0],q[1]);d+=(i?'L':'M')+m[0].toFixed(1)+' '+m[1].toFixed(1)+' ';});return d+'Z';}
+  function tx(x,y,s,c,anc){return '<text x="'+x+'" y="'+y+'" font-size="11" fill="'+c+'" '+(anc?'text-anchor="'+anc+'"':'')+'>'+s+'</text>';}
+  function render(p){
+    var a=parseFloat(thA.value),b=parseFloat(thB.value);
+    var E=fk(a*D2R,b*D2R,p),L=linear(a*D2R,b*D2R,p);
+    var pE=-E[0]*R2D,rE=E[1]*R2D,pL=L[0]*R2D,rL=L[1]*R2D;
+    $('thA-out').textContent=a.toFixed(0)+'°';$('thB-out').textContent=b.toFixed(0)+'°';
+    $('cP').textContent=pE.toFixed(1)+'°';$('cR').textContent=rE.toFixed(1)+'°';
+    $('cDP').textContent=(pE-pL>=0?'+':'')+(pE-pL).toFixed(2)+'°';
+    $('cDR').textContent=(rE-rL>=0?'+':'')+(rE-rL).toFixed(2)+'°';
+    var cx=340,cy=125;
+    var sx=(cx-55)/gMaxP, sy=(cy-28)/gMaxR;
+    var map=function(pp,rr){return [cx+pp*sx, cy-rr*sy];};
+    var s='';
+    s+='<line x1="40" y1="'+cy+'" x2="640" y2="'+cy+'" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>';
+    s+='<line x1="'+cx+'" y1="20" x2="'+cx+'" y2="230" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>';
+    s+='<path d="'+path(gL,map)+'" fill="none" stroke="#534AB7" stroke-width="1.2" stroke-dasharray="5 4"/>';
+    s+='<path d="'+path(gE,map)+'" fill="#D85A30" fill-opacity="0.12" stroke="#D85A30" stroke-width="1.4"/>';
+    var qL=map(pL,rL),qE=map(pE,rE);
+    s+='<circle cx="'+qL[0].toFixed(1)+'" cy="'+qL[1].toFixed(1)+'" r="4.5" fill="none" stroke="#534AB7" stroke-width="1.5"/>';
+    s+='<line x1="'+qL[0].toFixed(1)+'" y1="'+qL[1].toFixed(1)+'" x2="'+qE[0].toFixed(1)+'" y2="'+qE[1].toFixed(1)+'" stroke="var(--color-text-tertiary)" stroke-width="0.8"/>';
+    s+='<circle cx="'+qE[0].toFixed(1)+'" cy="'+qE[1].toFixed(1)+'" r="5" fill="#D85A30"/>';
+    s+=tx(636,cy+18,'pitch →','var(--color-text-secondary)','end')+tx(cx+6,30,'roll ↑','var(--color-text-secondary)');
+    s+=tx(636,cy-6,'+'+gMaxP.toFixed(0)+'°','var(--color-text-tertiary)','end')+tx(44,cy-6,'−'+gMaxP.toFixed(0)+'°','var(--color-text-tertiary)','start');
+    s+=tx(cx+6,28,'+'+gMaxR.toFixed(0)+'°','var(--color-text-tertiary)','start')+tx(cx+6,228,'−'+gMaxR.toFixed(0)+'°','var(--color-text-tertiary)','start');
+    $('wsSvg').innerHTML=s;
+    $('info').textContent='cam heights A='+p.HA.toFixed(1)+' mm, B='+p.HB.toFixed(1)+' mm (spacing '+(p.HA-p.HB).toFixed(1)+' mm)  ·  max deviation vs first-order: pitch ±'+gDp.toFixed(2)+'°, roll ±'+gDr.toFixed(2)+'°';
+  }
+  function clampS(lim){[thA,thB].forEach(function(sl){sl.min=-lim;sl.max=lim;var v=parseFloat(sl.value);if(v>lim)sl.value=lim;if(v<-lim)sl.value=-lim;});}
+  function rebuild(){var p=readP();clampS(p.lim);buildRegion(p);render(p);}
+  function quick(){render(readP());}
+  ['p_r','p_Lp','p_Ls','p_lim','p_cam','p_LA','p_LB','p_hs','p_HA','p_HB','p_dd'].forEach(function(id){$(id).addEventListener('input',rebuild);});
+  autoH.addEventListener('change',rebuild);
+  thA.addEventListener('input',quick); thB.addEventListener('input',quick);
+  rebuild();
+})();
+</script>
