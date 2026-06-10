@@ -51,6 +51,14 @@ protected:
     double last_cmd_thetaB = 0.0;
     double last_fk_pitch = 0.0;
     double last_fk_roll = 0.0;
+    // Scratch for write(): the incoming joint-space command (pos/vel/eff) is
+    // saved here, the interface is transformed to motor space for the bus, then
+    // restored — so the command interface never retains our motor-space output
+    // (which a subsequent uncommanded cycle would otherwise read back and
+    // re-transform, compounding to the motor_limit fixed point). RT-safe (no
+    // allocation).
+    double saved_cmd_pitch[3] = {0.0, 0.0, 0.0};
+    double saved_cmd_roll[3] = {0.0, 0.0, 0.0};
   };
 
   std::vector<AnkleLinkage> ankle_linkages_;
