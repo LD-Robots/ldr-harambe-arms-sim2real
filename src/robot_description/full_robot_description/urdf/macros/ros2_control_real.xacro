@@ -18,20 +18,23 @@
         <!-- Ankle driver selector. v1 (default) = original serial-chain plugin,
              unchanged. v2 = cubic-primary plugin (fit to the measured grid; the
              serial-chain method is published on /ankle_method_compare for live
-             comparison only). Only the plugin name + the 4 corrected geometry
-             values differ; ankle_linkage_pairs/signs are shared. -->
+             comparison only). v2 also lists the PITCH joint first in
+             ankle_linkage_pairs so the cubic pitch output (small range) lands on
+             the pitch joint and roll (large range) on the roll joint. -->
         <xacro:arg name="ankle_driver" default="v1"/>
         <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver/HarambeEthercatDriver"/>
         <xacro:property name="ankle_cam_foreaft_mm" value="78.0"/>
         <xacro:property name="ankle_rod_a_mm" value="255.0"/>
         <xacro:property name="ankle_rod_b_mm" value="180.0"/>
         <xacro:property name="ankle_mount_drop_mm" value="0.0"/>
+        <xacro:property name="ankle_pairs" value="left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4"/>
         <xacro:if value="${'$(arg ankle_driver)' == 'v2'}">
             <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver_v2/HarambeEthercatDriver"/>
             <xacro:property name="ankle_cam_foreaft_mm" value="67.5"/>
             <xacro:property name="ankle_rod_a_mm" value="250.090484"/>
             <xacro:property name="ankle_rod_b_mm" value="175.129238"/>
             <xacro:property name="ankle_mount_drop_mm" value="-10.5"/>
+            <xacro:property name="ankle_pairs" value="left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4"/>
         </xacro:if>
 
         <!-- EtherCAT actuators (MyActuator RMD X V4) -->
@@ -60,8 +63,8 @@
                 <param name="pitch_sign">-1</param>
                 <param name="roll_sign">1</param>
                 <!-- Ankle linkage pairs: pitchJoint,rollJoint — pitch output stored in first, roll in second -->
-                <!-- θA = raw from pitchJoint's motor, θB = raw from rollJoint's motor -->
-                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
+                <!-- θA = raw from first joint's motor, θB = raw from second joint's motor -->
+                <param name="ankle_linkage_pairs">${ankle_pairs}</param>
             </hardware>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
