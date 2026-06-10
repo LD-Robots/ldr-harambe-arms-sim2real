@@ -6,13 +6,16 @@
 namespace harambe_ankle_ethercat_driver_v2
 {
 
-// ─────────────── physical <-> native axis remap ───────────────
-// Native serial chain: SUM(dA+dB) -> native_pitch (R_y), DIFF -> native_roll.
-// Real hardware: SUM -> roll, DIFF -> pitch. So the physical axes are the native
-// axes swapped (with the empirically-aligning sign on roll):
-//   phys_pitch =  native_roll
-//   phys_roll  = -native_pitch
-// Inverse: native_pitch = -phys_roll,  native_roll = phys_pitch.
+// Serial-chain ankle, CORRECTED. Motor B's crank is mirror-mounted
+// (p_.crank_b_sign = -1): its pin sweeps OPPOSITE in z to motor A for the same
+// rotation. So equal motor direction lifts pin A / drops pin B -> differential
+// -> ROLL; opposite direction -> common -> PITCH, matching the hardware.
+//
+// Native internal angles: phi_p = R_y (model pitch), phi_r = R_x (model roll).
+// With the mirror crank the native axes already align with the real axes; the
+// physical (grid, +pitch = toe up) convention is native negated:
+//   phys_pitch = -native_pitch,  phys_roll = -native_roll
+// pitch_sign/roll_sign then map physical -> URDF (default +1 = physical/grid).
 
 void AnalyticAnkleKinematics::set_params(const AnkleParams & p)
 {
@@ -25,6 +28,7 @@ void AnalyticAnkleKinematics::set_params(const AnkleParams & p)
 bool AnalyticAnkleKinematics::derive_heights()
 {
   if (!p_.lock_heights_to_rods) return true;
+  // Neutral (theta=0): sin(0)=0, so the crank sign does not enter here.
   const double base = (p_.a - p_.Lp) * (p_.a - p_.Lp) +
                       (p_.r - p_.S / 2.0) * (p_.r - p_.S / 2.0);
   const double min_rod2 = std::min(p_.L_A, p_.L_B) * std::min(p_.L_A, p_.L_B);
@@ -50,7 +54,9 @@ Eigen::Vector3d AnalyticAnkleKinematics::pin_a(double tA) const
 }
 Eigen::Vector3d AnalyticAnkleKinematics::pin_b(double tB) const
 {
-  return Eigen::Vector3d(p_.a, -p_.r * std::cos(tB), p_.H_B + p_.r * std::sin(tB));
+  // Mirror crank: z term carries crank_b_sign.
+  return Eigen::Vector3d(p_.a, -p_.r * std::cos(tB),
+                         p_.H_B + p_.crank_b_sign * p_.r * std::sin(tB));
 }
 Eigen::Vector3d AnalyticAnkleKinematics::mount(
   const Eigen::Vector3d & m_foot, double phi_p, double phi_r) const
@@ -102,7 +108,7 @@ void AnalyticAnkleKinematics::fk_native(
   double tA, double tB, double, double, double & native_pitch, double & native_roll, bool & ok) const
 {
   const double dA = p_.r * std::sin(tA);
-  const double dB = p_.r * std::sin(tB);
+  const double dB = p_.crank_b_sign * p_.r * std::sin(tB);
   const double seed_phi_p = -std::asin(clamp_unit((dA + dB) / (2.0 * p_.Lp)));
   const double seed_phi_r = std::asin(clamp_unit((dA - dB) / p_.S));
   double phi_p, phi_r;
@@ -116,15 +122,14 @@ FkResult AnalyticAnkleKinematics::fk(double tA, double tB, double, double) const
   double np, nr; bool ok;
   fk_native(tA, tB, 0.0, 0.0, np, nr, ok);
   FkResult out;
-  out.pitch = p_.pitch_sign * (nr);        // phys_pitch =  native_roll
-  out.roll = p_.roll_sign * (-np);         // phys_roll  = -native_pitch
+  out.pitch = p_.pitch_sign * (-np);    // phys = -native, then URDF sign
+  out.roll = p_.roll_sign * (-nr);
   out.converged = ok;
   return out;
 }
 
 namespace
 {
-// Solve A·cos(t) + B·sin(t) = K. roots wrapped; reachable=false if |K/R|>1.
 bool solve_rod(double A, double B, double K, double & r0, double & r1)
 {
   const double R = std::hypot(A, B);
@@ -144,12 +149,11 @@ bool solve_rod(double A, double B, double K, double & r0, double & r1)
 IkResult AnalyticAnkleKinematics::ik(
   double pitch, double roll, double prev_thetaA, double prev_thetaB) const
 {
-  // Undo URDF sign, undo physical<->native swap.
+  // URDF -> physical -> native internal angles.
   const double phys_pitch = p_.pitch_sign * pitch;
   const double phys_roll = p_.roll_sign * roll;
-  const double native_pitch = -phys_roll;
-  const double native_roll = phys_pitch;
-
+  const double native_pitch = -phys_pitch;
+  const double native_roll = -phys_roll;
   const double phi_p = -native_pitch;
   const double phi_r = native_roll;
 
@@ -193,7 +197,7 @@ IkResult AnalyticAnkleKinematics::ik(
   {
     const double mx = MB.x(), my = MB.y(), mz = MB.z();
     const double A2 = 2.0 * p_.r * my;
-    const double B2 = 2.0 * p_.r * (p_.H_B - mz);
+    const double B2 = 2.0 * p_.crank_b_sign * p_.r * (p_.H_B - mz);   // mirror crank
     const double K2 = p_.L_B * p_.L_B - p_.r * p_.r - (p_.a - mx) * (p_.a - mx) -
                       my * my - (p_.H_B - mz) * (p_.H_B - mz);
     resolve(A2, B2, K2, prev_thetaB, out.thetaB);
@@ -204,11 +208,10 @@ IkResult AnalyticAnkleKinematics::ik(
 Eigen::Matrix2d AnalyticAnkleKinematics::jacobian_at(
   double tA, double tB, double pitch, double roll) const
 {
-  // Native internal angles from the physical pose.
   const double phys_pitch = p_.pitch_sign * pitch;
   const double phys_roll = p_.roll_sign * roll;
-  const double native_pitch = -phys_roll;
-  const double native_roll = phys_pitch;
+  const double native_pitch = -phys_pitch;
+  const double native_roll = -phys_roll;
   const double phi_p = -native_pitch;
   const double phi_r = native_roll;
 
@@ -226,7 +229,7 @@ Eigen::Matrix2d AnalyticAnkleKinematics::jacobian_at(
   const Eigen::Vector3d MA = mount(m_A, phi_p, phi_r);
   const Eigen::Vector3d MB = mount(m_B, phi_p, phi_r);
   const Eigen::Vector3d dpinA(0.0, -p_.r * std::sin(tA), p_.r * std::cos(tA));
-  const Eigen::Vector3d dpinB(0.0, p_.r * std::sin(tB), p_.r * std::cos(tB));
+  const Eigen::Vector3d dpinB(0.0, p_.r * std::sin(tB), p_.crank_b_sign * p_.r * std::cos(tB));
   const double dF1dA = 2.0 * (pin_a(tA) - MA).dot(dpinA);
   const double dF2dB = 2.0 * (pin_b(tB) - MB).dot(dpinB);
   Eigen::Matrix2d dFdtheta;
@@ -239,15 +242,11 @@ Eigen::Matrix2d AnalyticAnkleKinematics::jacobian_at(
     dphi = -dFdphi.inverse() * dFdtheta;
   }
 
-  // native_pitch = -phi_p, native_roll = phi_r.
-  Eigen::Matrix2d Jn;             // rows: d(native_pitch)/dth, d(native_roll)/dth
-  Jn.row(0) = -dphi.row(0);
-  Jn.row(1) = dphi.row(1);
-
-  // phys_pitch = native_roll, phys_roll = -native_pitch; then URDF sign.
+  // native_pitch = -phi_p, native_roll = phi_r; phys = -native; then URDF sign.
+  // => d phys_pitch/dth =  d phi_p/dth ; d phys_roll/dth = -d phi_r/dth
   Eigen::Matrix2d J;
-  J.row(0) = p_.pitch_sign * Jn.row(1);
-  J.row(1) = p_.roll_sign * (-Jn.row(0));
+  J.row(0) = p_.pitch_sign * dphi.row(0);
+  J.row(1) = -p_.roll_sign * dphi.row(1);
   return J;
 }
 

@@ -21,9 +21,16 @@ CallbackReturn AnkleLinkageDriver::on_init(
     return CallbackReturn::ERROR;
   }
 
-  // PRIMARY = cubic (drives control); SECONDARY = analytic (comparison only).
-  primary_ = AnkleKinematics::create("cubic");
-  secondary_ = AnkleKinematics::create("analytic");
+  // PRIMARY drives control; SECONDARY is published for comparison only. The
+  // analytic serial-chain (mirror crank, calibrated) now matches the grid with
+  // exact closed-form IK and a smooth physical Jacobian, so it is the default
+  // primary; the cubic is the cross-check. Override via 'kinematics_primary'.
+  std::string prim = "analytic";
+  auto kp = info_.hardware_parameters.find("kinematics_primary");
+  if (kp != info_.hardware_parameters.end() && !kp->second.empty()) prim = kp->second;
+  const std::string sec = (prim == "cubic") ? "analytic" : "cubic";
+  primary_ = AnkleKinematics::create(prim);
+  secondary_ = AnkleKinematics::create(sec);
 
   parseAnkleParams();
   parseAnkleLinkages();

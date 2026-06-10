@@ -23,7 +23,36 @@ std::unique_ptr<AnkleKinematics> cubic()
   k->set_params(AnkleParams{});
   return k;
 }
+std::unique_ptr<AnkleKinematics> analytic()
+{
+  auto k = AnkleKinematics::create("analytic");
+  k->set_params(AnkleParams{});
+  return k;
+}
 }  // namespace
+
+// The analytic (serial-chain) primary: same convention, and CLOSED-FORM IK
+// (round-trips to machine precision, unlike the cubic's Newton-on-a-fit).
+TEST(AnkleKinematicsV2, AnalyticConventionAndExactRoundTrip)
+{
+  auto k = analytic();
+  const FkResult n = k->fk(0.0, 0.0, kNaN, kNaN);
+  EXPECT_NEAR(n.pitch, 0.0, 1e-9);
+  EXPECT_NEAR(n.roll, 0.0, 1e-9);
+  const FkResult eq = k->fk(40 * kDeg, 40 * kDeg, kNaN, kNaN);
+  EXPECT_GT(std::abs(eq.roll), std::abs(eq.pitch));   // same dir -> roll
+  const FkResult op = k->fk(40 * kDeg, -40 * kDeg, kNaN, kNaN);
+  EXPECT_GT(std::abs(op.pitch), std::abs(op.roll));   // opposite -> pitch
+  for (double A = -70; A <= 70 + 1e-9; A += 10) {
+    for (double B = -70; B <= 70 + 1e-9; B += 10) {
+      const FkResult f = k->fk(A * kDeg, B * kDeg, kNaN, kNaN);
+      const IkResult ik = k->ik(f.pitch, f.roll, 0.0, 0.0);
+      ASSERT_TRUE(ik.reachable) << "A=" << A << " B=" << B;
+      EXPECT_NEAR(ik.thetaA / kDeg, A, 1e-6) << "A=" << A << " B=" << B;
+      EXPECT_NEAR(ik.thetaB / kDeg, B, 1e-6) << "A=" << A << " B=" << B;
+    }
+  }
+}
 
 TEST(AnkleKinematicsV2, Neutral)
 {

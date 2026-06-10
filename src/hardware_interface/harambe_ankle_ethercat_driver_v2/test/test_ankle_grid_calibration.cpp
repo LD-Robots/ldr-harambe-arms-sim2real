@@ -94,14 +94,25 @@ TEST(AnkleGridCalibrationV2, CubicNeutralIsFlat)
   EXPECT_NEAR(f.roll / kDeg, 0.0, 1e-6);
 }
 
-// Documents (does not gate) that the serial-chain is inadequate here.
-TEST(AnkleGridCalibrationV2, AnalyticIsInadequate)
+// The corrected serial-chain (mirror crank, calibrated geometry) now reproduces
+// the grid too — it is the default control primary; the cubic is the cross-check.
+TEST(AnkleGridCalibrationV2, AnalyticReproducesGrid)
 {
   auto k = AnkleKinematics::create("analytic");
   k->set_params(AnkleParams{});
-  const Stats s = score(*k, true, "analytic COMPARE");
-  // It should be far worse than the cubic — that is the whole point of keeping
-  // it on a separate topic rather than in the control path.
-  EXPECT_GT(s.rms_p + s.rms_r, 5.0);
-  SUCCEED();
+  const Stats s = score(*k, true, "analytic PRIMARY");
+  EXPECT_LT(s.rms_p, 0.20);
+  EXPECT_LT(s.rms_r, 0.30);
+  EXPECT_LT(s.max_p, 0.60);
+  EXPECT_LT(s.max_r, 0.60);
+}
+
+TEST(AnkleGridCalibrationV2, AnalyticNeutralIsFlat)
+{
+  auto k = AnkleKinematics::create("analytic");
+  k->set_params(AnkleParams{});
+  const FkResult f = k->fk(0.0, 0.0, std::numeric_limits<double>::quiet_NaN(),
+                           std::numeric_limits<double>::quiet_NaN());
+  EXPECT_NEAR(f.pitch / kDeg, 0.0, 1e-6);
+  EXPECT_NEAR(f.roll / kDeg, 0.0, 1e-6);
 }

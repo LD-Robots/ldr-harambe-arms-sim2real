@@ -29,20 +29,29 @@ namespace harambe_ankle_ethercat_driver_v2
 // Shared params. Geometry (mm->m) is used only by the analytic backend; the
 // cubic backend uses the embedded measured grid. motor_limit / signs are shared.
 // NEVER round: mm defaults divide by an exact 1000.
+//
+// Geometry defaults are CALIBRATED to the measured 9x9 grid (least-squares fit of
+// the serial-chain with the mirror crank), reproducing it to pitch 0.014 deg /
+// roll 0.16 deg — close to the hand-measured dims but refined by the fit. r and h
+// were held at their measured values.
 struct AnkleParams
 {
   // --- analytic serial-chain geometry (ignored by the cubic backend) ---
-  double r      = 25.0        / 1000.0;   // crank_throw
-  double Lp     = 63.0        / 1000.0;   // mount_foreaft
-  double S      = 60.0        / 1000.0;   // mount_separation
-  double a      = 67.5        / 1000.0;   // cam_foreaft
-  double h      = 28.0        / 1000.0;   // hinge_spacing
-  double L_A    = 250.090484  / 1000.0;   // rod_a_length
-  double L_B    = 175.129238  / 1000.0;   // rod_b_length
-  double H_A    = 0.0;                    // cam A height (derived from rods)
-  double H_B    = 0.0;                    // cam B height (derived from rods)
-  double delta  = -10.5       / 1000.0;   // foot-mount drop vs roll hinge (neg = above)
+  double r      = 25.0       / 1000.0;   // crank_throw (fixed, measured)
+  double Lp     = 73.2322    / 1000.0;   // mount_foreaft (calibrated)
+  double S      = 59.7839    / 1000.0;   // mount_separation (calibrated)
+  double a      = 79.9263    / 1000.0;   // cam_foreaft (calibrated)
+  double h      = 28.0       / 1000.0;   // hinge_spacing (fixed, measured)
+  double L_A    = 229.0121   / 1000.0;   // rod_a_length (calibrated)
+  double L_B    = 166.6107   / 1000.0;   // rod_b_length (calibrated)
+  double H_A    = 0.0;                   // cam A height (derived from rods)
+  double H_B    = 0.0;                   // cam B height (derived from rods)
+  double delta  = -10.2996   / 1000.0;   // foot-mount drop vs roll hinge (neg = above)
   bool   lock_heights_to_rods = true;
+  // Motor B's crank is mirror-mounted: it sweeps OPPOSITE in z to motor A for the
+  // same rotation sense (so equal motor direction -> roll, opposite -> pitch).
+  // This single sign is what makes the serial-chain match the hardware.
+  double crank_b_sign = -1.0;
 
   // --- shared ---
   double motor_limit = 80.0 * M_PI / 180.0;  // +/- crank travel (rad); grid box
