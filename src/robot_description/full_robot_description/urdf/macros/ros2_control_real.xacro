@@ -40,7 +40,7 @@
                 <param name="roll_sign">1</param>
                 <!-- Ankle linkage pairs: pitchJoint,rollJoint — pitch output stored in first, roll in second -->
                 <!-- θA = raw from pitchJoint's motor, θB = raw from rollJoint's motor -->
-                <param name="ankle_linkage_pairs">left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4</param>
+                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
             </hardware>
 
             <!-- ════════════════════════════════════════════════════════════════ -->

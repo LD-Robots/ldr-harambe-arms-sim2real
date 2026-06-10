@@ -62,7 +62,7 @@
                 <param name="pitch_sign">-1</param>
                 <param name="roll_sign">1</param>
                 <!-- Format is pitchJoint,rollJoint (pitch output stored in the first). -->
-                <param name="ankle_linkage_pairs">left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4</param>
+                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
             </hardware>
 
             <!-- LEFT ARM (bus 0-5) -->
