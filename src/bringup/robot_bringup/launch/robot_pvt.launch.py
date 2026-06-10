@@ -53,6 +53,7 @@ def _make_spawner(controller_name, inactive=False, **kwargs):
 
 def _launch_setup(context):
     robot_group = LaunchConfiguration("robot_group").perform(context)
+    ankle_driver = LaunchConfiguration("ankle_driver").perform(context)
 
     pkg_dual_arm_description = FindPackageShare("dual_arm_description")
     pkg_robot_bringup = FindPackageShare("robot_bringup")
@@ -68,6 +69,7 @@ def _launch_setup(context):
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false pvt_mode:=true fixed_legs:=false",
+        " ankle_driver:=" + ankle_driver,
     ])
     robot_description = {
         "robot_description": ParameterValue(
@@ -201,6 +203,13 @@ def generate_launch_description():
             default_value="true",
             choices=["true", "false"],
             description="Launch RViz. Set to false for headless runs on the NUC.",
+        ),
+        DeclareLaunchArgument(
+            "ankle_driver",
+            default_value="v1",
+            choices=["v1", "v2"],
+            description="Ankle EtherCAT driver: v1 (serial-chain) or v2 (cubic-primary; "
+                        "also publishes /ankle_method_compare)",
         ),
         OpaqueFunction(function=_launch_setup),
     ])
