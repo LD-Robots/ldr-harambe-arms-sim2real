@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>harambe_ankle_ethercat_driver_v2</name>
+  <version>0.1.0</version>
+  <description>
+    EtherCAT driver for the Harambe humanoid ankle, v2. The PRIMARY transform is
+    a bicubic fit of the real measured lever->pitch/roll grid (~0.15 deg), which
+    drives the CSP/CST and PVT hardware_interface plugins. The legacy serial-chain
+    ("analytic") model is computed in parallel and published on a separate topic
+    for live comparison only — it is structurally inadequate for this mechanism
+    (>=15 deg vs the grid) and never drives control. Sits alongside the original
+    harambe_ankle_ethercat_driver, selectable by plugin name.
+  </description>
+  <maintainer email="andrei.dragomir@ldrobots.ro">LD Robots</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>ethercat_driver</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>sensor_msgs</depend>
+  <depend>eigen</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

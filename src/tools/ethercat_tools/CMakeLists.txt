@@ -23,6 +23,7 @@ install(
     scripts/demo_joint_state
     scripts/joint_calibration
     scripts/current_monitor
+    scripts/joint_states_deg
   DESTINATION lib/${PROJECT_NAME}
 )
 

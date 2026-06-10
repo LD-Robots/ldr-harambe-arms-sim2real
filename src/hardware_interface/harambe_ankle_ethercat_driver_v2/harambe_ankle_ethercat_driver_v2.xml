@@ -1,0 +1,22 @@
+<library path="harambe_ankle_ethercat_driver_v2">
+  <class name="harambe_ankle_ethercat_driver_v2/HarambeEthercatDriver"
+         type="harambe_ankle_ethercat_driver_v2::HarambeEthercatDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      CSP/CST EtherCAT driver (v2) for the Harambe ankle. PRIMARY transform is the
+      bicubic fit of the measured grid; the serial-chain method is published on
+      /ankle_method_compare for comparison only. Command layout: position, effort,
+      mode_of_operation. Inherits ethercat_driver/EthercatDriver.
+    </description>
+  </class>
+  <class name="harambe_ankle_ethercat_driver_v2/HarambePvtDriver"
+         type="harambe_ankle_ethercat_driver_v2::HarambePvtDriver"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      PVT (CiA 402 mode 5) EtherCAT driver (v2) for the Harambe ankle. PRIMARY
+      transform is the bicubic fit; serial-chain published for comparison only.
+      Command layout: position, velocity, effort, kp, kd (kp/kd per-motor
+      passthrough). Shares the kinematics with the CSP/CST driver.
+    </description>
+  </class>
+</library>

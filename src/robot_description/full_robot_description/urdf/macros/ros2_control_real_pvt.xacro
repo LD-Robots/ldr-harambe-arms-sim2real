@@ -18,6 +18,24 @@
         <xacro:property name="ctrl_freq" value="1000"/>
         <xacro:property name="pvt_yaml_dir" value="$(arg pvt_yaml_dir)"/>
 
+        <!-- Ankle driver selector (see ros2_control_real.xacro). v1 default = the
+             original serial-chain plugin, unchanged. v2 = cubic-primary plugin with
+             the serial-chain published on /ankle_method_compare. Only the plugin +
+             4 corrected geometry values switch. -->
+        <xacro:arg name="ankle_driver" default="v1"/>
+        <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver/HarambePvtDriver"/>
+        <xacro:property name="ankle_cam_foreaft_mm" value="78.0"/>
+        <xacro:property name="ankle_rod_a_mm" value="255.0"/>
+        <xacro:property name="ankle_rod_b_mm" value="180.0"/>
+        <xacro:property name="ankle_mount_drop_mm" value="0.0"/>
+        <xacro:if value="${'$(arg ankle_driver)' == 'v2'}">
+            <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver_v2/HarambePvtDriver"/>
+            <xacro:property name="ankle_cam_foreaft_mm" value="67.5"/>
+            <xacro:property name="ankle_rod_a_mm" value="250.090484"/>
+            <xacro:property name="ankle_rod_b_mm" value="175.129238"/>
+            <xacro:property name="ankle_mount_drop_mm" value="-10.5"/>
+        </xacro:if>
+
         <xacro:macro name="ec_pvt_joint" params="name bus_pos slave_file ec_name">
             <joint name="${name}">
                 <command_interface name="position"/>
@@ -44,25 +62,26 @@
 
         <ros2_control name="EthercatSystem" type="system">
             <hardware>
-                <plugin>harambe_ankle_ethercat_driver/HarambePvtDriver</plugin>
+                <plugin>${ankle_plugin}</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
-                <!-- Exact differential-ankle serial-chain geometry (mm; ASSUMED docs
-                     placeholders — confirm against the real hardware). -->
+                <!-- Differential-ankle geometry (mm). v1 = ASSUMED placeholders;
+                     v2 = corrected measured values (switched by ankle_driver; for v2
+                     they feed only the analytic comparison, not the cubic control path). -->
                 <param name="crank_throw_mm">25.0</param>
                 <param name="mount_foreaft_mm">63.0</param>
                 <param name="mount_separation_mm">60.0</param>
-                <param name="cam_foreaft_mm">78.0</param>
+                <param name="cam_foreaft_mm">${ankle_cam_foreaft_mm}</param>
                 <param name="hinge_spacing_mm">28.0</param>
-                <param name="rod_a_length_mm">255.0</param>
-                <param name="rod_b_length_mm">180.0</param>
-                <param name="mount_drop_mm">0.0</param>
+                <param name="rod_a_length_mm">${ankle_rod_a_mm}</param>
+                <param name="rod_b_length_mm">${ankle_rod_b_mm}</param>
+                <param name="mount_drop_mm">${ankle_mount_drop_mm}</param>
                 <param name="lock_heights_to_rods">true</param>
                 <param name="motor_limit_deg">80.0</param>  <!-- CONFIRMED real actuator limit -->
                 <param name="pitch_sign">-1</param>
                 <param name="roll_sign">1</param>
                 <!-- Format is pitchJoint,rollJoint (pitch output stored in the first). -->
-                <param name="ankle_linkage_pairs">left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4</param>
+                <param name="ankle_linkage_pairs">left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4</param>
             </hardware>
 
             <!-- LEFT ARM (bus 0-5) -->
