@@ -50,6 +50,12 @@ install(FILES harambe_ankle_ethercat_driver.xml
 
 pluginlib_export_plugin_description_file(hardware_interface harambe_ankle_ethercat_driver.xml)
 
+# Debug helper: republish the ankle joints in degrees (passive, read-only).
+install(PROGRAMS
+  scripts/ankle_degrees.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
