@@ -24,8 +24,11 @@ hardware_interface::return_type HarambeEthercatDriver::write(
     const double roll = cb[0];
 
     if (!std::isfinite(pitch) || !std::isfinite(roll)) {
-      ca[0] = 0.0;  ca[1] = 0.0;
-      cb[0] = 0.0;  cb[1] = 0.0;
+      // Uncommanded: HOLD the measured motor position (zero effort). NEVER force
+      // motor 0 — on an enabled drive that slews the ankle to neutral (e.g. on
+      // e-stop reset before the hold controller writes). mode_of_op [2] passes through.
+      ca[0] = lk.meas_thetaA;  ca[1] = 0.0;
+      cb[0] = lk.meas_thetaB;  cb[1] = 0.0;
       continue;
     }
 

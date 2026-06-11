@@ -57,6 +57,11 @@ protected:
     double last_fk_roll = 0.0;
     double saved_cmd_pitch[3] = {0.0, 0.0, 0.0};
     double saved_cmd_roll[3] = {0.0, 0.0, 0.0};
+    // Last RAW motor angles seen in read() (rad). Used to HOLD MEASURED when the
+    // joint command is uncommanded (non-finite) — never force the ankle to
+    // neutral on an enabled drive (e-stop reset must hold where the foot is).
+    double meas_thetaA = 0.0;
+    double meas_thetaB = 0.0;
     // Last computed pose from each method (rad), for the comparison topic.
     double cmp_primary_pitch = 0.0, cmp_primary_roll = 0.0;
     double cmp_secondary_pitch = 0.0, cmp_secondary_roll = 0.0;

@@ -24,8 +24,12 @@ hardware_interface::return_type HarambePvtDriver::write(
     const double roll = cb[0];
 
     if (!std::isfinite(pitch) || !std::isfinite(roll)) {
-      ca[0] = 0.0;  ca[1] = 0.0;  ca[2] = 0.0;
-      cb[0] = 0.0;  cb[1] = 0.0;  cb[2] = 0.0;
+      // Uncommanded (no active controller): HOLD the measured motor position with
+      // zero velocity/effort. NEVER force motor 0 — on an enabled drive that
+      // would slew the ankle to neutral (e.g. on e-stop reset before the hold
+      // controller writes). kp/kd [3]/[4] are left as-is (per-motor passthrough).
+      ca[0] = lk.meas_thetaA;  ca[1] = 0.0;  ca[2] = 0.0;
+      cb[0] = lk.meas_thetaB;  cb[1] = 0.0;  cb[2] = 0.0;
       continue;
     }
 

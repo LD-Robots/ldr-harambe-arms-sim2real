@@ -194,8 +194,10 @@ hardware_interface::return_type AnkleLinkageDriver::read(
 
     const double theta_a = sa[0];
     const double theta_b = sb[0];
+    lk.meas_thetaA = theta_a;   // cache raw motors to hold-measured when uncommanded
+    lk.meas_thetaB = theta_b;
 
-    // PRIMARY (cubic) FK drives the joint state.
+    // PRIMARY FK drives the joint state.
     const FkResult f = primary_->fk(theta_a, theta_b, lk.last_fk_pitch, lk.last_fk_roll);
     lk.last_fk_pitch = f.pitch;
     lk.last_fk_roll = f.roll;
