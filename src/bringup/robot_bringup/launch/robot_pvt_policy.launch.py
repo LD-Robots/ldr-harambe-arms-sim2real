@@ -69,10 +69,13 @@ def _make_spawner(controller_name, inactive=False, extra_args=None, **kwargs):
     )
 
 
-def _make_policy_legs_spawner(context, inactive=True):
-    """Spawner for the RL legs controller. Its type + params are provided via
-    --param-file (NOT controllers_pvt.yaml). The ONNX path is merged in from the
-    onnx_path arg (default = the model bundled in the controller package)."""
+def _policy_config_path(context):
+    """Build the legs-policy controller config (type + params + resolved
+    onnx_path) and dump it to a temp file. This is loaded INTO the
+    controller_manager (ros2_control_node) at startup — same pattern as
+    controllers_pvt.yaml — so the manager knows the controller's type. The
+    Jazzy spawner does NOT accept -t / a controller-type arg, so the type MUST
+    come from the controller_manager's own params, not the spawner."""
     pkg_share = get_package_share_directory(POLICY_CONTROLLER)
     config_file = os.path.join(pkg_share, "config", f"{POLICY_CONTROLLER}.yaml")
     onnx_path = LaunchConfiguration("onnx_path").perform(context)
@@ -83,8 +86,7 @@ def _make_policy_legs_spawner(context, inactive=True):
         cfg = yaml.safe_load(f)
     cfg.setdefault(POLICY_CONTROLLER, {}).setdefault("ros__parameters", {})[
         "onnx_path"] = onnx_path
-
-    # Also set the controller type in the merged controller_manager block.
+    # Register the controller type in the controller_manager block.
     cm = cfg.setdefault("controller_manager", {}).setdefault("ros__parameters", {})
     cm.setdefault(POLICY_CONTROLLER, {})["type"] = POLICY_TYPE
 
@@ -92,10 +94,7 @@ def _make_policy_legs_spawner(context, inactive=True):
         mode="w", suffix=".yaml", prefix="harambe_policy_legs_", delete=False)
     yaml.safe_dump(cfg, tmp)
     tmp.close()
-    # -t makes the controller_manager load the plugin even if the type isn't yet
-    # in its own params (the param-file alone is not always enough).
-    return _make_spawner(POLICY_CONTROLLER, inactive=inactive,
-                         extra_args=["--param-file", tmp.name, "-t", POLICY_TYPE])
+    return tmp.name
 
 
 def _launch_setup(context):
@@ -130,8 +129,10 @@ def _launch_setup(context):
     )
 
     # ros2_control node — controllers_pvt.yaml registers the PVT controllers +
-    # broadcasters. The RL legs controller is NOT in that yaml; it is provided to
-    # its spawner via --param-file (see _make_policy_legs_spawner).
+    # broadcasters; the legs-policy config (type + params + onnx) is added so the
+    # controller_manager knows harambe_policy_legs_controller's type at startup
+    # (the spawner then loads it by name — the Jazzy spawner has no -t arg).
+    policy_config = _policy_config_path(context)
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -139,6 +140,7 @@ def _launch_setup(context):
             robot_description,
             controller_config,
             safety_limits_yaml,
+            policy_config,
         ],
         output="screen",
         prefix="chrt -f 49",
@@ -159,7 +161,9 @@ def _launch_setup(context):
     drive_status_spawner = _make_spawner("robot_drive_status_broadcaster")
     upper_spawner = _make_spawner("upper_body_pvt_controller", inactive=True)
     # SWAP: legs run the RL policy controller instead of lower_body_pvt_controller.
-    legs_spawner = _make_policy_legs_spawner(context, inactive=True)
+    # Type + params come from policy_config loaded into the controller_manager
+    # above, so this spawns by name like the others (no -t, no --param-file).
+    legs_spawner = _make_spawner(POLICY_CONTROLLER, inactive=True)
 
     safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
