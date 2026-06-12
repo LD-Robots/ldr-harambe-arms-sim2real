@@ -13,6 +13,9 @@ hardware_interface::return_type HarambePvtDriver::write(
   // position/velocity/effort transformed joint -> motor via the PRIMARY (cubic)
   // IK + Jacobian; kp/kd pass through per-motor. Save/restore the joint-space
   // command interfaces around the bus write (self-feedback guard).
+  const bool tmg = timing_enabled_;   // timing flag (avoid clashing with torque vec 'tm')
+  const uint64_t t_write_start = tmg ? nowNs() : 0;
+
   for (auto & lk : ankle_linkages_) {
     auto & ca = hw_joint_commands_[lk.pitch_idx];
     auto & cb = hw_joint_commands_[lk.roll_idx];
@@ -60,8 +63,11 @@ hardware_interface::return_type HarambePvtDriver::write(
     ca[2] = tm(0);      cb[2] = tm(1);
     // ca[3]/ca[4] kp/kd: per-motor passthrough
   }
+  if (tmg) timing_[PH_WRITE_ANKLE_IK].add((nowNs() - t_write_start) * 1e-3);
 
+  const uint64_t t_bus = tmg ? nowNs() : 0;
   const auto ret = EthercatDriver::write(time, period);
+  if (tmg) timing_[PH_WRITE_BUS].add((nowNs() - t_bus) * 1e-3);
 
   for (auto & lk : ankle_linkages_) {
     auto & ca = hw_joint_commands_[lk.pitch_idx];
@@ -70,6 +76,7 @@ hardware_interface::return_type HarambePvtDriver::write(
     cb[0] = lk.saved_cmd_roll[0];   cb[1] = lk.saved_cmd_roll[1];   cb[2] = lk.saved_cmd_roll[2];
   }
 
+  if (tmg) timing_[PH_WRITE_TOTAL].add((nowNs() - t_write_start) * 1e-3);
   return ret;
 }
 

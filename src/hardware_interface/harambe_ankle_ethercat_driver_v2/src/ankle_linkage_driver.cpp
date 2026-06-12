@@ -35,6 +35,7 @@ CallbackReturn AnkleLinkageDriver::on_init(
   parseAnkleParams();
   parseAnkleLinkages();
   setupComparePublisher();
+  setupTimingPublisher();
 
   return CallbackReturn::SUCCESS;
 }
@@ -70,6 +71,14 @@ void AnkleLinkageDriver::parseAnkleParams()
 
   if (hp.count("compare_decimation")) {
     cmp_decimation_ = std::max(1, std::stoi(hp.at("compare_decimation")));
+  }
+
+  if (hp.count("enable_timing")) {
+    const std::string v = hp.at("enable_timing");
+    timing_enabled_ = (v == "true" || v == "1" || v == "True");
+  }
+  if (hp.count("timing_decimation")) {
+    timing_decimation_ = std::max(1, std::stoi(hp.at("timing_decimation")));
   }
 
   primary_->set_params(p);
@@ -183,10 +192,67 @@ void AnkleLinkageDriver::publishCompare(const rclcpp::Time & time)
   cmp_pub_->unlockAndPublish();
 }
 
+void AnkleLinkageDriver::setupTimingPublisher()
+{
+  if (!timing_enabled_) return;
+  try {
+    timing_node_ = std::make_shared<rclcpp::Node>("harambe_cycle_timing");
+    timing_pub_ = std::make_shared<realtime_tools::RealtimePublisher<sensor_msgs::msg::JointState>>(
+      timing_node_->create_publisher<sensor_msgs::msg::JointState>(
+        "ankle_cycle_timing", rclcpp::SystemDefaultsQoS()));
+  } catch (const std::exception & e) {
+    RCLCPP_WARN(rclcpp::get_logger("AnkleLinkageDriverV2"),
+      "Cycle-timing publisher unavailable (%s); continuing without it", e.what());
+    timing_pub_.reset();
+    timing_enabled_ = false;
+    return;
+  }
+
+  // Phase labels are constant — set once. Order must match the Phase enum.
+  static const char * kPhaseNames[PH_COUNT] = {
+    "read_total", "read_bus", "read_primary_fk", "read_jac_solve",
+    "read_secondary_fk", "read_publish", "write_total", "write_ankle_ik", "write_bus"};
+  auto & m = timing_pub_->msg_;
+  m.name.assign(kPhaseNames, kPhaseNames + PH_COUNT);
+  m.position.assign(PH_COUNT, 0.0);   // mean us
+  m.velocity.assign(PH_COUNT, 0.0);   // max us
+  m.effort.assign(PH_COUNT, 0.0);     // min us
+  RCLCPP_INFO(rclcpp::get_logger("AnkleLinkageDriverV2"),
+    "Publishing per-phase cycle timing on /ankle_cycle_timing @ ~%d:1 decimation "
+    "(us; position=mean velocity=max effort=min)", timing_decimation_);
+}
+
+void AnkleLinkageDriver::timingTick(const rclcpp::Time & time)
+{
+  if (!timing_enabled_ || !timing_pub_) return;
+  if (++timing_counter_ < timing_decimation_) return;
+  timing_counter_ = 0;
+
+  if (timing_pub_->trylock()) {
+    auto & m = timing_pub_->msg_;
+    m.header.stamp = time;
+    for (size_t k = 0; k < PH_COUNT; ++k) {
+      const auto & a = timing_[k];
+      m.position[k] = (a.count > 0) ? (a.sum_us / static_cast<double>(a.count)) : 0.0;
+      m.velocity[k] = a.max_us;
+      m.effort[k] = a.min_us;
+    }
+    timing_pub_->unlockAndPublish();
+  }
+  // Reset whether or not trylock() succeeded — a dropped window just widens to ~2 s.
+  for (auto & a : timing_) a.reset();
+}
+
 hardware_interface::return_type AnkleLinkageDriver::read(
   const rclcpp::Time & time, const rclcpp::Duration & period)
 {
+  const bool tm = timing_enabled_;
+  const uint64_t t_read_start = tm ? nowNs() : 0;
+
   auto ret = EthercatDriver::read(time, period);
+  if (tm) timing_[PH_READ_BUS].add((nowNs() - t_read_start) * 1e-3);
+
+  double us_primary = 0.0, us_jac = 0.0, us_secondary = 0.0;
 
   for (auto & lk : ankle_linkages_) {
     auto & sa = hw_joint_states_[lk.pitch_idx];   // raw motor A (inside)
@@ -198,10 +264,13 @@ hardware_interface::return_type AnkleLinkageDriver::read(
     lk.meas_thetaB = theta_b;
 
     // PRIMARY FK drives the joint state.
+    const uint64_t t0 = tm ? nowNs() : 0;
     const FkResult f = primary_->fk(theta_a, theta_b, lk.last_fk_pitch, lk.last_fk_roll);
+    if (tm) us_primary += (nowNs() - t0) * 1e-3;
     lk.last_fk_pitch = f.pitch;
     lk.last_fk_roll = f.roll;
 
+    const uint64_t t1 = tm ? nowNs() : 0;
     const Eigen::Matrix2d J = primary_->jacobian_at(theta_a, theta_b, f.pitch, f.roll);
     const Eigen::Vector2d vj = J * Eigen::Vector2d(sa[1], sb[1]);
 
@@ -215,9 +284,12 @@ hardware_interface::return_type AnkleLinkageDriver::read(
       RCLCPP_WARN_THROTTLE(rclcpp::get_logger("AnkleLinkageDriverV2"),
         throttle_clock, 2000, "Ankle Jacobian near-singular in read(); effort passthrough");
     }
+    if (tm) us_jac += (nowNs() - t1) * 1e-3;
 
     // SECONDARY (analytic) FK — comparison only, never written to state.
+    const uint64_t t2 = tm ? nowNs() : 0;
     const FkResult fa = secondary_->fk(theta_a, theta_b, lk.last_fk_pitch, lk.last_fk_roll);
+    if (tm) us_secondary += (nowNs() - t2) * 1e-3;
     lk.cmp_primary_pitch = f.pitch;   lk.cmp_primary_roll = f.roll;
     lk.cmp_secondary_pitch = fa.pitch; lk.cmp_secondary_roll = fa.roll;
 
@@ -226,7 +298,17 @@ hardware_interface::return_type AnkleLinkageDriver::read(
     sa[2] = tj(0);    sb[2] = tj(1);
   }
 
+  const uint64_t t_pub = tm ? nowNs() : 0;
   publishCompare(time);
+  if (tm) {
+    timing_[PH_READ_PUBLISH].add((nowNs() - t_pub) * 1e-3);
+    timing_[PH_READ_PRIMARY_FK].add(us_primary);
+    timing_[PH_READ_JAC_SOLVE].add(us_jac);
+    timing_[PH_READ_SECONDARY_FK].add(us_secondary);
+    timing_[PH_READ_TOTAL].add((nowNs() - t_read_start) * 1e-3);
+  }
+
+  timingTick(time);
   return ret;
 }
 
