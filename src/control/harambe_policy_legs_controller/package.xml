@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>harambe_policy_legs_controller</name>
+  <version>0.1.0</version>
+  <description>ros2_control controller running an ONNX RL walking policy on the 12
+    leg joints. Builds a 52-dim observation (joint state + pelvis IMU + base
+    velocity + cmd_vel + gait clock), runs inference at 50 Hz, and outputs
+    POSITION targets with constant kp/kd ("mode 5"); the EtherCAT drive closes
+    the PD loop at 1 kHz. No host-side torque / gravity compensation.
+  </description>
+  <maintainer email="alex.zamfir@ldrobots.ro">alex</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>pluginlib</depend>
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

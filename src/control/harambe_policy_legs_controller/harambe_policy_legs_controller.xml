@@ -1,0 +1,15 @@
+<library path="harambe_policy_legs_controller">
+  <class name="harambe_policy_legs_controller/HarambePolicyLegsController"
+         type="harambe_policy_legs_controller::HarambePolicyLegsController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      ONNX RL walking policy controller for the 12 leg joints. Builds a 52-dim
+      observation from joint states, pelvis IMU (gyro + projected gravity),
+      base velocity (/odometry/filtered), cmd_vel and an internal gait clock;
+      runs inference at 50 Hz and outputs POSITION targets. Claims
+      {joint}/position, {joint}/kp, {joint}/kd per joint and writes a position
+      target + constant kp/kd ("mode 5"); the EtherCAT drive closes the PD loop
+      at 1 kHz. No torque / gravity-compensation is computed host-side.
+    </description>
+  </class>
+</library>

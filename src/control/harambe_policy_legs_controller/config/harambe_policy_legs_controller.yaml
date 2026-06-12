@@ -1,0 +1,130 @@
+# Configuration for harambe_policy_legs_controller.
+#
+# Runs an RL walking policy on the 12 leg joints. Output mode is "mode 5" (PVT):
+# the controller writes a POSITION target + constant kp/kd per joint, and the
+# EtherCAT drive closes a pure PD loop at 1 kHz
+#   tau = kp*(target - q) - kd*qd   (NO gravity / inertia feed-forward).
+#
+# The policy was trained with NO feed-forward, so the host must NOT add torque.
+# Kp/Kd/effort here MUST match the training ImplicitActuatorCfg (deploy contract
+# deploy/03_joints_pd.md) — sim and deploy must agree per joint.
+#
+# This block is meant to be spawned alongside the upper-body PVT controller
+# (arms + waist stay on PVT). The controller_manager runs at 1 kHz; the policy
+# runs at 1000 / decimation = 50 Hz.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 1000   # Hz — matches the PVT EtherCAT 1 ms cycle
+
+    harambe_policy_legs_controller:
+      type: harambe_policy_legs_controller/HarambePolicyLegsController
+
+harambe_policy_legs_controller:
+  ros__parameters:
+    # ------------------------------------------------------------------
+    # The 12 leg joints — LEG_JOINTS order (left leg, then right). Action
+    # idx 0..11 maps to this list. Driven BY NAME — do NOT reorder; the
+    # right-leg ankle pitch/roll label swap is part of the learned mapping.
+    # ------------------------------------------------------------------
+    joints:
+      - left_hip_pitch_joint_X8     # 0
+      - left_hip_roll_joint_X8      # 1
+      - left_hip_yaw_joint_X8       # 2
+      - left_knee_joint_X8          # 3
+      - left_ankle_pitch_joint_X4   # 4
+      - left_ankle_roll_joint_X4    # 5
+      - right_hip_pitch_joint_X8    # 6
+      - right_hip_roll_joint_X8     # 7
+      - right_hip_yaw_joint_X8      # 8
+      - right_knee_joint_X8         # 9
+      - right_ankle_pitch_joint_X4  # 10
+      - right_ankle_roll_joint_X4   # 11
+
+    # ------------------------------------------------------------------
+    # Training default pose (rad). target = default + action_scale * clip(action).
+    # ------------------------------------------------------------------
+    default_positions:
+      - -0.15   # left_hip_pitch
+      -  0.00   # left_hip_roll
+      -  0.00   # left_hip_yaw
+      -  0.30   # left_knee
+      - -0.15   # left_ankle_pitch
+      -  0.00   # left_ankle_roll
+      - -0.15   # right_hip_pitch
+      -  0.00   # right_hip_roll
+      -  0.00   # right_hip_yaw
+      -  0.30   # right_knee
+      - -0.15   # right_ankle_pitch
+      -  0.00   # right_ankle_roll
+
+    # PD gains — training ImplicitActuatorCfg (drive closes the loop at 1 kHz).
+    kp:
+      - 75.0   # left_hip_pitch
+      - 75.0   # left_hip_roll
+      - 75.0   # left_hip_yaw
+      - 75.0   # left_knee
+      - 20.0   # left_ankle_pitch
+      - 20.0   # left_ankle_roll
+      - 75.0   # right_hip_pitch
+      - 75.0   # right_hip_roll
+      - 75.0   # right_hip_yaw
+      - 75.0   # right_knee
+      - 20.0   # right_ankle_pitch
+      - 20.0   # right_ankle_roll
+
+    kd:
+      - 5.625  # left_hip_pitch
+      - 6.162  # left_hip_roll
+      - 3.750  # left_hip_yaw
+      - 5.511  # left_knee
+      - 1.414  # left_ankle_pitch
+      - 1.000  # left_ankle_roll
+      - 5.625  # right_hip_pitch
+      - 6.162  # right_hip_roll
+      - 3.750  # right_hip_yaw
+      - 5.511  # right_knee
+      - 1.414  # right_ankle_pitch
+      - 1.000  # right_ankle_roll
+
+    # Effort limits (N·m). Informational at the host (the drive clamps torque);
+    # kept here to document the training values per joint.
+    effort_limits:
+      - 120.0  # left_hip_pitch
+      - 120.0  # left_hip_roll
+      - 120.0  # left_hip_yaw
+      - 120.0  # left_knee
+      -  80.0  # left_ankle_pitch
+      -  80.0  # left_ankle_roll
+      - 120.0  # right_hip_pitch
+      - 120.0  # right_hip_roll
+      - 120.0  # right_hip_yaw
+      - 120.0  # right_knee
+      -  80.0  # right_ankle_pitch
+      -  80.0  # right_ankle_roll
+
+    # ------------------------------------------------------------------
+    # Policy / ONNX parameters — MUST match the training config.
+    # ------------------------------------------------------------------
+    # Override from launch:  onnx_path:=<path>
+    onnx_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real/policy_legs.onnx"
+
+    decimation: 20        # 1000 Hz / 20 = 50 Hz policy rate
+    action_scale: 0.5     # target = default + 0.5 * clip(action, -5, +5)
+    clip_actions: 5.0
+    gait_freq: 1.5        # Hz — gait-clock frequency (MUST be 1.5 at deploy)
+    warmup_steps: 200     # 4.0s policy steps holding the default pose before policy engages
+    fall_threshold: 0.5   # |proj_grav_z| < 0.5 -> hold default pose / zero action
+    start_enabled: false  # false = WAIT for ~/enable=true (safe, hardware). true = auto-run (sim)
+
+    # ------------------------------------------------------------------
+    # Topics
+    # ------------------------------------------------------------------
+    pelvis_imu_topic:  "/pelvis/imu"        # sensor_msgs/Imu (gyro + orientation)
+    pelvis_grav_topic: "/pelvis/grav"       # geometry_msgs/Vector3 (BNO055 grav)
+    use_grav_topic:    false                # false -> derive proj_gravity from orientation
+    odom_topic:        "/odometry/filtered" # nav_msgs/Odometry -> base_lin_vel (body frame)
+    cmd_vel_topic:     "/cmd_vel"           # geometry_msgs/Twist -> [vx, vy, yaw]
+    enable_topic:      "~/enable"           # std_msgs/Bool — true=run policy, false=hold default
+    debug_topic:       "~/debug"
+    publish_debug:     false
