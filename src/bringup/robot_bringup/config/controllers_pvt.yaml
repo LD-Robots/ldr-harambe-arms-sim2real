@@ -308,20 +308,20 @@ upper_body_pvt_controller:
     body_group: "full"
 
     # FIRST BRINGUP: gains at 0.0; ramp Kd then Kp per the bench-rig protocol.
-    Kp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kp: [60.0, 60.0, 40.0, 40.0, 10.0, 10.0,
+         60.0, 60.0, 40.0, 40.0, 10.0, 10.0,
          0.0]
-    Kd: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kd: [3.0, 3.0, 2.0, 2.0, 0.5, 0.5,
+         3.0, 3.0, 2.0, 2.0, 0.5, 0.5,
          0.0]
-    Kd_damp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kd_damp: [3.0, 3.0, 2.0, 2.0, 0.5, 0.5,
+              3.0, 3.0, 2.0, 2.0, 0.5, 0.5,
               0.0]
 
     # All feedforward OFF on first bringup; enable per joint on the bench, one
     # entry at a time (per the wrist-yaw incident / gravcomp plan).
-    ff_gravity: [false, false, false, false, false, false,
-                 false, false, false, false, false, false,
+    ff_gravity: [true, true, true, true, true, true,
+                 true, true, true, true, true, true,
                  false]
     ff_inertia: [false]
     ff_viscous: [false]
@@ -340,8 +340,8 @@ upper_body_pvt_controller:
            0.0]
     J:   [0.0]
     Fv:  [0.0]
-    comp_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    comp_sign: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
                 1.0]
     hold_position: [0.0]
 
