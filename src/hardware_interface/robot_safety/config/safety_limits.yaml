@@ -225,11 +225,288 @@ robot_safety_supervisor:
           bus_voltage_max: 28.0
 
 # ── Controller-side safety mirror ────────────────────────────────────────────
-# robot_pvt_controller links librobot_safety the same way the supervisor does,
+# Every PVT controller links librobot_safety the same way the supervisor does,
 # and looks up `safety.global.*` + `safety.joints.<joint>.*` from its own
-# parameter namespace. Keep this block byte-for-byte identical to the supervisor
-# block above — both nodes must agree on every per-joint envelope.
+# parameter namespace. There are three mirror blocks below — robot_pvt_controller
+# (kept whole-body, unused by robot_pvt.launch.py) plus the two split instances
+# upper_body_pvt_controller and lower_body_pvt_controller. A controller only
+# looks up the joints in its own roster; extra entries are harmless. Keep ALL
+# THREE blocks byte-for-byte identical to the supervisor block above — every node
+# must agree on every per-joint envelope.
 robot_pvt_controller:
+  ros__parameters:
+    safety:
+      global:
+        position_limits_enable: true
+        position_min: -3.141592653589793
+        position_max:  3.141592653589793
+        effort_limit: 12.0
+        sustained_effort_threshold: 10.0
+        sustained_effort_window_sec: 1.0
+        velocity_limit: 5.0
+        slew_rate_limit: 2.5
+        acceleration_limit: 30.0
+        motor_temp_warn: 70.0
+        motor_temp_error: 90.0
+        drive_temp_warn: 70.0
+        drive_temp_error: 85.0
+        bus_voltage_min: 40.0
+        bus_voltage_max: 54.0
+        kp_scale_floor: 0.3
+        joint_state_timeout_sec: 0.25
+
+      joints:
+        # Mirror of the supervisor block above — keep byte-for-byte identical.
+        left_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+        left_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        left_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+        waist_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 3.0
+          position_min: -1.5708
+          position_max:  1.5708
+
+        left_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+        right_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+
+        left_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+        right_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+
+        left_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        left_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+# ── Split controller safety mirrors ──────────────────────────────────────────
+# Identical to the robot_pvt_controller block above. upper_body_pvt_controller
+# only looks up its 12 arm joints; lower_body_pvt_controller only its 13
+# waist+leg joints — the unused entries are simply never read. Keep byte-for-byte
+# identical to the supervisor block.
+upper_body_pvt_controller:
+  ros__parameters:
+    safety:
+      global:
+        position_limits_enable: true
+        position_min: -3.141592653589793
+        position_max:  3.141592653589793
+        effort_limit: 12.0
+        sustained_effort_threshold: 10.0
+        sustained_effort_window_sec: 1.0
+        velocity_limit: 5.0
+        slew_rate_limit: 2.5
+        acceleration_limit: 30.0
+        motor_temp_warn: 70.0
+        motor_temp_error: 90.0
+        drive_temp_warn: 70.0
+        drive_temp_error: 85.0
+        bus_voltage_min: 40.0
+        bus_voltage_max: 54.0
+        kp_scale_floor: 0.3
+        joint_state_timeout_sec: 0.25
+
+      joints:
+        # Mirror of the supervisor block above — keep byte-for-byte identical.
+        left_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_shoulder_yaw_joint_X4:
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+        left_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        left_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_wrist_yaw_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_wrist_roll_joint_X4:
+          effort_limit: 6.0
+          sustained_effort_threshold: 4.5
+          velocity_limit: 4.0
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+        waist_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 3.0
+          position_min: -1.5708
+          position_max:  1.5708
+
+        left_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        left_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+        right_hip_pitch_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_roll_joint_X8:
+          effort_limit: 60.0
+          sustained_effort_threshold: 45.0
+          velocity_limit: 4.0
+        right_hip_yaw_joint_X8:
+          effort_limit: 30.0
+          sustained_effort_threshold: 22.0
+          velocity_limit: 4.0
+
+        left_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+        right_knee_joint_X8:
+          effort_limit: 50.0
+          sustained_effort_threshold: 38.0
+          velocity_limit: 5.0
+          position_min: 0.0
+          position_max: 2.5
+
+        left_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        left_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_ankle_pitch_joint_X4:
+          effort_limit: 20.0
+          sustained_effort_threshold: 16.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+        right_ankle_roll_joint_X4:
+          effort_limit: 15.0
+          sustained_effort_threshold: 12.0
+          velocity_limit: 5.0
+          position_min: -0.785398     # ±45° URDF ankle limit
+          position_max:  0.785398
+          bus_voltage_min: 20.0
+          bus_voltage_max: 28.0
+
+lower_body_pvt_controller:
   ros__parameters:
     safety:
       global:

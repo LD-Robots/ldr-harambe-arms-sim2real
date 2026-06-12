@@ -195,9 +195,14 @@ controller_interface::CallbackReturn RobotPVTController::on_configure(
     active_names.str().c_str());
 
   // Centralised safety: load shared limits and subscribe to the supervisor.
+  // Subscribe NAME-AWARE (pass joints_, not just the count) so the per-joint
+  // thermal kp_scale is remapped by joint name. This is required now that a
+  // controller may own an arbitrary subset of the supervisor's roster (the
+  // upper/lower split), and it also fixes the pre-existing right-ankle
+  // pitch/roll order mismatch between the supervisor list and the PVT roster.
   limits_buf_.writeFromNonRT(
     robot_safety::loadSafetyLimits(*get_node(), joints_, "safety."));
-  safety_.subscribe(get_node(), num_joints_);
+  safety_.subscribe(get_node(), joints_);
 
   // Preallocate per-joint working state.
   rate_limiters_.clear();

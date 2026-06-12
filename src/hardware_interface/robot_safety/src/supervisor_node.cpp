@@ -345,6 +345,21 @@ void SafetySupervisor::publishKpScale(const std::vector<double> & kp_scale)
 {
   std_msgs::msg::Float64MultiArray msg;
   msg.data = kp_scale;
+  // Label every element with its joint name so name-aware consumers
+  // (EstopSubscriber in NAME-AWARE mode) can remap by name. A controller
+  // owning only a subset of the roster (e.g. the legs+waist split controller)
+  // then reads the correct per-joint multiplier regardless of order. Plain
+  // positional consumers ignore the layout, so this is backward compatible.
+  // Convention: one dim per element, dim[i].label = joint_names_[i], parallel
+  // to data[i].
+  if (kp_scale.size() == joint_names_.size()) {
+    msg.layout.dim.resize(joint_names_.size());
+    for (std::size_t i = 0; i < joint_names_.size(); ++i) {
+      msg.layout.dim[i].label = joint_names_[i];
+      msg.layout.dim[i].size = 1;
+      msg.layout.dim[i].stride = 1;
+    }
+  }
   kp_scale_pub_->publish(msg);
 }
 

@@ -5,12 +5,14 @@ Brings up:
   - robot_filtered_joint_state_broadcaster (replaces standard JSB; 30 Hz IIR)
   - robot_drive_status_broadcaster (telemetry: temps, bus voltage, error code)
   - robot_safety_supervisor (whole-body watchdog + e-stop / Kp derate)
-  - robot_pvt_controller (INACTIVE; operator activates explicitly)
+  - upper_body_pvt_controller and/or lower_body_pvt_controller (INACTIVE;
+    selected by robot_group, operator activates explicitly)
 
 Order is enforced via OnProcessExit chains so PREOP→SAFEOP completes before
-any controller spawner runs. The PVT controller is spawned INACTIVE so the
+any controller spawner runs. The PVT controllers are spawned INACTIVE so the
 drives stay in mode 5 with Kp=Kd=0 (back-drivable FREE) until the operator
-ramps gains per the bench-rig protocol.
+ramps gains per the bench-rig protocol. robot_group=upper spawns the arms
+controller, lower the waist+legs controller, full both.
 
 The legacy CSP/CST stack (arm_real.launch.py) stays orthogonal — running this
 launch does not touch arm_real_bringup's controller manager spawners.
@@ -96,11 +98,12 @@ def _launch_setup(context):
     #
     # Parameter sources, in load order (later overrides earlier):
     #   1. robot_description           — the URDF
-    #   2. controllers_pvt.yaml        — controllers + body_group default
-    #   3. safety_limits.yaml          — supervisor + controller safety mirror
-    #   4. body_groups/<group>.yaml    — overrides body_group per-launch
-    body_group_override = PathJoinSubstitution(
-        [pkg_robot_bringup, "config", "body_groups", robot_group + ".yaml"])
+    #   2. controllers_pvt.yaml        — both split controllers + the kept
+    #                                    whole-body block (each body_group="full")
+    #   3. safety_limits.yaml          — supervisor + per-controller safety mirror
+    #
+    # Scope is selected by WHICH spawner runs (robot_group below), not by a
+    # body_group override — each split controller's roster is its own scope.
     ros2_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -108,7 +111,6 @@ def _launch_setup(context):
             robot_description,
             controller_config,
             safety_limits_yaml,
-            body_group_override,
         ],
         output="screen",
         prefix="chrt -f 49",
@@ -117,11 +119,21 @@ def _launch_setup(context):
         ],
     )
 
-    # ── Spawners (PVT controller starts INACTIVE) ────────────────────────────
+    # ── Spawners (PVT controllers start INACTIVE) ────────────────────────────
+    # robot_group selects the body-region controllers to spawn:
+    #   upper → upper_body_pvt_controller (arms)
+    #   lower → lower_body_pvt_controller (waist + legs)
+    #   full  → both
+    # Each starts INACTIVE so the drives stay back-drivable (Kp=Kd=0) until the
+    # operator ramps gains per the bench-rig protocol.
+    spawn_upper = robot_group in ("upper", "full")
+    spawn_lower = robot_group in ("lower", "full")
+
     jsb_spawner = _make_spawner("joint_state_broadcaster")
     filtered_jsb_spawner = _make_spawner("robot_filtered_joint_state_broadcaster")
     drive_status_spawner = _make_spawner("robot_drive_status_broadcaster")
-    pvt_spawner = _make_spawner("robot_pvt_controller", inactive=True)
+    upper_spawner = _make_spawner("upper_body_pvt_controller", inactive=True)
+    lower_spawner = _make_spawner("lower_body_pvt_controller", inactive=True)
 
     # ── Safety supervisor (independent node — same executor) ─────────────────
     safety_launch = IncludeLaunchDescription(
@@ -174,12 +186,22 @@ def _launch_setup(context):
             on_exit=[drive_status_spawner],
         )
     ))
-    nodes.append(RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=drive_status_spawner,
-            on_exit=[pvt_spawner],
-        )
-    ))
+    # Chain the selected PVT spawner(s) after drive_status, single-file:
+    #   drive_status → [upper] → [lower]   (whichever are selected by robot_group)
+    pvt_spawners = []
+    if spawn_upper:
+        pvt_spawners.append(upper_spawner)
+    if spawn_lower:
+        pvt_spawners.append(lower_spawner)
+    prev = drive_status_spawner
+    for spawner in pvt_spawners:
+        nodes.append(RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=prev,
+                on_exit=[spawner],
+            )
+        ))
+        prev = spawner
 
     # Safety supervisor + joint_state_publisher + RViz start in parallel with
     # the controller bring-up; the supervisor's own startup_grace_sec gates
@@ -194,9 +216,13 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "robot_group",
-            default_value="arms",
-            choices=["arms", "arms_waist", "legs", "full"],
-            description="Which body groups to include: arms, arms_waist, legs, or full",
+            default_value="upper",
+            choices=["upper", "lower", "full"],
+            description="Which split PVT controller(s) to spawn: upper "
+                        "(upper_body_pvt_controller, arms), lower "
+                        "(lower_body_pvt_controller, waist+legs), or full (both). "
+                        "Default 'upper' — arms only is the least energetic first "
+                        "bringup state.",
         ),
         DeclareLaunchArgument(
             "use_rviz",

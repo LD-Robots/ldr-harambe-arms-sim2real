@@ -23,7 +23,7 @@ find_package(kdl_parser REQUIRED)
 # Override on Jetson by setting -DONNXRUNTIME_DIR=/path/to/onnxruntime at configure time.
 if(NOT DEFINED ONNXRUNTIME_DIR)
   # Default for dev machine; Jetson must override
-  set(ONNXRUNTIME_DIR "/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/third_party/onnxruntime"
+  set(ONNXRUNTIME_DIR "~/Documents/GitHub/ldr-harambe-arms-sim2real/third_party/onnxruntime"
       CACHE PATH "Path to ONNX Runtime install")
 endif()
 message(STATUS "ONNX Runtime: ${ONNXRUNTIME_DIR}")
