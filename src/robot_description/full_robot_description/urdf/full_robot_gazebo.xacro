@@ -105,7 +105,7 @@
   <xacro:if value="${'$(arg control_mode)' == 'gz_policy'}">
     <!-- Default positions set by plugin at Configure (joints spawn at 0, PD moves to default) -->
     <gazebo>
-      <plugin filename="/home/alex/Documents/GitHub/ldr-harambe-arms-sim2real/install/harambe_gz_policy_plugin/lib/libharambe_gz_policy_plugin.so" name="harambe_gz::HarambePolicyPlugin">
+      <plugin filename="$(find harambe_gz_policy_plugin)/../../lib/libharambe_gz_policy_plugin.so" name="harambe_gz::HarambePolicyPlugin">
         <onnx_path>$(arg onnx_path)</onnx_path>
         <decimation>4</decimation>
         <action_scale>0.25</action_scale>
