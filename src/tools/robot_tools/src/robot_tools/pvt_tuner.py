@@ -224,6 +224,8 @@ class PvtTunerWindow(QMainWindow):
     _estop_state_sig = pyqtSignal(int)
     _breach_sig = pyqtSignal(str)
     _service_result_sig = pyqtSignal(str, bool, str)  # label, ok, message
+    _switch_done_sig = pyqtSignal()  # switch_controller finished — GUI-thread cleanup
+    _discovery_done_sig = pyqtSignal()  # discovery worker crashed — reset GUI state
     _discovery_sig = pyqtSignal(list, object, int, str)  # pvt, broadcaster, count, source
     _gains_loaded_sig = pyqtSignal(str, object)  # ctrl, {param_name: list}
     _gains_applied_sig = pyqtSignal(object)      # list of (name, ok, msg)
@@ -362,6 +364,8 @@ class PvtTunerWindow(QMainWindow):
         self._estop_state_sig.connect(self._on_estop_state)
         self._breach_sig.connect(self._on_breach)
         self._service_result_sig.connect(self._on_service_result)
+        self._switch_done_sig.connect(self._on_switch_done)
+        self._discovery_done_sig.connect(self._discovery_done)
         self._discovery_sig.connect(self._on_discovery_result)
         self._gains_loaded_sig.connect(self._on_gains_loaded)
         self._gains_applied_sig.connect(self._on_gains_applied)
@@ -1166,7 +1170,10 @@ class PvtTunerWindow(QMainWindow):
                 f"[pvt_tuner] discovery thread crashed: {e!r}",
                 file=sys.stderr, flush=True,
             )
-            QTimer.singleShot(0, self._discovery_done)
+            # Worker thread has no Qt event loop — dispatch the GUI-thread
+            # reset via a signal, not QTimer.singleShot (which would never fire
+            # and leave Refresh stuck on "…").
+            self._discovery_done_sig.emit()
 
     def _discovery_done(self):
         self._discovery_in_flight = False
@@ -1381,6 +1388,15 @@ class PvtTunerWindow(QMainWindow):
         self._ctrl_state_label.setText(state)
         self._ctrl_state_label.setStyleSheet(f"color: {color};")
 
+    def _on_switch_done(self):
+        """GUI-thread cleanup after a switch_controller call: re-enable the
+        lifecycle buttons and re-discover so the state label is fresh. Driven
+        by _switch_done_sig because the switch worker thread has no Qt event
+        loop to run a QTimer."""
+        self._activate_btn.setEnabled(True)
+        self._deactivate_btn.setEnabled(True)
+        self._discover_async()
+
     def _switch_controller_async(self, activate: bool):
         ctrl = self._current_ctrl
         if not ctrl:
@@ -1429,13 +1445,13 @@ class PvtTunerWindow(QMainWindow):
             finally:
                 with self._rclpy_lock:
                     self._node.destroy_client(client)
-                # Re-discover so the state label reflects reality even if
-                # the switch reported failure (state may still have changed).
-                QTimer.singleShot(0, self._discover_async)
-                QTimer.singleShot(0, lambda: (
-                    self._activate_btn.setEnabled(True),
-                    self._deactivate_btn.setEnabled(True),
-                ))
+                # Re-enable the lifecycle buttons and re-discover so the state
+                # label reflects reality even if the switch reported failure
+                # (state may still have changed). This runs in the worker
+                # thread, which has no Qt event loop — QTimer.singleShot here
+                # would never fire and left Activate stuck disabled after the
+                # first switch. Dispatch to the GUI thread via a signal instead.
+                self._switch_done_sig.emit()
 
         threading.Thread(target=worker, daemon=True).start()
 

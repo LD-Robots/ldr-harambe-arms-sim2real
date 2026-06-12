@@ -15,68 +15,36 @@
             <xacro:property name="config_dir" value="ethercat_gravcomp"/>
         </xacro:if>
 
-        <!-- Ankle driver selector. v1 (default) = original serial-chain plugin,
-             unchanged. v2 = corrected plugin whose PRIMARY control transform is the
-             analytic serial-chain with the MIRROR CRANK (motor B sweeps opposite),
-             calibrated to the measured grid (pitch 0.01 / roll 0.16 deg, exact IK);
-             the cubic fit is published on /ankle_method_compare as the cross-check.
-             v2 lists the PITCH joint first so the small-range pitch output lands on
-             the pitch joint and the large-range roll on the roll joint, and uses the
-             CALIBRATED geometry (differs from v1's hand-measured placeholders). -->
-        <xacro:arg name="ankle_driver" default="v1"/>
-        <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver/HarambeEthercatDriver"/>
-        <xacro:property name="ankle_mount_foreaft_mm" value="63.0"/>
-        <xacro:property name="ankle_mount_separation_mm" value="60.0"/>
-        <xacro:property name="ankle_cam_foreaft_mm" value="78.0"/>
-        <xacro:property name="ankle_rod_a_mm" value="255.0"/>
-        <xacro:property name="ankle_rod_b_mm" value="180.0"/>
-        <xacro:property name="ankle_mount_drop_mm" value="0.0"/>
-        <xacro:property name="ankle_pairs" value="left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4"/>
-        <xacro:property name="ankle_pitch_sign" value="-1"/>
-        <xacro:property name="ankle_roll_sign" value="1"/>
-        <xacro:if value="${'$(arg ankle_driver)' == 'v2'}">
-            <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver_v2/HarambeEthercatDriver"/>
-            <xacro:property name="ankle_mount_foreaft_mm" value="73.2322"/>
-            <xacro:property name="ankle_mount_separation_mm" value="59.7839"/>
-            <xacro:property name="ankle_cam_foreaft_mm" value="79.9263"/>
-            <xacro:property name="ankle_rod_a_mm" value="229.0121"/>
-            <xacro:property name="ankle_rod_b_mm" value="166.6107"/>
-            <xacro:property name="ankle_mount_drop_mm" value="-10.2996"/>
-            <xacro:property name="ankle_pairs" value="left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4"/>
-            <!-- v2 analytic outputs physical pitch/roll (+pitch = toe up) at sign +1;
-                 pitch was inverted on hardware vs RViz, so v2 uses +1 (v1 used -1). -->
-            <xacro:property name="ankle_pitch_sign" value="1"/>
-            <xacro:property name="ankle_roll_sign" value="1"/>
-        </xacro:if>
-
         <!-- EtherCAT actuators (MyActuator RMD X V4) -->
         <!-- only_left=true: 6 DOF left arm only (bus 0-5) -->
         <!-- only_left=false: full body 25 DOF (bus 0-23) -->
         <ros2_control name="EthercatSystem" type="system">
             <hardware>
-                <plugin>${ankle_plugin}</plugin>
+                <!-- Differential-ankle driver: analytic mirror-crank model (motor B
+                     sweeps opposite), calibrated to the measured grid (pitch 0.01 /
+                     roll 0.16 deg, exact closed-form IK); the cubic fit is published
+                     on /ankle_method_compare as a live cross-check. -->
+                <plugin>harambe_ankle_ethercat_driver_v2/HarambeEthercatDriver</plugin>
                 <param name="master_id">0</param>
                 <param name="control_frequency">${ctrl_freq}</param>
-                <!-- Differential-ankle geometry (mm). v1 = ASSUMED placeholders;
-                     v2 = CALIBRATED values that fit the analytic mirror-crank model
-                     to the grid (this is v2's PRIMARY control path). crank_throw and
-                     hinge_spacing are shared (held at measured during the fit). -->
+                <!-- CALIBRATED geometry (mm): fits the mirror-crank model to the grid.
+                     crank_throw and hinge_spacing held at their measured values. -->
                 <param name="crank_throw_mm">25.0</param>
-                <param name="mount_foreaft_mm">${ankle_mount_foreaft_mm}</param>
-                <param name="mount_separation_mm">${ankle_mount_separation_mm}</param>
-                <param name="cam_foreaft_mm">${ankle_cam_foreaft_mm}</param>
+                <param name="mount_foreaft_mm">73.2322</param>
+                <param name="mount_separation_mm">59.7839</param>
+                <param name="cam_foreaft_mm">79.9263</param>
                 <param name="hinge_spacing_mm">28.0</param>
-                <param name="rod_a_length_mm">${ankle_rod_a_mm}</param>
-                <param name="rod_b_length_mm">${ankle_rod_b_mm}</param>
-                <param name="mount_drop_mm">${ankle_mount_drop_mm}</param>
+                <param name="rod_a_length_mm">229.0121</param>
+                <param name="rod_b_length_mm">166.6107</param>
+                <param name="mount_drop_mm">-10.2996</param>
                 <param name="lock_heights_to_rods">true</param>
                 <param name="motor_limit_deg">80.0</param>  <!-- CONFIRMED real actuator limit -->
-                <!-- Sign correction: ±1, applied after kinematics to match URDF convention -->
-                <param name="pitch_sign">${ankle_pitch_sign}</param>
-                <param name="roll_sign">${ankle_roll_sign}</param>
-                <!-- Ankle linkage pairs: pitchJoint,rollJoint — pitch output stored in first, roll in second -->
-                <!-- θA = raw from first joint's motor, θB = raw from second joint's motor -->
-                <param name="ankle_linkage_pairs">${ankle_pairs}</param>
+                <!-- Physical convention: +pitch = toe up, +roll = right side down. -->
+                <param name="pitch_sign">1</param>
+                <param name="roll_sign">1</param>
+                <!-- pitchJoint,rollJoint: pitch output (small range) stored in the
+                     first, roll (large range) in the second. -->
+                <param name="ankle_linkage_pairs">left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4</param>
             </hardware>
 
             <!-- ════════════════════════════════════════════════════════════════ -->

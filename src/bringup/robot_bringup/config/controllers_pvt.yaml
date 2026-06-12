@@ -281,11 +281,12 @@ robot_pvt_controller:
     # supervisor and the controller pinned to the same per-joint envelopes —
     # a divergence here was the wiring bug surfaced by the PVT audit.
 
-# ── Upper-body PVT controller (12 arm joints) ────────────────────────────────
-# Same plugin as robot_pvt_controller, scoped to the two arms. body_group="full"
-# means every joint in THIS roster is active (the roster itself is the scope).
-# joints / mgl / q_eq are the arm slice (indices 0-11) copied verbatim from the
-# whole-body block above — never round these (see [[feedback-no-rounding]]).
+# ── Upper-body PVT controller (12 arm joints + waist = 13) ───────────────────
+# Same plugin as robot_pvt_controller, scoped to the two arms plus waist yaw.
+# body_group="full" means every joint in THIS roster is active (the roster
+# itself is the scope). Arm joints / mgl / q_eq are the arm slice (indices 0-11)
+# copied verbatim from the whole-body block above; waist_yaw is appended (index
+# 12, mgl=q_eq=0). Never round these (see [[feedback-no-rounding]]).
 upper_body_pvt_controller:
   ros__parameters:
     joints:
@@ -301,38 +302,47 @@ upper_body_pvt_controller:
       - right_elbow_pitch_joint_X6
       - right_wrist_yaw_joint_X4
       - right_wrist_roll_joint_X4
+      - waist_yaw_joint_X8
 
     drive_side_pd: true
     body_group: "full"
 
     # FIRST BRINGUP: gains at 0.0; ramp Kd then Kp per the bench-rig protocol.
     Kp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0]
     Kd: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0]
     Kd_damp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0]
 
     # All feedforward OFF on first bringup; enable per joint on the bench, one
     # entry at a time (per the wrist-yaw incident / gravcomp plan).
     ff_gravity: [false, false, false, false, false, false,
-                 false, false, false, false, false, false]
+                 false, false, false, false, false, false,
+                 false]
     ff_inertia: [false]
     ff_viscous: [false]
 
-    # mgl / q_eq = first-12 (arm) slice of the whole-body arrays, copied exact.
+    # mgl / q_eq = first-12 (arm) slice of the whole-body arrays + waist (index
+    # 12, both 0.0), copied exact.
     mgl: [15.023644113855408,  14.69915934499973,   3.3580002864753824e-05,
           6.123092501943805,   0.016805755997275146, 1.3141839681386756,
           15.580628103720382,  15.579996700811535,  4.886243323532209e-07,
-          6.244325894906243,   1.1250474407023594e-07, 1.5350509291426389]
+          6.244325894906243,   1.1250474407023594e-07, 1.5350509291426389,
+          0.0]
     q_eq: [0.3302934368529545,  -0.20418959429027275, -1.4184744939343696,
            0.2643872180725887,  -1.5973378059477927,   0.02422357511636253,
            0.1270421087575907,   0.20598041042699747,  2.040502823734197,
-           0.26778612150933373,  2.8836043378942096,  -0.011821950499859492]
+           0.26778612150933373,  2.8836043378942096,  -0.011821950499859492,
+           0.0]
     J:   [0.0]
     Fv:  [0.0]
     comp_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+                1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                1.0]
     hold_position: [0.0]
 
     lag_free: 0.04
@@ -340,15 +350,14 @@ upper_body_pvt_controller:
     alpha_slew: 2.0
     # Safety limits: see safety_limits.yaml `upper_body_pvt_controller` block.
 
-# ── Lower-body PVT controller (waist + 12 leg joints = 13) ───────────────────
-# Same plugin, scoped to waist + both legs — the region the legs+waist policy
-# drives. joints copied verbatim from the whole-body block (indices 12-24),
+# ── Lower-body PVT controller (12 leg joints) ────────────────────────────────
+# Same plugin, scoped to both legs only — waist_yaw now lives in the upper-body
+# controller. joints copied verbatim from the whole-body block (indices 13-24),
 # PRESERVING the right-ankle roll-before-pitch order so the claimed interface
-# order matches the roster. Waist/legs carry no gravity FF yet → all-zero arrays.
+# order matches the roster. Legs carry no gravity FF yet → all-zero arrays.
 lower_body_pvt_controller:
   ros__parameters:
     joints:
-      - waist_yaw_joint_X8
       - left_hip_pitch_joint_X8
       - left_hip_roll_joint_X8
       - left_hip_yaw_joint_X8
@@ -366,28 +375,28 @@ lower_body_pvt_controller:
     body_group: "full"
 
     # FIRST BRINGUP: gains at 0.0; ramp Kd then Kp per the bench-rig protocol.
-    Kp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    Kd: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kd: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    Kd_damp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    Kd_damp: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
               0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     # Legs stay false unconditionally — closed-chain in stance; stance-leg
     # gravcomp needs contact-aware control, not the dangling-mass formula.
-    ff_gravity: [false, false, false, false, false, false, false,
+    ff_gravity: [false, false, false, false, false, false,
                  false, false, false, false, false, false]
     ff_inertia: [false]
     ff_viscous: [false]
 
-    # Waist + legs zeroed (no single-pendulum gravity FF for the lower body).
-    mgl:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    # Legs zeroed (no single-pendulum gravity FF for the lower body).
+    mgl:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
            0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    q_eq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    q_eq: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
            0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     J:   [0.0]
     Fv:  [0.0]
-    comp_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    comp_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     hold_position: [0.0]
 

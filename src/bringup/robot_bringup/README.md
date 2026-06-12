@@ -5,7 +5,7 @@ Whole-body PVT bring-up for the humanoid on real EtherCAT hardware. Brings up al
 ## Status & scope
 
 - **Hardware only.** Real EtherCAT, drive-side PD. Sim bring-up lives in `arm_system_bringup`; this package does not load Gazebo.
-- **Whole body (25 joints), split control.** `robot_pvt.launch.py` spawns one or both of two disjoint controllers — `upper_body_pvt_controller` (12 arm joints) and `lower_body_pvt_controller` (waist + 12 leg joints) — selected by `robot_group:={upper|lower|full}`. This lets the lower body track a legs+waist policy while the arms are held independently (separate setpoint streams, separate modes). The kept whole-body `robot_pvt_controller` block stays in the config but is no longer spawned by this launch. The read-only viewer (`robot_pvt_viewer.launch.py`) still uses the single-controller `body_group` mechanism (`arms/arms_waist/legs/full`).
+- **Whole body (25 joints), split control.** `robot_pvt.launch.py` spawns one or both of two disjoint controllers — `upper_body_pvt_controller` (12 arm joints + waist = 13) and `lower_body_pvt_controller` (12 leg joints) — selected by `robot_group:={upper|lower|full}`. This lets the lower body track a locomotion policy while the arms+waist are held independently (separate setpoint streams, separate modes). The kept whole-body `robot_pvt_controller` block stays in the config but is no longer spawned by this launch. The read-only viewer (`robot_pvt_viewer.launch.py`) still uses the single-controller `body_group` mechanism (`arms/arms_waist/legs/full`).
 - **Operator-gated activation.** Each PVT controller is spawned `--inactive` on purpose; gains are initialized to 0. See [Why the PVT controller starts inactive](#why-the-pvt-controller-starts-inactive).
 - **Companion GUIs** (`pvt_tuner`, `pvt_dashboard`) live in [src/tools/robot_tools/](../../tools/robot_tools/) — cross-referenced below but not documented here.
 
@@ -26,7 +26,7 @@ ros2_control_node  (chrt -f 49, 1 kHz)
         ├── robot_drive_status_broadcaster ──► /drive_status (50 Hz, TxPDO 0x1A02)
         └── upper_body_pvt_controller and/or                 drive-side PD,
             lower_body_pvt_controller (INACTIVE) ──────────► (mode 5; τ = Kp·Δp
-            (12 arm / 13 waist+leg joints; per robot_group)   + Kd·Δv + τ_ff)
+            (13 arm+waist / 12 leg joints; per robot_group)   + Kd·Δv + τ_ff)
 
 joint_state_publisher (30 Hz aggregator) ────► /joint_states
 ```
@@ -66,7 +66,7 @@ ros2 launch robot_bringup robot_pvt.launch.py robot_group:={upper|lower|full}
 ```
 
 - Default `robot_group` is `upper` (arms only — the least energetic first-bringup state).
-- `robot_group` selects which split controller(s) spawn: `upper` → `upper_body_pvt_controller` (arms); `lower` → `lower_body_pvt_controller` (waist + legs); `full` → both. Each owns a disjoint joint roster, so both can be active at once with no interface conflict.
+- `robot_group` selects which split controller(s) spawn: `upper` → `upper_body_pvt_controller` (arms + waist); `lower` → `lower_body_pvt_controller` (legs); `full` → both. Each owns a disjoint joint roster, so both can be active at once with no interface conflict.
 - Brings drives through `PREOP → SAFEOP → OP` and enables CSP-equivalent mode-5 operation.
 - Spawn chain (sequential, gated by `OnProcessExit` so the controller-manager service queue stays single-file):
   1. `ros2_control_node` (1 kHz, `chrt -f 49`).
@@ -99,7 +99,7 @@ ros2 control switch_controllers --activate lower_body_pvt_controller
 ros2 control list_controllers                                          # confirm ACTIVE
 ```
 
-Activation with all gains at zero is safe. Activation alone does not produce torque. The two controllers activate independently — e.g. activate `lower_body_pvt_controller` to run a legs+waist policy while `upper_body_pvt_controller` stays inactive (arms back-drivable) or is held separately.
+Activation with all gains at zero is safe. Activation alone does not produce torque. The two controllers activate independently — e.g. activate `lower_body_pvt_controller` to run a legs locomotion policy while `upper_body_pvt_controller` (arms + waist) stays inactive (back-drivable) or is held separately.
 
 ## Bench-rig gain ramp protocol
 
@@ -225,8 +225,8 @@ From [config/controllers_pvt.yaml](config/controllers_pvt.yaml#L19-L33):
 | `joint_state_broadcaster` | `joint_state_broadcaster/JointStateBroadcaster` | `publish_rate: 1000`. Remapped `/joint_states → /joint_states_raw`. |
 | `robot_filtered_joint_state_broadcaster` | `robot_filtered_joint_state_broadcaster/FilteredJointStateBroadcaster` | IIR `velocity_cutoff_hz: 30.0`, `torque_cutoff_hz: 30.0`, `publish_rate: 100.0`, topic `/joint_states_filtered`. |
 | `robot_drive_status_broadcaster` | `robot_drive_status_broadcaster/DriveStatusBroadcaster` | `publish_rate: 50.0`. Temperature and bus-voltage thresholds inline. |
-| `upper_body_pvt_controller` | `robot_pvt_control/RobotPVTController` | Claims position, velocity, effort, kp, kd on the 12 arm joints. Spawned INACTIVE for `robot_group ∈ {upper, full}`. |
-| `lower_body_pvt_controller` | `robot_pvt_control/RobotPVTController` | Same interfaces on the 13 waist+leg joints. Spawned INACTIVE for `robot_group ∈ {lower, full}`. |
+| `upper_body_pvt_controller` | `robot_pvt_control/RobotPVTController` | Claims position, velocity, effort, kp, kd on the 13 arm + waist joints. Spawned INACTIVE for `robot_group ∈ {upper, full}`. |
+| `lower_body_pvt_controller` | `robot_pvt_control/RobotPVTController` | Same interfaces on the 12 leg joints. Spawned INACTIVE for `robot_group ∈ {lower, full}`. |
 | `robot_pvt_controller` | `robot_pvt_control/RobotPVTController` | Whole-body (all 25). Registered/kept for reference but **not spawned** by `robot_pvt.launch.py`; still used by the viewer's `body_group` path. |
 
 `controller_manager.update_rate: 1000` (1 kHz) — matches the PVT slave 1 ms interpolation period.

@@ -11,8 +11,8 @@ Brings up:
 Order is enforced via OnProcessExit chains so PREOP→SAFEOP completes before
 any controller spawner runs. The PVT controllers are spawned INACTIVE so the
 drives stay in mode 5 with Kp=Kd=0 (back-drivable FREE) until the operator
-ramps gains per the bench-rig protocol. robot_group=upper spawns the arms
-controller, lower the waist+legs controller, full both.
+ramps gains per the bench-rig protocol. robot_group=upper spawns the arms+waist
+controller, lower the legs controller, full both.
 
 The legacy CSP/CST stack (arm_real.launch.py) stays orthogonal — running this
 launch does not touch arm_real_bringup's controller manager spawners.
@@ -55,7 +55,6 @@ def _make_spawner(controller_name, inactive=False, **kwargs):
 
 def _launch_setup(context):
     robot_group = LaunchConfiguration("robot_group").perform(context)
-    ankle_driver = LaunchConfiguration("ankle_driver").perform(context)
 
     pkg_dual_arm_description = FindPackageShare("dual_arm_description")
     pkg_robot_bringup = FindPackageShare("robot_bringup")
@@ -71,7 +70,6 @@ def _launch_setup(context):
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
         " use_sim:=false pvt_mode:=true fixed_legs:=false",
-        " ankle_driver:=" + ankle_driver,
     ])
     robot_description = {
         "robot_description": ParameterValue(
@@ -121,8 +119,8 @@ def _launch_setup(context):
 
     # ── Spawners (PVT controllers start INACTIVE) ────────────────────────────
     # robot_group selects the body-region controllers to spawn:
-    #   upper → upper_body_pvt_controller (arms)
-    #   lower → lower_body_pvt_controller (waist + legs)
+    #   upper → upper_body_pvt_controller (arms + waist)
+    #   lower → lower_body_pvt_controller (legs)
     #   full  → both
     # Each starts INACTIVE so the drives stay back-drivable (Kp=Kd=0) until the
     # operator ramps gains per the bench-rig protocol.
@@ -229,13 +227,6 @@ def generate_launch_description():
             default_value="true",
             choices=["true", "false"],
             description="Launch RViz. Set to false for headless runs on the NUC.",
-        ),
-        DeclareLaunchArgument(
-            "ankle_driver",
-            default_value="v1",
-            choices=["v1", "v2"],
-            description="Ankle EtherCAT driver: v1 (serial-chain) or v2 (cubic-primary; "
-                        "also publishes /ankle_method_compare)",
         ),
         OpaqueFunction(function=_launch_setup),
     ])
