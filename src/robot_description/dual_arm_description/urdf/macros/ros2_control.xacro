@@ -83,11 +83,10 @@
         </ros2_control>
 
         <!-- Both hands in one system (like single arm's HandSystem) -->
-        <ros2_control name="HandSystem" type="system">
+        <!--ros2_control name="HandSystem" type="system">
             <hardware>
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
-            <!-- Left hand actuated -->
             <joint name="left_thumb_proximal_yaw_joint">
                 <command_interface name="position"/>
                 <state_interface name="position">
@@ -136,7 +135,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-            <!-- Left hand mimic (state only) -->
             <joint name="left_thumb_intermediate_joint">
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
@@ -167,7 +165,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-            <!-- Right hand actuated -->
             <joint name="right_thumb_proximal_yaw_joint">
                 <command_interface name="position"/>
                 <state_interface name="position">
@@ -216,7 +213,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-            <!-- Right hand mimic (state only) -->
             <joint name="right_thumb_intermediate_joint">
                 <state_interface name="position"/>
                 <state_interface name="velocity"/>
@@ -247,6 +243,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-        </ros2_control>
+        </ros2_control-->
     </xacro:macro>
 </robot>
