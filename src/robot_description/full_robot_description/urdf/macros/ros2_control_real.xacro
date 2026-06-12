@@ -32,6 +32,8 @@
         <xacro:property name="ankle_rod_b_mm" value="180.0"/>
         <xacro:property name="ankle_mount_drop_mm" value="0.0"/>
         <xacro:property name="ankle_pairs" value="left_ankle_roll_joint_X4,left_ankle_pitch_joint_X4;right_ankle_roll_joint_X4,right_ankle_pitch_joint_X4"/>
+        <xacro:property name="ankle_pitch_sign" value="-1"/>
+        <xacro:property name="ankle_roll_sign" value="1"/>
         <xacro:if value="${'$(arg ankle_driver)' == 'v2'}">
             <xacro:property name="ankle_plugin" value="harambe_ankle_ethercat_driver_v2/HarambeEthercatDriver"/>
             <xacro:property name="ankle_mount_foreaft_mm" value="73.2322"/>
@@ -41,6 +43,10 @@
             <xacro:property name="ankle_rod_b_mm" value="166.6107"/>
             <xacro:property name="ankle_mount_drop_mm" value="-10.2996"/>
             <xacro:property name="ankle_pairs" value="left_ankle_pitch_joint_X4,left_ankle_roll_joint_X4;right_ankle_pitch_joint_X4,right_ankle_roll_joint_X4"/>
+            <!-- v2 analytic outputs physical pitch/roll (+pitch = toe up) at sign +1;
+                 pitch was inverted on hardware vs RViz, so v2 uses +1 (v1 used -1). -->
+            <xacro:property name="ankle_pitch_sign" value="1"/>
+            <xacro:property name="ankle_roll_sign" value="1"/>
         </xacro:if>
 
         <!-- EtherCAT actuators (MyActuator RMD X V4) -->
@@ -66,8 +72,8 @@
                 <param name="lock_heights_to_rods">true</param>
                 <param name="motor_limit_deg">80.0</param>  <!-- CONFIRMED real actuator limit -->
                 <!-- Sign correction: ±1, applied after kinematics to match URDF convention -->
-                <param name="pitch_sign">-1</param>
-                <param name="roll_sign">1</param>
+                <param name="pitch_sign">${ankle_pitch_sign}</param>
+                <param name="roll_sign">${ankle_roll_sign}</param>
                 <!-- Ankle linkage pairs: pitchJoint,rollJoint — pitch output stored in first, roll in second -->
                 <!-- θA = raw from first joint's motor, θB = raw from second joint's motor -->
                 <param name="ankle_linkage_pairs">${ankle_pairs}</param>
