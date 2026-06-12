@@ -5,7 +5,7 @@
   <!-- Right Foot                                                        -->
   <!-- ================================================================== -->
   <joint name="right_hip_pitch_joint_X8" type="${leg_joint_type}">
-    <origin xyz="-0.015194 -0.0878324 -0.0706295" rpy="0 0 0"/>
+    <origin xyz="-0.00371302 -0.0877744 -0.0675455" rpy="0 0 0"/>
     <parent link="urdf_base"/>
     <child link="urdf_hip_assembly_2"/>
     <axis xyz="0 1 0"/>
@@ -23,25 +23,25 @@
   </joint>
 
   <joint name="right_hip_yaw_joint_X8" type="${leg_joint_type}">
-    <origin xyz="-0.053 0 -0.217" rpy="0 0 0"/>
+    <origin xyz="-0.053 -7.97086e-07 -0.217" rpy="0 0 0"/>
     <parent link="urdf_r_upper_femur_assembly"/>
-    <child link="urdf_lower_femur_assembly_2"/>
+    <child link="urdf_lower_femur_right_assembly"/>
     <axis xyz="0 0 1"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-1.5708" upper="1.5708"/>
+    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="-2.75762" upper="2.75762"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
   <joint name="right_knee_joint_X8" type="${leg_joint_type}">
-    <origin xyz="1.45947e-07 -0.055 -0.111" rpy="0 0 0"/>
-    <parent link="urdf_lower_femur_assembly_2"/>
+    <origin xyz="0 -0.055 -0.111" rpy="0 0 0"/>
+    <parent link="urdf_lower_femur_right_assembly"/>
     <child link="urdf_r_tibia_assembly"/>
     <axis xyz="0 1 0"/>
-    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="0" upper="1.51844"/>
+    <limit effort="${X8_moderate_effort}" velocity="${X8_rated_velocity}" lower="0" upper="1.52716"/>
     <dynamics damping="${X8_damping}" friction="${X8_friction}"/>
   </joint>
 
   <joint name="right_ankle_pitch_joint_X4" type="${leg_joint_type}">
-    <origin xyz="0 0.059 -0.395" rpy="0 0 0"/>
+    <origin xyz="-1.44173e-06 0.059 -0.3925" rpy="0 0 0"/>
     <parent link="urdf_r_tibia_assembly"/>
     <child link="urdf_ankle_assembly_2"/>
     <axis xyz="0 1 0"/>
@@ -50,7 +50,7 @@
   </joint>
 
   <joint name="right_ankle_roll_joint_X4" type="${leg_joint_type}">
-    <origin xyz="-0.012 -0.004 -0.028" rpy="0 0 0"/>
+    <origin xyz="-0.0120001 -0.004 -0.028" rpy="0 0 0"/>
     <parent link="urdf_ankle_assembly_2"/>
     <child link="urdf_foot_assembly_2"/>
     <axis xyz="1 0 0"/>

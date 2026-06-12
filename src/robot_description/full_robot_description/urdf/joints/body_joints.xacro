@@ -17,7 +17,7 @@
   <!-- Body                                                              -->
   <!-- ================================================================== -->
   <joint name="waist_yaw_joint_X8" type="${waist_joint_type}">
-    <origin xyz="-0.015194 0.000167649 0.0793705" rpy="0 0 0"/>
+    <origin xyz="-0.00371302 0.000225649 0.0824545" rpy="0 0 0"/>
     <parent link="urdf_base"/>
     <child link="urdf_simplified_torso"/>
     <axis xyz="0 0 1"/>

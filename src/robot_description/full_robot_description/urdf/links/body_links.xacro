@@ -6,12 +6,12 @@
   <!-- ================================================================== -->
   <link name="urdf_base">
     <inertial>
-      <origin xyz="-0.0133337 0.000163695 -0.0360702" rpy="0 0 0"/>
+      <origin xyz="-0.0018527 0.000221695 -0.0329862" rpy="0 0 0"/>
       <mass value="5.778"/>
       <inertia ixx="0.0319377" ixy="1.97277e-06" ixz="3.91267e-05" iyy="0.0280522" iyz="-4.94971e-07" izz="0.0192445"/>
     </inertial>
     <visual>
-      <origin xyz="-0.015194 0.000167649 -0.0706295" rpy="0 0 -1.5708"/>
+      <origin xyz="-0.00371302 0.000225649 -0.0675455" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_base.stl"/>
       </geometry>
@@ -20,7 +20,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="-0.015194 0.000167649 -0.0706295" rpy="0 0 -1.5708"/>
+      <origin xyz="-0.00371302 0.000225649 -0.0675455" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/urdf_base.stl"/>
       </geometry>
@@ -73,7 +73,7 @@
       </geometry>
     </collision>
     <visual>
-      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708"/>
+      <origin xyz="0 0 0" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/visual/urdf_simplified_torso.stl"/>
       </geometry>
@@ -82,7 +82,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0.26095" rpy="0 0 -1.5708"/>
+      <origin xyz="0 0 0" rpy="0 0 -1.5708"/>
       <geometry>
         <mesh filename="package://full_robot_description/meshes/collision/urdf_simplified_torso.stl"/>
       </geometry>
