@@ -121,8 +121,9 @@ def generate_launch_description():
             "waist_controller",
             "left_leg_trajectory_controller",
             "right_leg_trajectory_controller",
-            "left_hand_controller",
-            "right_hand_controller",
+            # Hands disabled — inspire hands commented out in URDF
+            # "left_hand_controller",
+            # "right_hand_controller",
         ]
     ]
 

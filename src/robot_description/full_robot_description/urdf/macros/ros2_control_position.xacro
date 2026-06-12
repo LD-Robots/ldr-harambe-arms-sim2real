@@ -140,7 +140,8 @@
         <state_interface name="effort" />
       </joint>
 
-      <!-- === LEFT HAND (6 actuated) === -->
+      <!-- === LEFT HAND (6 actuated) — DISABLED: inspire hands commented out in URDF === -->
+      <!-- DISABLED
       <joint name="left_thumb_proximal_yaw_joint">
         <command_interface name="position">
           <param name="min">0</param>
@@ -194,8 +195,10 @@
         <state_interface name="position" />
         <state_interface name="velocity" />
       </joint>
+      -->
 
-      <!-- === RIGHT HAND (6 actuated) === -->
+      <!-- === RIGHT HAND (6 actuated) — DISABLED: inspire hands commented out in URDF === -->
+      <!-- DISABLED
       <joint name="right_thumb_proximal_yaw_joint">
         <command_interface name="position">
           <param name="min">0</param>
@@ -249,6 +252,7 @@
         <state_interface name="position" />
         <state_interface name="velocity" />
       </joint>
+      -->
 
       <!-- === LEFT LEG === -->
       <joint name="left_hip_pitch_joint_X8">
