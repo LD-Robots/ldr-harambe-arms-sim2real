@@ -76,7 +76,7 @@ install(FILES harambe_policy_legs_controller.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(DIRECTORY config launch
+install(DIRECTORY config launch models
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL
 )

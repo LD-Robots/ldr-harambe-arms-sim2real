@@ -144,9 +144,11 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "onnx_path",
-            default_value="",
-            description="Override ONNX path for the legs policy "
-                        "(empty = YAML default).",
+            default_value=os.path.join(
+                get_package_share_directory("harambe_policy_legs_controller"),
+                "models", "policy.onnx"),
+            description="ONNX path for the legs policy "
+                        "(default = bundled models/policy.onnx; override to use another).",
         ),
         DeclareLaunchArgument(
             "config_file",
