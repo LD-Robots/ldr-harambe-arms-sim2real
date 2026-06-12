@@ -10,18 +10,20 @@ Brings up:
   - robot_filtered_joint_state_broadcaster + robot_drive_status_broadcaster
   - robot_safety_supervisor (whole-body watchdog)
   - upper_body_pvt_controller (arms+waist) and/or harambe_policy_legs_controller
-    (legs), selected by robot_group, ALL spawned INACTIVE.
+    (legs), selected by robot_group.
 
 robot_group:
   upper → upper_body_pvt_controller (arms + waist)
   lower → harambe_policy_legs_controller (legs, RL policy)
   full  → both
 
-All controllers spawn INACTIVE (drives back-drivable, Kp=Kd=0) until the operator
-activates them. After activating the policy legs controller it HOLDS the default
-pose (ramps in over warmup) and waits for `~/enable=true` before walking — see
-harambe_policy_legs_controller. The policy ONNX defaults to the model bundled in
-the controller package (models/policy.onnx); override with onnx_path:=<path>.
+By default (start_active:=true) the body controllers spawn ACTIVE: the policy
+legs controller activates immediately, ramps the legs current→default pose over
+warmup, then HOLDS the default and waits for `~/enable=true` before walking (it
+does NOT walk on its own). Pass start_active:=false to spawn INACTIVE (drives
+back-drivable, Kp=Kd=0) and activate by hand. The policy ONNX defaults to the
+model bundled in the controller package (models/policy.onnx); override with
+onnx_path:=<path>.
 """
 
 import os
@@ -99,6 +101,13 @@ def _policy_config_path(context):
 
 def _launch_setup(context):
     robot_group = LaunchConfiguration("robot_group").perform(context)
+    # start_active=true (default) spawns the body controllers ACTIVE: the legs
+    # policy controller activates immediately (ramps current->default over warmup,
+    # then HOLDS default and waits for ~/enable before walking — it does NOT walk
+    # on its own). start_active=false keeps the old behavior (spawn INACTIVE,
+    # drives back-drivable, operator activates by hand).
+    start_active = LaunchConfiguration("start_active").perform(context) == "true"
+    inactive = not start_active
 
     pkg_dual_arm_description = FindPackageShare("dual_arm_description")
     pkg_robot_bringup = FindPackageShare("robot_bringup")
@@ -159,11 +168,11 @@ def _launch_setup(context):
     jsb_spawner = _make_spawner("joint_state_broadcaster")
     filtered_jsb_spawner = _make_spawner("robot_filtered_joint_state_broadcaster")
     drive_status_spawner = _make_spawner("robot_drive_status_broadcaster")
-    upper_spawner = _make_spawner("upper_body_pvt_controller", inactive=True)
+    upper_spawner = _make_spawner("upper_body_pvt_controller", inactive=inactive)
     # SWAP: legs run the RL policy controller instead of lower_body_pvt_controller.
     # Type + params come from policy_config loaded into the controller_manager
     # above, so this spawns by name like the others (no -t, no --param-file).
-    legs_spawner = _make_spawner(POLICY_CONTROLLER, inactive=True)
+    legs_spawner = _make_spawner(POLICY_CONTROLLER, inactive=inactive)
 
     safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -248,6 +257,16 @@ def generate_launch_description():
             default_value="",
             description="Legs policy ONNX (empty = the model bundled in "
                         "harambe_policy_legs_controller/models/policy.onnx).",
+        ),
+        DeclareLaunchArgument(
+            "start_active",
+            default_value="true",
+            choices=["true", "false"],
+            description="true (default): spawn the body controllers ACTIVE — the "
+                        "legs policy activates immediately, ramps to the default "
+                        "pose and HOLDS it waiting for ~/enable (does NOT walk on "
+                        "its own). false: spawn INACTIVE (drives back-drivable), "
+                        "operator activates by hand.",
         ),
         DeclareLaunchArgument(
             "use_rviz",
