@@ -114,8 +114,12 @@ harambe_policy_legs_controller:
     clip_actions: 5.0
     gait_freq: 1.5        # Hz — gait-clock frequency (MUST be 1.5 at deploy)
     warmup_steps: 200     # 4.0s policy steps holding the default pose before policy engages
-    fall_threshold: 0.5   # |proj_grav_z| < 0.5 -> hold default pose / zero action
+    fall_threshold: 0.5   # |proj_grav_z| < 0.5 -> fallen -> hold default (while RUNNING)
+    upright_threshold: 0.8  # |proj_grav_z| >= 0.8 REQUIRED to START (~within 37° of vertical)
     start_enabled: false  # false = WAIT for ~/enable=true (safe, hardware). true = auto-run (sim)
+    # Observation freshness gate — policy runs ONLY while sensors are fresh.
+    obs_timeout: 0.2      # s — max age of IMU / odom; older -> hold default (never walk blind)
+    require_odom: true    # also gate on /odometry/filtered (base_lin_vel). false to bench-test w/o VIO
 
     # ------------------------------------------------------------------
     # Topics

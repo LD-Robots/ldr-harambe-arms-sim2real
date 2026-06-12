@@ -109,6 +109,9 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     gait_freq_ = auto_declare<double>("gait_freq", 1.5);
     warmup_steps_ = auto_declare<int>("warmup_steps", 40);
     fall_threshold_ = auto_declare<double>("fall_threshold", 0.5);
+    upright_threshold_ = auto_declare<double>("upright_threshold", 0.8);
+    obs_timeout_ = auto_declare<double>("obs_timeout", 0.2);
+    require_odom_ = auto_declare<bool>("require_odom", true);
     onnx_path_ = auto_declare<std::string>("onnx_path", "");
 
     // Topic names.
@@ -185,6 +188,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_configure(
       ImuState s = *pelvis_imu_buf_.readFromNonRT();  // preserve proj_gravity if grav topic owns it
       imuToState(*msg, s);
       pelvis_imu_buf_.writeFromNonRT(s);
+      last_imu_ns_.store(get_node()->now().nanoseconds());   // freshness gate
     });
 
   // Optional: BNO055 /grav topic (Vector3) for projected_gravity. The BNO
@@ -218,6 +222,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_configure(
         static_cast<float>(msg->twist.twist.linear.z),
       };
       base_lin_vel_buf_.writeFromNonRT(v);
+      last_odom_ns_.store(get_node()->now().nanoseconds());   // freshness gate
     });
 
   cmd_vel_sub_ = node->create_subscription<geometry_msgs::msg::Twist>(
@@ -371,7 +376,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_deactivate(
 // update — runs at controller_manager rate; policy inference is decimated.
 // ============================================================================
 controller_interface::return_type HarambePolicyLegsController::update(
-  const rclcpp::Time &, const rclcpp::Duration &)
+  const rclcpp::Time & time, const rclcpp::Duration &)
 {
   enabled_ = *enable_buf_.readFromRT();
 
@@ -379,17 +384,71 @@ controller_interface::return_type HarambePolicyLegsController::update(
   if (step_counter_ % static_cast<uint64_t>(decimation_) == 0) {
     buildObservation();
 
+    // Observation SANITY gate — run BEFORE any other policy logic. A glitched
+    // sensor must never reach the network: NaN/Inf in the obs would produce NaN
+    // actions and garbage joint targets. Also sanity-check the gravity unit
+    // vector magnitude (must be ≈ 1). If invalid → hold default, skip the policy.
+    bool obs_valid = true;
+    for (float v : obs_) {
+      if (!std::isfinite(v)) { obs_valid = false; break; }
+    }
+    if (obs_valid) {
+      const float gx = obs_[kObsProjGravity], gy = obs_[kObsProjGravity + 1],
+                  gz0 = obs_[kObsProjGravity + 2];
+      const float gmag = std::sqrt(gx * gx + gy * gy + gz0 * gz0);
+      if (gmag < 0.5f || gmag > 1.5f) { obs_valid = false; }
+    }
+    if (enabled_ && !obs_valid) {
+      RCLCPP_WARN_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000,
+        "OBS INVALID (NaN/Inf or bad gravity magnitude) — holding default pose, "
+        "policy will NOT run.");
+    }
+
+    // Observation freshness gate: never run the policy on stale/missing sensor
+    // data (otherwise the obs falls back to fake "upright, still" seeds and the
+    // policy would walk blind). Require a recent IMU msg, and a recent odometry
+    // msg when require_odom_.
+    const int64_t now_ns = time.nanoseconds();
+    const int64_t imu_ns = last_imu_ns_.load();
+    const int64_t odom_ns = last_odom_ns_.load();
+    const double imu_age = (imu_ns == 0) ? 1e9 : (now_ns - imu_ns) * 1e-9;
+    const double odom_age = (odom_ns == 0) ? 1e9 : (now_ns - odom_ns) * 1e-9;
+    const bool obs_fresh =
+      (imu_age < obs_timeout_) && (!require_odom_ || odom_age < obs_timeout_);
+    if (enabled_ && !obs_fresh) {
+      RCLCPP_WARN_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000,
+        "OBS STALE — holding default pose (IMU age=%.2fs, odom age=%.2fs, "
+        "timeout=%.2fs). Policy will NOT run until sensors are fresh.",
+        imu_age, odom_age, obs_timeout_);
+      obs_stale_warned_ = true;
+    } else if (obs_stale_warned_ && obs_fresh) {
+      RCLCPP_INFO(get_node()->get_logger(), "OBS fresh again — policy may run.");
+      obs_stale_warned_ = false;
+    }
+
     // Fall detection on projected_gravity.z (pelvis up ≈ -1 when upright).
     const float grav_z = obs_[kObsProjGravity + 2];
-    if (policy_active_ && !fallen_ && std::abs(grav_z) < fall_threshold_) {
+    if (policy_active_ && !fallen_ && obs_valid && std::abs(grav_z) < fall_threshold_) {
       fallen_ = true;
       RCLCPP_WARN(get_node()->get_logger(),
         "FALL DETECTED at policy step %lu (grav_z=%.3f < %.3f). Holding default pose.",
         policy_step_, grav_z, fall_threshold_);
     }
 
+    // Upright START precondition: the policy ENGAGES only when the pelvis is
+    // clearly upright (|proj_grav.z| >= upright_threshold, ≈ within 37° of
+    // vertical at 0.8). Once running, the (looser) fall_threshold governs — so a
+    // brief tilt while walking does not stop it, but it never STARTS lying down.
+    const bool upright = std::abs(grav_z) >= upright_threshold_;
+    if (enabled_ && obs_fresh && !fallen_ && !policy_active_ && !upright) {
+      RCLCPP_WARN_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000,
+        "NOT UPRIGHT — policy will NOT start (|grav_z|=%.2f < %.2f). Holding default.",
+        std::abs(grav_z), upright_threshold_);
+    }
+
     const bool warmup_done = static_cast<int>(policy_step_) >= warmup_steps_;
-    if (warmup_done && enabled_ && !fallen_) {
+    if (warmup_done && enabled_ && !fallen_ && obs_valid && obs_fresh &&
+        (policy_active_ || upright)) {
       runPolicyInference();   // updates target_pos_, pushes the action ring
       policy_active_ = true;
     } else {

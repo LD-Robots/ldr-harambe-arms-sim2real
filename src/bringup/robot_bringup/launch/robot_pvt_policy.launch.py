@@ -45,6 +45,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 POLICY_CONTROLLER = "harambe_policy_legs_controller"
+POLICY_TYPE = "harambe_policy_legs_controller/HarambePolicyLegsController"
 
 
 def _make_spawner(controller_name, inactive=False, extra_args=None, **kwargs):
@@ -83,12 +84,18 @@ def _make_policy_legs_spawner(context, inactive=True):
     cfg.setdefault(POLICY_CONTROLLER, {}).setdefault("ros__parameters", {})[
         "onnx_path"] = onnx_path
 
+    # Also set the controller type in the merged controller_manager block.
+    cm = cfg.setdefault("controller_manager", {}).setdefault("ros__parameters", {})
+    cm.setdefault(POLICY_CONTROLLER, {})["type"] = POLICY_TYPE
+
     tmp = tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", prefix="harambe_policy_legs_", delete=False)
     yaml.safe_dump(cfg, tmp)
     tmp.close()
+    # -t makes the controller_manager load the plugin even if the type isn't yet
+    # in its own params (the param-file alone is not always enough).
     return _make_spawner(POLICY_CONTROLLER, inactive=inactive,
-                         extra_args=["--param-file", tmp.name])
+                         extra_args=["--param-file", tmp.name, "-t", POLICY_TYPE])
 
 
 def _launch_setup(context):

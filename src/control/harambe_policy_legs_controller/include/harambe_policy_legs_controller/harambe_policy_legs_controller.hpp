@@ -12,6 +12,8 @@
 #include <onnxruntime_cxx_api.h>
 
 #include <array>
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -98,6 +100,15 @@ private:
   double gait_freq_{1.5};         // Hz — gait-clock frequency at deploy
   int warmup_steps_{40};          // policy steps holding default pose before policy
   double fall_threshold_{0.5};    // |proj_grav_z| < this => fallen => hold default
+  double upright_threshold_{0.8}; // |proj_grav_z| >= this REQUIRED to START the policy
+  // Observation freshness gate: the policy runs ONLY while the IMU (and, if
+  // require_odom_, the odometry) have published within obs_timeout_ seconds.
+  // Stale/missing -> hold the default pose, so it never walks on fake obs.
+  double obs_timeout_{0.2};       // s — max age of IMU / odom before "stale"
+  bool require_odom_{true};       // gate also on /odometry/filtered freshness
+  std::atomic<int64_t> last_imu_ns_{0};   // node-clock ns of last IMU msg (0 = none)
+  std::atomic<int64_t> last_odom_ns_{0};  // node-clock ns of last odom msg (0 = none)
+  bool obs_stale_warned_{false};  // warn-once latch when obs goes stale
   std::string onnx_path_;
 
   // Topic names
