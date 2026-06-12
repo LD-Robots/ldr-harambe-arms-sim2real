@@ -103,6 +103,27 @@ robot_safety_supervisor:
         joint_state_timeout_sec: 0.25
 
       joints:
+        # ── Arm X6 (shoulder pitch/roll, elbow pitch — 48 V rail) ──
+        # Effort envelope above the conservative whole-body global default.
+        left_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+
         # ── Shoulder yaw (X4, 24 V rail) ──
         # Only override is the bus-voltage envelope — every other field
         # falls through to the global X6-style envelope.
@@ -152,72 +173,72 @@ robot_safety_supervisor:
 
         # ── Hips (X8) — heavy load, full-body weight ──
         left_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
 
         # ── Knees (X8) — single-axis hinge, bends only one way ──
         left_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0            # knees only bend forward
           position_max: 2.5
         right_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
 
         # ── Ankles (X4, 24 V rail) — small joint, large mechanical advantage ──
         left_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
@@ -257,6 +278,25 @@ robot_pvt_controller:
 
       joints:
         # Mirror of the supervisor block above — keep byte-for-byte identical.
+        # ── Arm X6 (shoulder pitch/roll, elbow pitch — 48 V rail) ──
+        left_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
@@ -297,70 +337,70 @@ robot_pvt_controller:
           position_max:  1.5708
 
         left_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
 
         left_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
         right_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
 
         left_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
@@ -396,6 +436,25 @@ upper_body_pvt_controller:
 
       joints:
         # Mirror of the supervisor block above — keep byte-for-byte identical.
+        # ── Arm X6 (shoulder pitch/roll, elbow pitch — 48 V rail) ──
+        left_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
@@ -436,70 +495,70 @@ upper_body_pvt_controller:
           position_max:  1.5708
 
         left_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
 
         left_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
         right_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
 
         left_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
@@ -530,6 +589,25 @@ lower_body_pvt_controller:
 
       joints:
         # Mirror of the supervisor block above — keep byte-for-byte identical.
+        # ── Arm X6 (shoulder pitch/roll, elbow pitch — 48 V rail) ──
+        left_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        left_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_shoulder_roll_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
+        right_elbow_pitch_joint_X6:
+          effort_limit: 25.0
+          sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
@@ -570,70 +648,70 @@ lower_body_pvt_controller:
           position_max:  1.5708
 
         left_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         left_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_pitch_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_roll_joint_X8:
-          effort_limit: 60.0
-          sustained_effort_threshold: 45.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
         right_hip_yaw_joint_X8:
-          effort_limit: 30.0
-          sustained_effort_threshold: 22.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 4.0
 
         left_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
         right_knee_joint_X8:
-          effort_limit: 50.0
-          sustained_effort_threshold: 38.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: 0.0
           position_max: 2.5
 
         left_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         left_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_pitch_joint_X4:
-          effort_limit: 20.0
-          sustained_effort_threshold: 16.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
           bus_voltage_max: 28.0
         right_ankle_roll_joint_X4:
-          effort_limit: 15.0
-          sustained_effort_threshold: 12.0
+          effort_limit: 100.0
+          sustained_effort_threshold: 80.0
           velocity_limit: 5.0
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
