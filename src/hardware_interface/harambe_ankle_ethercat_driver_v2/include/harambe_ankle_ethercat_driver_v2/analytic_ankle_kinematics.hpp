@@ -38,10 +38,17 @@ private:
   // --- serial-chain geometry primitives (internal/model frame) ---
   static Eigen::Matrix3d rot_x(double ang);
   static Eigen::Matrix3d rot_y(double ang);
+  static Eigen::Matrix3d rot_x_d(double ang);   // d rot_x / d ang
+  static Eigen::Matrix3d rot_y_d(double ang);   // d rot_y / d ang
   Eigen::Vector3d pin_a(double thetaA) const;
   Eigen::Vector3d pin_b(double thetaB) const;
   Eigen::Vector3d mount(const Eigen::Vector3d & m_foot, double phi_p, double phi_r) const;
   Eigen::Vector2d residual(double thetaA, double thetaB, double phi_p, double phi_r) const;
+  // Fused residual F and its EXACT analytic Jacobian dF/dphi (col0 = d/dphi_p,
+  // col1 = d/dphi_r) — same layout as the central-difference block it replaces in
+  // newton()/jacobian_at(). Builds the four rotation matrices once.
+  void residual_jac(double thetaA, double thetaB, double phi_p, double phi_r,
+                    Eigen::Vector2d & F, Eigen::Matrix2d & Jphi) const;
   void newton(double thetaA, double thetaB, double seed_phi_p, double seed_phi_r,
               double & phi_p, double & phi_r, bool & ok) const;
 

@@ -8,8 +8,16 @@ ROS 2 Jazzy dual-arm humanoid manipulation system with Gazebo Harmonic simulatio
 
 ## Build & Run
 
+**IMPORTANT — always build Release.** The EtherCAT hot path (bus exchange + the
+1 kHz ankle kinematics) is real-time; an `-O0` build overruns the 1 ms PVT cycle.
+Sourcing `setup_shortcuts.bash` exports `COLCON_DEFAULTS_FILE` →
+`colcon.defaults.yaml`, which applies `-DCMAKE_BUILD_TYPE=Release` to every
+`colcon build`. If you build in a shell that has NOT sourced the shortcuts, pass
+`--cmake-args -DCMAKE_BUILD_TYPE=Release` yourself.
+
 ```bash
-# Build entire workspace
+# Build entire workspace (Release via colcon.defaults.yaml when shortcuts are sourced;
+# otherwise add: --cmake-args -DCMAKE_BUILD_TYPE=Release)
 colcon build
 
 # Build with symlinks (faster iteration — Python changes apply immediately)
@@ -21,14 +29,14 @@ colcon build --packages-select arm_control
 # Source after every build
 source install/setup.bash
 
-# Clean rebuild
+# Clean rebuild (needed after changing build type — CMake caches it)
 rm -rf build/ install/ log/ && colcon build
 
 # Install missing dependencies
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
-Shell shortcuts are available via `source setup_shortcuts.bash` (aliases like `cb`, `cbs`, `cbp`, `cs`, `ccs`, `clean`, `rebuild`).
+Shell shortcuts are available via `source setup_shortcuts.bash` (aliases like `cb`, `cbs`, `cbp`, `cs`, `ccs`, `clean`, `rebuild`). Sourcing it also enables the Release default above.
 
 ### Launching the System
 

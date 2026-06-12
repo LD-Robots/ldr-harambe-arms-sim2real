@@ -15,7 +15,10 @@ constexpr int N = 9;
 // Lever sweep axis (deg): X = inside (motor A), Y = outside (motor B).
 const double kLever[N] = {-80, -60, -40, -20, 0, 20, 40, 60, 80};
 
-// Measured foot angle (deg), index [inside_A][outside_B]. SOURCE OF TRUTH.
+// Measured foot angle (deg), index [inside_A][outside_B]. SOURCE OF TRUTH —
+// FINAL calibration data (frozen 2026-06-12). Both kinematics backends and the
+// grid tests derive from this; re-measuring means re-embedding here + re-fitting
+// the analytic geometry. Do not edit casually.
 const double kPitch[N][N] = {
   {  -3.67,  -2.01,   0.85,   4.51,   8.50,  12.36,  15.60,  17.78,  18.62},
   {  -4.23,  -2.58,   0.22,   3.82,   7.74,  11.53,  14.70,  16.84,  17.64},

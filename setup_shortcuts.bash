@@ -5,6 +5,11 @@
 # Get project root directory
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Apply the workspace colcon defaults (Release / -O3 -DNDEBUG) to every colcon
+# build in this shell. Required for real-time: an -O0 build overruns the 1 kHz
+# PVT loop. colcon does not auto-read a workspace-local file, hence this export.
+export COLCON_DEFAULTS_FILE="$PROJECT_ROOT/colcon.defaults.yaml"
+
 # ============================================================================
 # Build & Source Shortcuts
 # ============================================================================

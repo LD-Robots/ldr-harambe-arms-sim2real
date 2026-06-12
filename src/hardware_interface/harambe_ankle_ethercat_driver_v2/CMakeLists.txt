@@ -4,6 +4,15 @@ project(harambe_ankle_ethercat_driver_v2)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# This plugin's per-cycle ankle math runs in the 1 kHz RT control loop. An -O0
+# Eigen build (runtime asserts live) overruns the 1 ms PVT budget, so force
+# optimization when the build type is unset. The workspace colcon.defaults.yaml
+# already sets Release; this is a belt so a stray per-package build stays optimized.
+# An explicit Debug build is respected for debugging.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  add_compile_options(-O3 -DNDEBUG)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(ethercat_driver REQUIRED)
 find_package(hardware_interface REQUIRED)

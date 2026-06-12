@@ -38,15 +38,43 @@ bool AnalyticAnkleKinematics::derive_heights()
   return true;
 }
 
+// Rotations and their derivatives. Direct coefficient assignment (not the comma
+// initializer, which is hot-path expensive when built per Newton iteration).
 Eigen::Matrix3d AnalyticAnkleKinematics::rot_x(double a)
 {
   const double c = std::cos(a), s = std::sin(a);
-  Eigen::Matrix3d R; R << 1, 0, 0, 0, c, -s, 0, s, c; return R;
+  Eigen::Matrix3d R;
+  R(0, 0) = 1; R(0, 1) = 0; R(0, 2) = 0;
+  R(1, 0) = 0; R(1, 1) = c; R(1, 2) = -s;
+  R(2, 0) = 0; R(2, 1) = s; R(2, 2) = c;
+  return R;
 }
 Eigen::Matrix3d AnalyticAnkleKinematics::rot_y(double a)
 {
   const double c = std::cos(a), s = std::sin(a);
-  Eigen::Matrix3d R; R << c, 0, s, 0, 1, 0, -s, 0, c; return R;
+  Eigen::Matrix3d R;
+  R(0, 0) = c;  R(0, 1) = 0; R(0, 2) = s;
+  R(1, 0) = 0;  R(1, 1) = 1; R(1, 2) = 0;
+  R(2, 0) = -s; R(2, 1) = 0; R(2, 2) = c;
+  return R;
+}
+Eigen::Matrix3d AnalyticAnkleKinematics::rot_x_d(double a)
+{
+  const double c = std::cos(a), s = std::sin(a);
+  Eigen::Matrix3d R;
+  R(0, 0) = 0; R(0, 1) = 0;  R(0, 2) = 0;
+  R(1, 0) = 0; R(1, 1) = -s; R(1, 2) = -c;
+  R(2, 0) = 0; R(2, 1) = c;  R(2, 2) = -s;
+  return R;
+}
+Eigen::Matrix3d AnalyticAnkleKinematics::rot_y_d(double a)
+{
+  const double c = std::cos(a), s = std::sin(a);
+  Eigen::Matrix3d R;
+  R(0, 0) = -s; R(0, 1) = 0; R(0, 2) = c;
+  R(1, 0) = 0;  R(1, 1) = 0; R(1, 2) = 0;
+  R(2, 0) = -c; R(2, 1) = 0; R(2, 2) = -s;
+  return R;
 }
 Eigen::Vector3d AnalyticAnkleKinematics::pin_a(double tA) const
 {
@@ -82,21 +110,53 @@ double AnalyticAnkleKinematics::wrap_pi(double a)
   return a;
 }
 
+void AnalyticAnkleKinematics::residual_jac(
+  double tA, double tB, double phi_p, double phi_r,
+  Eigen::Vector2d & F, Eigen::Matrix2d & Jphi) const
+{
+  const Eigen::Vector3d m_A(p_.Lp, p_.S / 2.0, -p_.delta);
+  const Eigen::Vector3d m_B(p_.Lp, -p_.S / 2.0, -p_.delta);
+  const Eigen::Vector3d t(0.0, 0.0, -p_.h);
+
+  // Build the four rotations once and reuse for both rods (this is the win over
+  // the central-difference version, which rebuilt them 5x per Newton iteration).
+  const Eigen::Matrix3d Ry  = rot_y(phi_p);
+  const Eigen::Matrix3d Rx  = rot_x(phi_r);
+  const Eigen::Matrix3d Ryd = rot_y_d(phi_p);
+  const Eigen::Matrix3d Rxd = rot_x_d(phi_r);
+
+  // f_i = |pin_i - M_i|^2 - L_i^2,  M_i = Ry * (Rx * m_i + t).
+  // df_i/dphi_k = -2 (pin_i - M_i) . dM_i/dphi_k
+  //   dM_i/dphi_p = Ryd * rolled_i ;  dM_i/dphi_r = Ry * (Rxd * m_i)
+  auto one = [&](const Eigen::Vector3d & m, const Eigen::Vector3d & pin, double L,
+                 double & f, double & dfp, double & dfr) {
+    const Eigen::Vector3d rolled = Rx * m + t;
+    const Eigen::Vector3d M = Ry * rolled;
+    const Eigen::Vector3d diff = pin - M;
+    f = diff.squaredNorm() - L * L;
+    const Eigen::Vector3d dM_dphip = Ryd * rolled;
+    const Eigen::Vector3d dM_dphir = Ry * (Rxd * m);
+    dfp = -2.0 * diff.dot(dM_dphip);
+    dfr = -2.0 * diff.dot(dM_dphir);
+  };
+
+  double f1, d1p, d1r, f2, d2p, d2r;
+  one(m_A, pin_a(tA), p_.L_A, f1, d1p, d1r);
+  one(m_B, pin_b(tB), p_.L_B, f2, d2p, d2r);
+  F(0) = f1; F(1) = f2;
+  Jphi(0, 0) = d1p; Jphi(0, 1) = d1r;   // col0 = d/dphi_p, col1 = d/dphi_r
+  Jphi(1, 0) = d2p; Jphi(1, 1) = d2r;
+}
+
 void AnalyticAnkleKinematics::newton(
   double tA, double tB, double seed_phi_p, double seed_phi_r,
   double & phi_p, double & phi_r, bool & ok) const
 {
   phi_p = seed_phi_p; phi_r = seed_phi_r;
-  const double hs = 1e-6; ok = false;
+  ok = false;
   for (int i = 0; i < 20; ++i) {
-    const Eigen::Vector2d F = residual(tA, tB, phi_p, phi_r);
-    const Eigen::Vector2d Fpp = residual(tA, tB, phi_p + hs, phi_r);
-    const Eigen::Vector2d Fpm = residual(tA, tB, phi_p - hs, phi_r);
-    const Eigen::Vector2d Frp = residual(tA, tB, phi_p, phi_r + hs);
-    const Eigen::Vector2d Frm = residual(tA, tB, phi_p, phi_r - hs);
-    Eigen::Matrix2d J;
-    J.col(0) = (Fpp - Fpm) / (2.0 * hs);
-    J.col(1) = (Frp - Frm) / (2.0 * hs);
+    Eigen::Vector2d F; Eigen::Matrix2d J;
+    residual_jac(tA, tB, phi_p, phi_r, F, J);   // exact analytic dF/dphi
     if (std::abs(J.determinant()) < 1e-12) break;
     const Eigen::Vector2d d = J.fullPivLu().solve(-F);
     phi_p += d(0); phi_r += d(1);
@@ -215,14 +275,9 @@ Eigen::Matrix2d AnalyticAnkleKinematics::jacobian_at(
   const double phi_p = -native_pitch;
   const double phi_r = native_roll;
 
-  const double hs = 1e-6;
-  const Eigen::Vector2d Fpp = residual(tA, tB, phi_p + hs, phi_r);
-  const Eigen::Vector2d Fpm = residual(tA, tB, phi_p - hs, phi_r);
-  const Eigen::Vector2d Frp = residual(tA, tB, phi_p, phi_r + hs);
-  const Eigen::Vector2d Frm = residual(tA, tB, phi_p, phi_r - hs);
+  Eigen::Vector2d F_unused;
   Eigen::Matrix2d dFdphi;
-  dFdphi.col(0) = (Fpp - Fpm) / (2.0 * hs);
-  dFdphi.col(1) = (Frp - Frm) / (2.0 * hs);
+  residual_jac(tA, tB, phi_p, phi_r, F_unused, dFdphi);   // exact analytic dF/dphi
 
   const Eigen::Vector3d m_A(p_.Lp, p_.S / 2.0, -p_.delta);
   const Eigen::Vector3d m_B(p_.Lp, -p_.S / 2.0, -p_.delta);

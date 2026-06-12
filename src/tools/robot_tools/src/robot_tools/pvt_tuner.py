@@ -148,6 +148,10 @@ _SNAPSHOT_SKIP = frozenset({
     "body_group",
     "use_sim_time",
     "start_type_description_service",
+    # The 113 KB URDF string — never a tuning value. Saving it bloats every
+    # snapshot; pushing it back on Load is a no-op at best and a failed
+    # set_parameters at worst.
+    "robot_description",
 })
 
 
@@ -794,25 +798,69 @@ class PvtTunerWindow(QMainWindow):
             if not isinstance(snap_joints, list):
                 raise ValueError("snapshot 'joints' is not a list")
             cur_joints = list(self._joints)
-            if cur_joints and len(snap_joints) != len(cur_joints):
+            if not cur_joints:
                 raise ValueError(
-                    f"roster size mismatch: snapshot has {len(snap_joints)} "
-                    f"joints, controller has {len(cur_joints)}"
+                    "controller roster not loaded yet — reselect the "
+                    "controller and retry"
                 )
 
-            # Split into controller- vs supervisor-bound writes. Both nodes
-            # own the safety.* tree, so safety.* goes to both. The skip-list
-            # filters the unwritable topology knobs.
+            # Per-joint arrays (Kp/Kd/mgl/…) are stored in the snapshot's joint
+            # order. When the controller roster differs from the snapshot's —
+            # e.g. a 25-joint whole-body snapshot loaded into the split
+            # upper_/lower_body controllers, or any roster in a different order
+            # — each per-joint array is remapped onto the controller roster BY
+            # JOINT NAME. A positional write would push one joint's gains onto
+            # another. Every controller joint must exist in the snapshot; abort
+            # otherwise rather than fabricate a gain for a real drive.
+            cur_set = set(cur_joints)
+            n_snap = len(snap_joints)
+            snap_index = {jn: i for i, jn in enumerate(snap_joints)}
+            remap_needed = snap_joints != cur_joints
+            if remap_needed:
+                if not snap_joints:
+                    raise ValueError(
+                        "snapshot has no 'joints' roster — cannot remap arrays"
+                    )
+                missing = [jn for jn in cur_joints if jn not in snap_index]
+                if missing:
+                    raise ValueError(
+                        "snapshot is missing joints the controller needs: "
+                        + ", ".join(missing[:5])
+                        + (f" (+{len(missing) - 5} more)"
+                           if len(missing) > 5 else "")
+                    )
+
+            def _remap_array(value):
+                """Reindex a per-joint array from snapshot order to controller
+                order by joint name. Identity when rosters already match;
+                non-per-joint values (scalars, globally-broadcast length-1
+                arrays) pass through untouched."""
+                if isinstance(value, list) and n_snap and len(value) == n_snap:
+                    return [value[snap_index[jn]] for jn in cur_joints]
+                return value
+
+            # Split into controller- vs supervisor-bound writes. The supervisor
+            # owns the whole-body safety tree, so it gets every safety.* key;
+            # the controller only gets safety for joints in ITS roster (plus the
+            # global block) — pushing a foreign joint's limits would just fail
+            # as an undeclared parameter. The skip-list filters topology knobs.
             ctrl_pairs: list[tuple[str, object]] = []
             sup_pairs: list[tuple[str, object]] = []
             for name, value in params.items():
                 if not self._filter_snapshot_name(name):
                     continue
                 if name.startswith("safety."):
-                    ctrl_pairs.append((name, value))
                     sup_pairs.append((name, value))
+                    parts = name.split(".")
+                    # safety.joints.<joint>.<field> → controller only wants its
+                    # own joints. safety.global.* always applies.
+                    if len(parts) >= 3 and parts[1] == "joints":
+                        if parts[2] in cur_set:
+                            ctrl_pairs.append((name, value))
+                    else:
+                        ctrl_pairs.append((name, value))
                 else:
-                    ctrl_pairs.append((name, value))
+                    ctrl_pairs.append((name, _remap_array(value)))
 
             # Diff against current controller state — first few changed
             # names give the operator something concrete to OK against.
@@ -838,10 +886,11 @@ class PvtTunerWindow(QMainWindow):
                 f"{sample_txt}"
             )
             joint_warning = ""
-            if cur_joints and snap_joints != cur_joints:
+            if remap_needed:
                 joint_warning = (
-                    "\n\nWARNING: roster differs from controller (same length,\n"
-                    "different names). Positional arrays will be written as-is."
+                    f"\n\nRemapped per-joint arrays from snapshot roster "
+                    f"({n_snap} joints) onto controller roster "
+                    f"({len(cur_joints)} joints) by joint name."
                 )
             self._snapshot_confirm_sig.emit(
                 path, ctrl_pairs, sup_pairs, summary + joint_warning,

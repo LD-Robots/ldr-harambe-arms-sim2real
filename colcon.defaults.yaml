@@ -1,0 +1,14 @@
+# Workspace-wide colcon defaults.
+#
+# Release => gcc -O3 -DNDEBUG. This is REQUIRED for real-time correctness, not a
+# nicety: the EtherCAT hot path (ethercat_driver/ethercat_interface bus exchange
+# and the harambe_ankle_ethercat_driver_v2 per-cycle Eigen kinematics) runs inside
+# the 1 kHz / 1 ms PVT control loop. An unoptimized (-O0, Eigen asserts live) build
+# is 10-50x slower and overruns the cycle deadline.
+#
+# colcon does NOT auto-read a workspace-local defaults file; setup_shortcuts.bash
+# exports COLCON_DEFAULTS_FILE to point here so `cb`/`cbs`/`cbp`/`rebuild` pick it up.
+# An explicit `colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug` still overrides it.
+build:
+  cmake-args:
+    - -DCMAKE_BUILD_TYPE=Release
