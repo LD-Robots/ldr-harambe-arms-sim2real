@@ -641,9 +641,12 @@ void HarambePolicyLegsController::buildObservation()
   obs_[kObsProjGravity + 1] = static_cast<float>(grav_c[1]);
   obs_[kObsProjGravity + 2] = static_cast<float>(grav_c[2]);
   if (fake_imu_) {
-    // Diagnostic: replace the real IMU with the sim-like IDEAL (standing, clean):
-    // projected_gravity=[0,0,-1], gyro=0. No tilt feedback → cannot balance →
-    // run supported / in dry_run.
+    // Diagnostic: replace the whole FLOATING-BASE state with the sim-like IDEAL
+    // (standing, clean): base_lin_vel=0, gyro=0, projected_gravity=[0,0,-1].
+    // No tilt/velocity feedback → cannot balance → run supported / in dry_run.
+    obs_[kObsBaseLinVel + 0] = 0.0f;
+    obs_[kObsBaseLinVel + 1] = 0.0f;
+    obs_[kObsBaseLinVel + 2] = 0.0f;
     obs_[kObsBaseAngVel + 0] = 0.0f;
     obs_[kObsBaseAngVel + 1] = 0.0f;
     obs_[kObsBaseAngVel + 2] = 0.0f;
