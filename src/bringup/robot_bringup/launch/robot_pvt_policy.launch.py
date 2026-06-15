@@ -209,9 +209,14 @@ def _launch_setup(context):
         if not bag_path:
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             bag_path = os.path.join("/tmp/bags", f"harambe_{ts}")
-        topics = LaunchConfiguration("bag_topics").perform(context).split()
+        if LaunchConfiguration("record_all").perform(context) == "true":
+            # Capture every topic. Heavier — at 1 kHz real-time this can drop
+            # messages and bloat the bag, so it stays opt-in.
+            topic_args = ["-a"]
+        else:
+            topic_args = LaunchConfiguration("bag_topics").perform(context).split()
         bag_actions.append(ExecuteProcess(
-            cmd=["ros2", "bag", "record", "-o", bag_path] + topics,
+            cmd=["ros2", "bag", "record", "-o", bag_path] + topic_args,
             output="screen",
         ))
 
@@ -359,7 +364,16 @@ def generate_launch_description():
                 "/harambe_policy_legs_controller/debug /pelvis/imu "
                 "/odometry/filtered /cmd_vel "
                 "/harambe_policy_legs_controller/enable /joint_states"),
-            description="Space-separated topics to record when record_bag:=true.",
+            description="Space-separated topics to record when record_bag:=true. "
+                        "Ignored when record_all:=true.",
+        ),
+        DeclareLaunchArgument(
+            "record_all",
+            default_value="true",
+            choices=["true", "false"],
+            description="true (default): record every topic (ros2 bag record -a). "
+                        "false: record only the curated bag_topics list. Heavier — "
+                        "may drop messages at 1 kHz. Only used when record_bag:=true.",
         ),
         DeclareLaunchArgument(
             "use_rviz",

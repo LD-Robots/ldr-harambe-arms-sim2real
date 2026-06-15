@@ -129,10 +129,10 @@ robot_safety_supervisor:
         # falls through to the global X6-style envelope.
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         # ── Wrists (X4, low-inertia, narrow torque envelope, 24 V rail) ──
         left_wrist_yaw_joint_X4:
@@ -143,25 +143,25 @@ robot_safety_supervisor:
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         # ── Waist (X8) — single torso joint, moderate envelope ──
         waist_yaw_joint_X8:
@@ -219,7 +219,7 @@ robot_safety_supervisor:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -227,7 +227,7 @@ robot_safety_supervisor:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_pitch_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -235,7 +235,7 @@ robot_safety_supervisor:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -243,7 +243,7 @@ robot_safety_supervisor:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
 # ── Controller-side safety mirror ────────────────────────────────────────────
 # Every PVT controller links librobot_safety the same way the supervisor does,
@@ -299,35 +299,35 @@ robot_pvt_controller:
           sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         left_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         waist_yaw_joint_X8:
           effort_limit: 30.0
@@ -381,7 +381,7 @@ robot_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -389,7 +389,7 @@ robot_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_pitch_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -397,7 +397,7 @@ robot_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -405,7 +405,7 @@ robot_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
 # ── Split controller safety mirrors ──────────────────────────────────────────
 # Identical to the robot_pvt_controller block above. upper_body_pvt_controller
@@ -457,35 +457,35 @@ upper_body_pvt_controller:
           sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         left_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         waist_yaw_joint_X8:
           effort_limit: 30.0
@@ -539,7 +539,7 @@ upper_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -547,7 +547,7 @@ upper_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_pitch_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -555,7 +555,7 @@ upper_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -563,7 +563,7 @@ upper_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
 lower_body_pvt_controller:
   ros__parameters:
@@ -610,35 +610,35 @@ lower_body_pvt_controller:
           sustained_effort_threshold: 20.0
         left_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_shoulder_yaw_joint_X4:
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         left_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_yaw_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_wrist_roll_joint_X4:
           effort_limit: 6.0
           sustained_effort_threshold: 4.5
           velocity_limit: 4.0
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
 
         waist_yaw_joint_X8:
           effort_limit: 30.0
@@ -692,7 +692,7 @@ lower_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         left_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -700,7 +700,7 @@ lower_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_pitch_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -708,7 +708,7 @@ lower_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
         right_ankle_roll_joint_X4:
           effort_limit: 100.0
           sustained_effort_threshold: 80.0
@@ -716,4 +716,4 @@ lower_body_pvt_controller:
           position_min: -0.785398     # ±45° URDF ankle limit
           position_max:  0.785398
           bus_voltage_min: 20.0
-          bus_voltage_max: 28.0
+          bus_voltage_max: 34.0
