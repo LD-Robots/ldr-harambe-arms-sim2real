@@ -75,6 +75,12 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     auto effort_vec = auto_declare<std::vector<double>>("effort_limits", default_eff);
     auto default_vec = auto_declare<std::vector<double>>("default_positions", default_pos);
 
+    // Global PD-gain multipliers — effective gain = per-joint kp/kd × scale.
+    // Lets you ramp stiffness up SAFELY on hardware (start <1.0) without editing
+    // every per-joint value. 1.0 = use the config gains as-is.
+    const double kp_scale = auto_declare<double>("kp_scale", 1.0);
+    const double kd_scale = auto_declare<double>("kd_scale", 1.0);
+
     for (size_t s : {kp_vec.size(), kd_vec.size(), effort_vec.size(), default_vec.size()}) {
       if (s != num_joints_) {
         RCLCPP_ERROR(get_node()->get_logger(),
@@ -86,10 +92,15 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     joints_.resize(num_joints_);
     for (size_t i = 0; i < num_joints_; ++i) {
       joints_[i].name = joint_names_[i];
-      joints_[i].kp = kp_vec[i];
-      joints_[i].kd = kd_vec[i];
+      joints_[i].kp = kp_vec[i] * kp_scale;
+      joints_[i].kd = kd_vec[i] * kd_scale;
       joints_[i].effort_limit = effort_vec[i];
       joints_[i].default_pos = default_vec[i];
+    }
+    if (kp_scale != 1.0 || kd_scale != 1.0) {
+      RCLCPP_WARN(get_node()->get_logger(),
+        "PD gains SCALED at deploy: kp_scale=%.3f kd_scale=%.3f "
+        "(effective gain = config kp/kd × scale).", kp_scale, kd_scale);
     }
 
     // Policy / loop parameters. decimation defaults are computed for the

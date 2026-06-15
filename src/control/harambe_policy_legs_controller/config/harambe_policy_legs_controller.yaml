@@ -87,6 +87,14 @@ harambe_policy_legs_controller:
       - 1.414  # right_ankle_pitch
       - 1.000  # right_ankle_roll
 
+    # Global PD-gain multipliers applied to ALL joints at load:
+    #   effective kp = kp * kp_scale ,  effective kd = kd * kd_scale.
+    # Ramp stiffness up SAFELY on hardware (e.g. kp_scale: 0.3 for the first
+    # standing test) without editing every per-joint value. 1.0 = gains as-is.
+    # A WARN is logged at startup whenever a scale != 1.0.
+    kp_scale: 1.0
+    kd_scale: 1.0
+
     # Effort limits (N·m). Informational at the host (the drive clamps torque);
     # kept here to document the training values per joint.
     effort_limits:
