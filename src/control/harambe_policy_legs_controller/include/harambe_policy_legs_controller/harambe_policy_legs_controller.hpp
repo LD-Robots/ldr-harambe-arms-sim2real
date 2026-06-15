@@ -8,6 +8,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "realtime_tools/realtime_buffer.hpp"
+#include "realtime_tools/realtime_publisher.hpp"
 
 #include <onnxruntime_cxx_api.h>
 
@@ -171,6 +172,13 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr debug_pub_;
+  // RealtimePublisher wraps debug_pub_: update() only does trylock + memcpy +
+  // signal; a separate NON-RT thread does the actual DDS write. NEVER publish()
+  // directly from the 1 kHz loop — a reliable writer blocks on subscriber
+  // backpressure (the CSV logger / rosbag flushing to disk), stalling the RT
+  // thread tens of ms and overrunning the cycle.
+  std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::msg::Float32MultiArray>>
+    rt_debug_pub_;
 
   // Helpers
   void buildObservation();

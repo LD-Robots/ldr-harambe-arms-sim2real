@@ -257,8 +257,16 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_configure(
     });
 
   if (publish_debug_) {
+    // SensorDataQoS = BEST_EFFORT: drop a debug sample rather than apply
+    // backpressure. Combined with RealtimePublisher (write happens on a non-RT
+    // thread), the 1 kHz update() never blocks on the subscriber or the network.
     debug_pub_ = node->create_publisher<std_msgs::msg::Float32MultiArray>(
-      debug_topic_, rclcpp::SystemDefaultsQoS());
+      debug_topic_, rclcpp::SensorDataQoS());
+    rt_debug_pub_ = std::make_unique<
+      realtime_tools::RealtimePublisher<std_msgs::msg::Float32MultiArray>>(debug_pub_);
+    // Pre-size the message buffer once (off the RT path) so the first publish
+    // does not allocate inside update().
+    rt_debug_pub_->msg_.data.reserve(num_joints_ * 4 + kObsDim);
   }
 
   RCLCPP_INFO(get_node()->get_logger(),
@@ -375,6 +383,31 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
       state_interfaces_[joints_[i].pos_state_idx].get_optional().value_or(joints_[i].default_pos);
     ramp_start_[i] = static_cast<float>(q);
     target_pos_[i] = static_cast<float>(q);
+  }
+
+  // Pre-grow the ONNX Runtime CPU arena OFF the RT path. ORT lazily allocates
+  // (and may re-allocate) its memory arena on the FIRST Run() — tens of ms —
+  // which on the 1 kHz update() loop is a guaranteed cycle overrun. on_activate
+  // is NOT the RT thread, so run one throwaway inference here to make the arena
+  // hot before update() ticks. The output is discarded and target_pos_ /
+  // action_hist_ are left untouched (we do NOT call runPolicyInference()).
+  if (ort_session_) {
+    try {
+      std::vector<float> warm_obs(kObsDim, 0.0f);
+      std::array<int64_t, 2> warm_shape = {1, static_cast<int64_t>(warm_obs.size())};
+      auto warm_in = Ort::Value::CreateTensor<float>(
+        ort_mem_info_, warm_obs.data(), warm_obs.size(),
+        warm_shape.data(), warm_shape.size());
+      const char * in_names[] = {"obs"};
+      const char * out_names[] = {"actions"};
+      Ort::RunOptions warm_opts{nullptr};
+      ort_session_->Run(warm_opts, in_names, &warm_in, 1, out_names, 1);
+      RCLCPP_INFO(get_node()->get_logger(),
+        "ONNX warmup inference done — arena pre-grown before the RT loop.");
+    } catch (const Ort::Exception & e) {
+      RCLCPP_WARN(get_node()->get_logger(),
+        "ONNX warmup inference failed (arena will grow on first RT Run): %s", e.what());
+    }
   }
 
   RCLCPP_INFO(get_node()->get_logger(),
@@ -703,9 +736,13 @@ void HarambePolicyLegsController::imuToState(
 // ============================================================================
 void HarambePolicyLegsController::publishDebugIfEnabled()
 {
-  if (!debug_pub_) return;
-  std_msgs::msg::Float32MultiArray m;
-  m.data.reserve(num_joints_ * 4 + kObsDim);
+  if (!rt_debug_pub_) return;
+  // trylock(): if the non-RT publish thread is still draining the previous
+  // sample, SKIP this one rather than block the 1 kHz loop. Debug telemetry is
+  // best-effort — a dropped sample beats a control-cycle overrun.
+  if (!rt_debug_pub_->trylock()) return;
+  auto & m = rt_debug_pub_->msg_;
+  m.data.clear();   // capacity is retained (reserved in on_configure) — no RT alloc
   for (size_t i = 0; i < num_joints_; ++i) {
     m.data.push_back(target_pos_[i]);
   }
@@ -721,7 +758,7 @@ void HarambePolicyLegsController::publishDebugIfEnabled()
     m.data.push_back(action_hist_[0][i]);
   }
   for (float v : obs_) m.data.push_back(v);
-  debug_pub_->publish(m);
+  rt_debug_pub_->unlockAndPublish();
 }
 
 }  // namespace harambe_policy_legs_controller
