@@ -210,9 +210,17 @@ def _launch_setup(context):
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             bag_path = os.path.join("/tmp/bags", f"harambe_{ts}")
         if LaunchConfiguration("record_all").perform(context) == "true":
-            # Capture every topic. Heavier — at 1 kHz real-time this can drop
-            # messages and bloat the bag, so it stays opt-in.
+            # Capture every topic EXCEPT the heavy ones. Measured on a 127 s run,
+            # three buckets were 96% of a 24.6 GiB bag: the Orbbec camera image
+            # streams (~10.6 GB), the RTAB-Map visual-odometry image/cloud
+            # intermediates (~8.2 GB), and the pal_statistics controller_manager
+            # introspection flood (~4.9 GB). Dropping them leaves ~1 GB of the
+            # state/PVT/policy data that actually matters for tuning. The pattern
+            # is tunable via bag_exclude_regex (empty string = true raw -a).
             topic_args = ["-a"]
+            exclude = LaunchConfiguration("bag_exclude_regex").perform(context)
+            if exclude:
+                topic_args += ["--exclude-regex", exclude]
         else:
             topic_args = LaunchConfiguration("bag_topics").perform(context).split()
         bag_actions.append(ExecuteProcess(
@@ -371,9 +379,22 @@ def generate_launch_description():
             "record_all",
             default_value="true",
             choices=["true", "false"],
-            description="true (default): record every topic (ros2 bag record -a). "
-                        "false: record only the curated bag_topics list. Heavier — "
-                        "may drop messages at 1 kHz. Only used when record_bag:=true.",
+            description="true (default): record every topic (ros2 bag record -a) "
+                        "minus bag_exclude_regex. false: record only the curated "
+                        "bag_topics list. Only used when record_bag:=true.",
+        ),
+        DeclareLaunchArgument(
+            "bag_exclude_regex",
+            default_value=(
+                "^/camera/"
+                "|^/odom_rgbd_image|^/odom_sensor_data/"
+                "|^/odom_last_frame|^/odom_local_map|^/odom_local_scan_map"
+                "|^/controller_manager/(introspection_data|statistics)/"),
+            description="Regex of topics to drop when record_all:=true. Default "
+                        "excludes the camera image streams, RTAB-Map visual-odometry "
+                        "image/cloud intermediates, and pal_statistics introspection "
+                        "— ~96% of bag size, none needed for PVT/policy tuning. Set "
+                        "to '' to record a true raw -a.",
         ),
         DeclareLaunchArgument(
             "use_rviz",
