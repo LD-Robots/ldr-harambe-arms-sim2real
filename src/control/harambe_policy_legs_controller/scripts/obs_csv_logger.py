@@ -17,20 +17,23 @@ and the drive computes torque — so we reconstruct the SAME quantity the sims l
 using the per-joint kp/kd/effort from the deploy contract (override via params to
 match a non-default controller config).
 
-Run:
+Run (csv_path is optional — defaults to /tmp/csv_real/obs_real_<timestamp>.csv):
+    ros2 run harambe_policy_legs_controller obs_csv_logger.py
     ros2 run harambe_policy_legs_controller obs_csv_logger.py \
-        --ros-args -p csv_path:=/tmp/csv_real/obs_real.csv \
-                   -p debug_topic:=/harambe_policy_legs_controller/debug
+        --ros-args -p csv_path:=/tmp/csv_real/myrun.csv
 
-The controller must have publish_debug:=true (robot_pvt_policy.launch.py
-log_csv:=true sets this and launches this node automatically).
+The controller must have publish_debug:=true. robot_pvt_policy.launch.py logs by
+default (log_csv:=true); pass log_csv:=false to turn it off.
 """
 import csv
+import datetime
 import os
 
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+
+DEFAULT_DIR = "/tmp/csv_real"
 
 # Leg joints in training order — MUST match the controller `joints:` and the sim
 # _MJX_LEG_JOINTS so the columns line up for a sim-vs-real diff.
@@ -69,7 +72,9 @@ def csv_obs_header():
 class ObsCsvLogger(Node):
     def __init__(self):
         super().__init__("obs_csv_logger")
-        self.declare_parameter("csv_path", "/tmp/csv_real/obs_real.csv")
+        # csv_path: "" → auto /tmp/csv_real/obs_real_<timestamp>.csv ; a directory
+        # → <dir>/obs_real_<timestamp>.csv ; a *.csv file → used verbatim.
+        self.declare_parameter("csv_path", "")
         self.declare_parameter("debug_topic",
                                "/harambe_policy_legs_controller/debug")
         self.declare_parameter("kp", DEFAULT_KP)
@@ -79,7 +84,7 @@ class ObsCsvLogger(Node):
         self.kp = list(self.get_parameter("kp").value)
         self.kd = list(self.get_parameter("kd").value)
         self.eff = list(self.get_parameter("effort_limits").value)
-        path = self.get_parameter("csv_path").value
+        path = self._resolve_path(self.get_parameter("csv_path").value)
         topic = self.get_parameter("debug_topic").value
 
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -94,6 +99,18 @@ class ObsCsvLogger(Node):
         self.get_logger().info(
             f"obs_csv_logger: '{topic}' -> {path} "
             f"(same columns as the sims; tau reconstructed from kp/kd)")
+
+    @staticmethod
+    def _resolve_path(path):
+        """Empty → /tmp/csv_real/obs_real_<ts>.csv ; directory → <dir>/...<ts>.csv ;
+        explicit *.csv → verbatim. Timestamp makes every run a unique file."""
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        fname = f"obs_real_{ts}.csv"
+        if not path:
+            return os.path.join(DEFAULT_DIR, fname)
+        if path.endswith(os.sep) or os.path.isdir(path):
+            return os.path.join(path, fname)
+        return path
 
     def _on_debug(self, msg):
         d = msg.data

@@ -303,16 +303,20 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "log_csv",
-            default_value="false",
+            default_value="true",
             choices=["true", "false"],
-            description="true: publish ~/debug and run obs_csv_logger, writing the "
-                        "same obs CSV format as the sims (play_mjx/play_isaac/"
-                        "Gazebo) to csv_path — drops into scripts/plot_csv_gui.py.",
+            description="true (default): publish ~/debug and run obs_csv_logger, "
+                        "writing the same obs CSV format as the sims (play_mjx/"
+                        "play_isaac/Gazebo) — drops into scripts/plot_csv_gui.py. "
+                        "Pass log_csv:=false to disable.",
         ),
         DeclareLaunchArgument(
             "csv_path",
-            default_value="/tmp/csv_real/obs_real.csv",
-            description="Output path for the obs CSV when log_csv:=true.",
+            default_value="",
+            description="Output path for the obs CSV. Empty (default) → "
+                        "/tmp/csv_real/obs_real_<timestamp>.csv (unique per run); "
+                        "a directory → <dir>/obs_real_<timestamp>.csv; a *.csv "
+                        "file → used verbatim.",
         ),
         DeclareLaunchArgument(
             "use_rviz",
