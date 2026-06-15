@@ -26,6 +26,7 @@ model bundled in the controller package (models/policy.onnx); override with
 onnx_path:=<path>.
 """
 
+import datetime
 import os
 import tempfile
 
@@ -34,7 +35,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument, RegisterEventHandler, TimerAction,
-    IncludeLaunchDescription, OpaqueFunction,
+    IncludeLaunchDescription, OpaqueFunction, ExecuteProcess,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
@@ -90,7 +91,10 @@ def _policy_config_path(context):
     params["onnx_path"] = onnx_path
     # log_csv:=true → the controller publishes ~/debug so obs_csv_logger can write
     # the sim-format CSV.
-    if LaunchConfiguration("log_csv").perform(context) == "true":
+    # publish ~/debug when we log a CSV OR record a bag (the bag captures ~/debug
+    # so it can be re-extracted to CSV later with bag_to_csv.py).
+    if (LaunchConfiguration("log_csv").perform(context) == "true"
+            or LaunchConfiguration("record_bag").perform(context) == "true"):
         params["publish_debug"] = True
     # dry_run:=true → the policy runs + logs but the motors HOLD the default pose
     # (policy target is never sent to the drives). Safe shadow mode.
@@ -196,6 +200,21 @@ def _launch_setup(context):
         condition=IfCondition(LaunchConfiguration("log_csv")),
     )
 
+    # Optional rosbag — records the policy ~/debug + raw sensor topics. Off by
+    # default. Path auto-timestamped so every run is a unique bag. View/extract
+    # later with `ros2 run harambe_policy_legs_controller bag_to_csv.py <bag>`.
+    bag_actions = []
+    if LaunchConfiguration("record_bag").perform(context) == "true":
+        bag_path = LaunchConfiguration("bag_path").perform(context)
+        if not bag_path:
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            bag_path = os.path.join("/tmp/bags", f"harambe_{ts}")
+        topics = LaunchConfiguration("bag_topics").perform(context).split()
+        bag_actions.append(ExecuteProcess(
+            cmd=["ros2", "bag", "record", "-o", bag_path] + topics,
+            output="screen",
+        ))
+
     safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
@@ -261,6 +280,7 @@ def _launch_setup(context):
     nodes.append(joint_state_publisher)
     nodes.append(rviz)
     nodes.append(csv_logger)
+    nodes.extend(bag_actions)
     return nodes
 
 
@@ -317,6 +337,29 @@ def generate_launch_description():
                         "/tmp/csv_real/obs_real_<timestamp>.csv (unique per run); "
                         "a directory → <dir>/obs_real_<timestamp>.csv; a *.csv "
                         "file → used verbatim.",
+        ),
+        DeclareLaunchArgument(
+            "record_bag",
+            default_value="false",
+            choices=["true", "false"],
+            description="true: record a rosbag of the policy ~/debug + raw sensor "
+                        "topics (also forces publish_debug). Off by default. View "
+                        "later: ros2 run harambe_policy_legs_controller "
+                        "bag_to_csv.py <bag>.",
+        ),
+        DeclareLaunchArgument(
+            "bag_path",
+            default_value="",
+            description="rosbag output dir when record_bag:=true. Empty (default) "
+                        "→ /tmp/bags/harambe_<timestamp> (unique per run).",
+        ),
+        DeclareLaunchArgument(
+            "bag_topics",
+            default_value=(
+                "/harambe_policy_legs_controller/debug /pelvis/imu "
+                "/odometry/filtered /cmd_vel "
+                "/harambe_policy_legs_controller/enable /joint_states"),
+            description="Space-separated topics to record when record_bag:=true.",
         ),
         DeclareLaunchArgument(
             "use_rviz",
