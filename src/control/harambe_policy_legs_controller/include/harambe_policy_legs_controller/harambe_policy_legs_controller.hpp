@@ -85,6 +85,8 @@ private:
     size_t pos_state_idx{0};    // index into state_interfaces_  (position)
     size_t vel_state_idx{0};    // index into state_interfaces_  (velocity)
     size_t pos_cmd_idx{0};      // index into command_interfaces_ (position)
+    size_t vel_cmd_idx{0};      // index into command_interfaces_ (velocity) — write 0
+    size_t eff_cmd_idx{0};      // index into command_interfaces_ (effort)   — write 0
     size_t kp_cmd_idx{0};       // index into command_interfaces_ (kp)
     size_t kd_cmd_idx{0};       // index into command_interfaces_ (kd)
   };

@@ -268,9 +268,16 @@ HarambePolicyLegsController::command_interface_configuration() const
 {
   controller_interface::InterfaceConfiguration cfg;
   cfg.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  cfg.names.reserve(num_joints_ * 3);
+  cfg.names.reserve(num_joints_ * 5);
   for (const auto & n : joint_names_) {
     cfg.names.push_back(n + "/position");
+    // Claim velocity + effort too, and write them to ZERO every tick. The drive
+    // (and especially the ankle-linkage driver, which transforms velocity/effort
+    // motor↔joint via the Jacobian) READS these PDOs; if left unclaimed they stay
+    // NaN and the drive gets a garbage velocity/torque feed-forward → the joint
+    // slews to its limit at full speed (this broke an ankle eccentric once).
+    cfg.names.push_back(n + "/velocity");
+    cfg.names.push_back(n + "/effort");
     cfg.names.push_back(n + "/kp");
     cfg.names.push_back(n + "/kd");
   }
@@ -298,7 +305,8 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
 {
   for (size_t j = 0; j < num_joints_; ++j) {
     const auto & jname = joints_[j].name;
-    bool fp = false, fv = false, fcp = false, fckp = false, fckd = false;
+    bool fp = false, fv = false, fcp = false, fcv = false, fce = false,
+         fckp = false, fckd = false;
     for (size_t k = 0; k < state_interfaces_.size(); ++k) {
       const auto & si = state_interfaces_[k];
       if (si.get_prefix_name() == jname) {
@@ -314,6 +322,10 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
       if (ci.get_prefix_name() == jname) {
         if (ci.get_interface_name() == "position") {
           joints_[j].pos_cmd_idx = k; fcp = true;
+        } else if (ci.get_interface_name() == "velocity") {
+          joints_[j].vel_cmd_idx = k; fcv = true;
+        } else if (ci.get_interface_name() == "effort") {
+          joints_[j].eff_cmd_idx = k; fce = true;
         } else if (ci.get_interface_name() == "kp") {
           joints_[j].kp_cmd_idx = k; fckp = true;
         } else if (ci.get_interface_name() == "kd") {
@@ -321,10 +333,11 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
         }
       }
     }
-    if (!fp || !fv || !fcp || !fckp || !fckd) {
+    if (!fp || !fv || !fcp || !fcv || !fce || !fckp || !fckd) {
       RCLCPP_ERROR(get_node()->get_logger(),
-        "Missing interfaces for joint '%s' (pos=%d vel=%d cmd_pos=%d kp=%d kd=%d)",
-        jname.c_str(), fp, fv, fcp, fckp, fckd);
+        "Missing interfaces for joint '%s' (pos=%d vel=%d cmd_pos=%d cmd_vel=%d "
+        "cmd_eff=%d kp=%d kd=%d)",
+        jname.c_str(), fp, fv, fcp, fcv, fce, fckp, fckd);
       return controller_interface::CallbackReturn::ERROR;
     }
   }
@@ -363,8 +376,19 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
 controller_interface::CallbackReturn HarambePolicyLegsController::on_deactivate(
   const rclcpp_lifecycle::State &)
 {
+  // Leave the drives in a SAFE static hold. These values persist after the
+  // interfaces are released (the hardware keeps applying the last command), so:
+  //   - HOLD the MEASURED pose (NOT default) — snapping a standing/walking robot
+  //     to the default pose with full kp would jerk the legs.
+  //   - WRITE velocity=0 AND effort=0 — an unwritten interface stays NaN and the
+  //     drive/ankle-linkage driver would push a garbage velocity/torque
+  //     feed-forward forever (this is what broke an ankle eccentric).
   for (size_t i = 0; i < num_joints_; ++i) {
-    (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(joints_[i].default_pos);
+    const double q = state_interfaces_[joints_[i].pos_state_idx]
+                       .get_optional().value_or(joints_[i].default_pos);
+    (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(q);
+    (void)command_interfaces_[joints_[i].vel_cmd_idx].set_value(0.0);
+    (void)command_interfaces_[joints_[i].eff_cmd_idx].set_value(0.0);
     (void)command_interfaces_[joints_[i].kp_cmd_idx].set_value(joints_[i].kp);
     (void)command_interfaces_[joints_[i].kd_cmd_idx].set_value(joints_[i].kd);
   }
@@ -594,6 +618,12 @@ void HarambePolicyLegsController::writeCommands()
   for (size_t i = 0; i < num_joints_; ++i) {
     (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(
       static_cast<double>(target_pos_[i]));
+    // Zero velocity + effort feed-forward EVERY tick. Pure position-PD policy:
+    // the drive must close the loop on position only. Leaving these unwritten
+    // (NaN) makes the ankle-linkage driver push NaN motor velocity/torque → the
+    // joint slews to its mechanical limit at full speed (broke an eccentric).
+    (void)command_interfaces_[joints_[i].vel_cmd_idx].set_value(0.0);
+    (void)command_interfaces_[joints_[i].eff_cmd_idx].set_value(0.0);
     (void)command_interfaces_[joints_[i].kp_cmd_idx].set_value(joints_[i].kp);
     (void)command_interfaces_[joints_[i].kd_cmd_idx].set_value(joints_[i].kd);
   }
