@@ -126,6 +126,10 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     // dry_run: run the policy + log, but HOLD the default pose (never send the
     // policy target to the motors). Safe shadow mode for validating obs/actions.
     dry_run_ = auto_declare<bool>("dry_run", false);
+    // fake_imu (diagnostic): feed the policy a sim-like IDEAL IMU —
+    // projected_gravity=[0,0,-1], gyro=0 (clean, no noise/latency, as sim shows
+    // standing). Isolates whether the real IMU channel drives the thrashing.
+    fake_imu_ = auto_declare<bool>("fake_imu", false);
     // IMU calibration filter (normalizes obs). Bake a previously captured
     // calibration here, or leave identity/0 and capture at runtime via
     // ~/calibrate_imu while the robot stands level & still.
@@ -636,6 +640,17 @@ void HarambePolicyLegsController::buildObservation()
   obs_[kObsProjGravity + 0] = static_cast<float>(grav_c[0]);
   obs_[kObsProjGravity + 1] = static_cast<float>(grav_c[1]);
   obs_[kObsProjGravity + 2] = static_cast<float>(grav_c[2]);
+  if (fake_imu_) {
+    // Diagnostic: replace the real IMU with the sim-like IDEAL (standing, clean):
+    // projected_gravity=[0,0,-1], gyro=0. No tilt feedback → cannot balance →
+    // run supported / in dry_run.
+    obs_[kObsBaseAngVel + 0] = 0.0f;
+    obs_[kObsBaseAngVel + 1] = 0.0f;
+    obs_[kObsBaseAngVel + 2] = 0.0f;
+    obs_[kObsProjGravity + 0] = 0.0f;
+    obs_[kObsProjGravity + 1] = 0.0f;
+    obs_[kObsProjGravity + 2] = -1.0f;
+  }
 
   // [9:12] cmd = [vx, vy, yaw_rate].
   const auto cmd = *cmd_buf_.readFromRT();

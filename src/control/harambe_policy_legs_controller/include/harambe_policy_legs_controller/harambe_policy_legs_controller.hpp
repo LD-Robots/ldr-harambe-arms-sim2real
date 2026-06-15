@@ -177,6 +177,11 @@ private:
   // policy target — the motors never follow the policy. Safe shadow/observe mode
   // for validating the obs pipeline + action sanity on real hardware.
   bool dry_run_{false};
+  // fake_imu: feed the policy an IDEAL IMU — projected_gravity=[0,0,-1], gyro=0
+  // (perfectly upright & still, no noise/latency). Diagnostic ONLY: isolates
+  // whether the thrashing is driven by the real IMU channel. The policy then
+  // gets NO tilt feedback, so it CANNOT balance — run supported / in dry_run.
+  bool fake_imu_{false};
 
   // Subscribers (non-RT side, write to realtime buffers)
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr pelvis_imu_sub_;

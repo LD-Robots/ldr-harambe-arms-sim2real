@@ -100,6 +100,15 @@ def _policy_config_path(context):
     # (policy target is never sent to the drives). Safe shadow mode.
     if LaunchConfiguration("dry_run").perform(context) == "true":
         params["dry_run"] = True
+    # fake_imu:=true → feed a sim-like IDEAL IMU (gravity [0,0,-1], gyro 0).
+    # Diagnostic; overrides the yaml without touching it.
+    if LaunchConfiguration("fake_imu").perform(context) == "true":
+        params["fake_imu"] = True
+    # action_scale:=<val> → override the yaml's action_scale without editing it
+    # (empty = keep the yaml value). MUST be 0.5 to match training.
+    asc = LaunchConfiguration("action_scale").perform(context)
+    if asc:
+        params["action_scale"] = float(asc)
     # Register the controller type in the controller_manager block.
     cm = cfg.setdefault("controller_manager", {}).setdefault("ros__parameters", {})
     cm.setdefault(POLICY_CONTROLLER, {})["type"] = POLICY_TYPE
@@ -333,6 +342,22 @@ def generate_launch_description():
                         "target is never sent to the drives. Safe way to validate "
                         "the obs pipeline + action sanity on hardware. Pair with "
                         "log_csv:=true.",
+        ),
+        DeclareLaunchArgument(
+            "fake_imu",
+            default_value="false",
+            choices=["true", "false"],
+            description="DIAGNOSTIC: feed the policy a sim-like IDEAL IMU (gravity "
+                        "[0,0,-1], gyro 0, no noise/latency) — overrides the yaml "
+                        "without editing it. Policy gets NO tilt feedback → can't "
+                        "balance → run supported or with dry_run:=true.",
+        ),
+        DeclareLaunchArgument(
+            "action_scale",
+            default_value="",
+            description="Override the controller's action_scale without editing "
+                        "the yaml (empty = keep yaml value). MUST be 0.5 to match "
+                        "training. e.g. action_scale:=0.5",
         ),
         DeclareLaunchArgument(
             "log_csv",
