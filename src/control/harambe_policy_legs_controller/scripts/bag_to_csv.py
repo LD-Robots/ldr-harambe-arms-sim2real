@@ -47,13 +47,23 @@ def main():
     ap.add_argument("--eff", type=float, nargs=NJ, default=DEFAULT_EFF)
     args = ap.parse_args()
 
-    if not os.path.isdir(args.bag):
-        print(f"[bag_to_csv] not a directory: {args.bag}")
+    # Accept either a bag DIRECTORY (with metadata.yaml) or a loose *.mcap/*.db3
+    # file. For a loose file we must name the storage backend explicitly.
+    if os.path.isfile(args.bag):
+        ext = os.path.splitext(args.bag)[1].lower()
+        storage_id = {".mcap": "mcap", ".db3": "sqlite3"}.get(ext, "")
+        if not storage_id:
+            print(f"[bag_to_csv] unknown bag file type: {args.bag}")
+            return 1
+    elif os.path.isdir(args.bag):
+        storage_id = ""   # auto-detect from metadata.yaml
+    else:
+        print(f"[bag_to_csv] not a bag dir or file: {args.bag}")
         return 1
 
     reader = rosbag2_py.SequentialReader()
     reader.open(
-        rosbag2_py.StorageOptions(uri=args.bag, storage_id=""),   # "" = auto-detect
+        rosbag2_py.StorageOptions(uri=args.bag, storage_id=storage_id),
         rosbag2_py.ConverterOptions("", ""))
     types = {t.name: t.type for t in reader.get_all_topics_and_types()}
     if args.topic not in types:
@@ -65,7 +75,8 @@ def main():
     out = args.out
     if not out:
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out = os.path.join(args.bag, f"obs_from_bag_{ts}.csv")
+        base_dir = args.bag if os.path.isdir(args.bag) else os.path.dirname(args.bag)
+        out = os.path.join(base_dir, f"obs_from_bag_{ts}.csv")
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
 
     fh = open(out, "w", newline="")

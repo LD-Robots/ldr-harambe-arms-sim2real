@@ -64,28 +64,28 @@ harambe_policy_legs_controller:
       - 75.0   # left_hip_roll
       - 75.0   # left_hip_yaw
       - 75.0   # left_knee
-      - 20.0   # left_ankle_pitch
-      - 20.0   # left_ankle_roll
+      - 3.0   # left_ankle_pitch
+      - 3.0   # left_ankle_roll
       - 75.0   # right_hip_pitch
       - 75.0   # right_hip_roll
       - 75.0   # right_hip_yaw
       - 75.0   # right_knee
-      - 20.0   # right_ankle_pitch
-      - 20.0   # right_ankle_roll
+      - 3.0   # right_ankle_pitch
+      - 3.0   # right_ankle_roll
 
     kd:
       - 5.625  # left_hip_pitch
       - 6.162  # left_hip_roll
       - 3.750  # left_hip_yaw
       - 5.511  # left_knee
-      - 1.414  # left_ankle_pitch
-      - 1.000  # left_ankle_roll
+      - 0.500  # left_ankle_pitch
+      - 0.500  # left_ankle_roll
       - 5.625  # right_hip_pitch
       - 6.162  # right_hip_roll
       - 3.750  # right_hip_yaw
       - 5.511  # right_knee
-      - 1.414  # right_ankle_pitch
-      - 1.000  # right_ankle_roll
+      - 0.500  # right_ankle_pitch
+      - 0.500  # right_ankle_roll
 
     # Global PD-gain multipliers applied to ALL joints at load:
     #   effective kp = kp * kp_scale ,  effective kd = kd * kd_scale.
@@ -118,7 +118,7 @@ harambe_policy_legs_controller:
     onnx_path: "/home/nano/Documents/GitHub/ldr-harambe-arms-sim2real/policy_legs.onnx"
 
     decimation: 20        # 1000 Hz / 20 = 50 Hz policy rate
-    action_scale: 0.5     # target = default + 0.5 * clip(action, -5, +5)
+    action_scale: 0.2     # target = default + 0.5 * clip(action, -5, +5)
     clip_actions: 5.0
     gait_freq: 1.5        # Hz — gait-clock frequency (MUST be 1.5 at deploy)
     warmup_steps: 200     # 4.0s policy steps holding the default pose before policy engages
@@ -130,6 +130,20 @@ harambe_policy_legs_controller:
     # Observation freshness gate — policy runs ONLY while sensors are fresh.
     obs_timeout: 0.2      # s — max age of IMU / odom; older -> hold default (never walk blind)
     require_odom: true    # also gate on /odometry/filtered (base_lin_vel). false to bench-test w/o VIO
+
+    # ------------------------------------------------------------------
+    # IMU calibration FILTER — normalizes the obs toward the sim ideal.
+    # Removes the IMU mounting tilt + gyro DC bias so that, standing LEVEL, the
+    # policy sees projected_gravity = [0,0,-1] and gyro = 0 (as in sim). Without
+    # this, a mounting tilt makes the policy fight a phantom lean -> chaotic.
+    # Capture live: stand the robot level & still, then
+    #   ros2 topic pub -1 /harambe_policy_legs_controller/calibrate_imu \
+    #       std_msgs/Bool "{data: true}"
+    # The controller logs the captured values — paste them here to persist.
+    # imu_mount_R: rotation (3x3 row-major) mapping measured "down" -> [0,0,-1].
+    # Identity / zero = no-op (raw obs).
+    imu_mount_R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    gyro_bias:   [0.0, 0.0, 0.0]
 
     # ------------------------------------------------------------------
     # Topics

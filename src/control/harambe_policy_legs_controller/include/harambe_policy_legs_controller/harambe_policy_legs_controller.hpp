@@ -148,6 +148,19 @@ private:
   realtime_tools::RealtimeBuffer<std::array<float, 3>> cmd_buf_;
   realtime_tools::RealtimeBuffer<bool> enable_buf_;
 
+  // ── IMU calibration filter (normalizes the obs toward the sim ideal) ────────
+  // Removes the IMU mounting tilt + gyro DC bias so that, standing LEVEL, the obs
+  // matches sim: projected_gravity = [0,0,-1], gyro = 0. imu_mount_R_ is the
+  // rotation that maps the measured "down" at level to [0,0,-1]; it is applied to
+  // BOTH gravity and gyro, so it stays correct while the pelvis tilts during the
+  // gait (a constant offset would not). gyro_bias_ removes the static rate offset.
+  // Capture at runtime with ~/calibrate_imu=true while the robot stands level &
+  // still, then bake the logged values into config (imu_mount_R / gyro_bias) to
+  // persist. Default = identity / 0 → no-op (raw obs).
+  std::array<double, 9> imu_mount_R_{{1, 0, 0, 0, 1, 0, 0, 0, 1}};  // row-major
+  std::array<double, 3> gyro_bias_{{0.0, 0.0, 0.0}};
+  std::atomic<bool> calibrate_pending_{false};
+
   // ONNX runtime
   std::unique_ptr<Ort::Env> ort_env_;
   std::unique_ptr<Ort::Session> ort_session_;
@@ -171,6 +184,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr calibrate_sub_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr debug_pub_;
   // RealtimePublisher wraps debug_pub_: update() only does trylock + memcpy +
   // signal; a separate NON-RT thread does the actual DDS write. NEVER publish()
@@ -188,6 +202,10 @@ private:
   // Pelvis BNO055 sensor→body remap:  v_body = (v_sz, -v_sy, v_sx).
   std::array<double, 3> sensorToBody(const std::array<double, 3> & v_s) const;
   void publishDebugIfEnabled();
+  // Capture the IMU calibration filter from a level/still reading: sets
+  // imu_mount_R_ (down→[0,0,-1]) and gyro_bias_ (= current gyro).
+  void captureImuCalib(const std::array<double, 3> & grav_raw,
+                       const std::array<double, 3> & gyro_raw);
 };
 
 }  // namespace harambe_policy_legs_controller

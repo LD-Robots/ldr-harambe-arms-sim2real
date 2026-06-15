@@ -126,6 +126,16 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     // dry_run: run the policy + log, but HOLD the default pose (never send the
     // policy target to the motors). Safe shadow mode for validating obs/actions.
     dry_run_ = auto_declare<bool>("dry_run", false);
+    // IMU calibration filter (normalizes obs). Bake a previously captured
+    // calibration here, or leave identity/0 and capture at runtime via
+    // ~/calibrate_imu while the robot stands level & still.
+    {
+      auto R = auto_declare<std::vector<double>>(
+        "imu_mount_R", {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+      if (R.size() == 9) std::copy(R.begin(), R.end(), imu_mount_R_.begin());
+      auto gb = auto_declare<std::vector<double>>("gyro_bias", {0.0, 0.0, 0.0});
+      if (gb.size() == 3) std::copy(gb.begin(), gb.end(), gyro_bias_.begin());
+    }
     onnx_path_ = auto_declare<std::string>("onnx_path", "");
 
     // Topic names.
@@ -254,6 +264,14 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_configure(
     enable_topic_, rclcpp::SystemDefaultsQoS(),
     [this](const std_msgs::msg::Bool::SharedPtr msg) {
       enable_buf_.writeFromNonRT(msg->data);
+    });
+
+  // ~/calibrate_imu=true → capture the IMU calibration filter on the next policy
+  // step (robot must be standing LEVEL & still). Normalizes gravity → [0,0,-1].
+  calibrate_sub_ = node->create_subscription<std_msgs::msg::Bool>(
+    "~/calibrate_imu", rclcpp::SystemDefaultsQoS(),
+    [this](const std_msgs::msg::Bool::SharedPtr msg) {
+      if (msg->data) calibrate_pending_.store(true);
     });
 
   if (publish_debug_) {
@@ -461,6 +479,12 @@ controller_interface::return_type HarambePolicyLegsController::update(
 
   // Policy inference at the decimated rate.
   if (step_counter_ % static_cast<uint64_t>(decimation_) == 0) {
+    // IMU calibration capture (one-shot, requested via ~/calibrate_imu). Uses the
+    // RAW buffered gravity/gyro so re-calibration is idempotent.
+    if (calibrate_pending_.exchange(false)) {
+      const auto pelvis = *pelvis_imu_buf_.readFromRT();
+      captureImuCalib(pelvis.proj_gravity, pelvis.ang_vel);
+    }
     buildObservation();
 
     // Observation SANITY gate — run BEFORE any other policy logic. A glitched
@@ -589,13 +613,29 @@ void HarambePolicyLegsController::buildObservation()
   obs_[kObsBaseLinVel + 2] = blv[2];
 
   // [3:6] base_ang_vel (gyro, body frame) and [6:9] projected_gravity (body).
+  // Apply the IMU calibration FILTER: rotate by imu_mount_R_ (removes the mounting
+  // tilt so level → gravity [0,0,-1]) and subtract gyro_bias_ from the gyro. With
+  // the default identity/0 this is a no-op (raw obs).
   const auto pelvis = *pelvis_imu_buf_.readFromRT();
-  obs_[kObsBaseAngVel + 0] = static_cast<float>(pelvis.ang_vel[0]);
-  obs_[kObsBaseAngVel + 1] = static_cast<float>(pelvis.ang_vel[1]);
-  obs_[kObsBaseAngVel + 2] = static_cast<float>(pelvis.ang_vel[2]);
-  obs_[kObsProjGravity + 0] = static_cast<float>(pelvis.proj_gravity[0]);
-  obs_[kObsProjGravity + 1] = static_cast<float>(pelvis.proj_gravity[1]);
-  obs_[kObsProjGravity + 2] = static_cast<float>(pelvis.proj_gravity[2]);
+  const auto & R = imu_mount_R_;
+  auto rot = [&R](const std::array<double, 3> & v) {
+    return std::array<double, 3>{
+      R[0] * v[0] + R[1] * v[1] + R[2] * v[2],
+      R[3] * v[0] + R[4] * v[1] + R[5] * v[2],
+      R[6] * v[0] + R[7] * v[1] + R[8] * v[2]};
+  };
+  const std::array<double, 3> gyro_unbias = {
+    pelvis.ang_vel[0] - gyro_bias_[0],
+    pelvis.ang_vel[1] - gyro_bias_[1],
+    pelvis.ang_vel[2] - gyro_bias_[2]};
+  const auto gyro_c = rot(gyro_unbias);
+  const auto grav_c = rot(pelvis.proj_gravity);
+  obs_[kObsBaseAngVel + 0] = static_cast<float>(gyro_c[0]);
+  obs_[kObsBaseAngVel + 1] = static_cast<float>(gyro_c[1]);
+  obs_[kObsBaseAngVel + 2] = static_cast<float>(gyro_c[2]);
+  obs_[kObsProjGravity + 0] = static_cast<float>(grav_c[0]);
+  obs_[kObsProjGravity + 1] = static_cast<float>(grav_c[1]);
+  obs_[kObsProjGravity + 2] = static_cast<float>(grav_c[2]);
 
   // [9:12] cmd = [vx, vy, yaw_rate].
   const auto cmd = *cmd_buf_.readFromRT();
@@ -700,6 +740,47 @@ std::array<double, 3> HarambePolicyLegsController::sensorToBody(
   const std::array<double, 3> & v_s) const
 {
   return {v_s[2], -v_s[1], v_s[0]};
+}
+
+// ============================================================================
+// Capture the IMU calibration filter from a level/still reading.
+//   imu_mount_R_ = shortest-arc rotation mapping the measured "down" → [0,0,-1]
+//                  (R = c*I + [v]x + (v v^T)/(1+c),  v = a×b,  c = a·b).
+//   gyro_bias_   = the current gyro reading (static rate offset).
+// ============================================================================
+void HarambePolicyLegsController::captureImuCalib(
+  const std::array<double, 3> & grav_raw, const std::array<double, 3> & gyro_raw)
+{
+  const double n = std::sqrt(grav_raw[0] * grav_raw[0] +
+                             grav_raw[1] * grav_raw[1] +
+                             grav_raw[2] * grav_raw[2]);
+  if (n < 1e-6) {
+    RCLCPP_WARN(get_node()->get_logger(),
+      "calibrate_imu ignored: gravity magnitude ~0 (is the IMU publishing?).");
+    return;
+  }
+  const double a[3] = {grav_raw[0] / n, grav_raw[1] / n, grav_raw[2] / n};
+  const double c = -a[2];                       // a · [0,0,-1]
+  const double vx = -a[1], vy = a[0], vz = 0.0; // a × [0,0,-1]
+  std::array<double, 9> R{{1, 0, 0, 0, 1, 0, 0, 0, 1}};
+  if (c < -0.999999) {                          // pointing "up" — won't happen for gravity
+    R = {{1, 0, 0, 0, -1, 0, 0, 0, -1}};
+  } else if (c <= 0.999999) {                   // general case
+    const double k = 1.0 / (1.0 + c);
+    R[0] = c + k * vx * vx; R[1] = -vz + k * vx * vy; R[2] = vy + k * vx * vz;
+    R[3] = vz + k * vx * vy; R[4] = c + k * vy * vy; R[5] = -vx + k * vy * vz;
+    R[6] = -vy + k * vx * vz; R[7] = vx + k * vy * vz; R[8] = c + k * vz * vz;
+  }
+  imu_mount_R_ = R;
+  gyro_bias_ = gyro_raw;
+  const double tilt = std::acos(std::max(-1.0, std::min(1.0, -a[2]))) * 180.0 / M_PI;
+  RCLCPP_WARN(get_node()->get_logger(),
+    "IMU CALIBRATED: leveled %.1f deg tilt (gravity was [%.3f %.3f %.3f]). "
+    "To PERSIST, set in config:  imu_mount_R: [%.5f, %.5f, %.5f, %.5f, %.5f, "
+    "%.5f, %.5f, %.5f, %.5f]   gyro_bias: [%.5f, %.5f, %.5f]",
+    tilt, grav_raw[0], grav_raw[1], grav_raw[2],
+    R[0], R[1], R[2], R[3], R[4], R[5], R[6], R[7], R[8],
+    gyro_raw[0], gyro_raw[1], gyro_raw[2]);
 }
 
 // ============================================================================
