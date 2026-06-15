@@ -112,6 +112,9 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     upright_threshold_ = auto_declare<double>("upright_threshold", 0.8);
     obs_timeout_ = auto_declare<double>("obs_timeout", 0.2);
     require_odom_ = auto_declare<bool>("require_odom", true);
+    // dry_run: run the policy + log, but HOLD the default pose (never send the
+    // policy target to the motors). Safe shadow mode for validating obs/actions.
+    dry_run_ = auto_declare<bool>("dry_run", false);
     onnx_path_ = auto_declare<std::string>("onnx_path", "");
 
     // Topic names.
@@ -366,6 +369,11 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
   RCLCPP_INFO(get_node()->get_logger(),
     "HarambePolicyLegsController activated — holding default pose for %d "
     "warmup policy steps before enabling the policy.", warmup_steps_);
+  if (dry_run_) {
+    RCLCPP_WARN(get_node()->get_logger(),
+      "DRY-RUN MODE: the policy will run and log (~/debug) but the motors will "
+      "HOLD the default pose — the policy target is NOT sent to the drives.");
+  }
 
   return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -616,8 +624,15 @@ void HarambePolicyLegsController::runPolicyInference()
 void HarambePolicyLegsController::writeCommands()
 {
   for (size_t i = 0; i < num_joints_; ++i) {
-    (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(
-      static_cast<double>(target_pos_[i]));
+    // dry_run shadow: when the policy is ACTIVE, hold the default pose instead of
+    // following the policy target (the policy still ran and is on ~/debug for the
+    // CSV; the legs just don't follow it). The WARMUP ramp still runs normally —
+    // target_pos_ holds the smooth homing interpolation while policy_active_ is
+    // false — so the legs ease into the default pose, they do NOT snap.
+    const double pos_cmd = (dry_run_ && policy_active_)
+        ? joints_[i].default_pos
+        : static_cast<double>(target_pos_[i]);
+    (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(pos_cmd);
     // Zero velocity + effort feed-forward EVERY tick. Pure position-PD policy:
     // the drive must close the loop on position only. Leaving these unwritten
     // (NaN) makes the ankle-linkage driver push NaN motor velocity/torque → the

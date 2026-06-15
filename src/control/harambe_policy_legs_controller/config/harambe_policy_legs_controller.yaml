@@ -117,6 +117,8 @@ harambe_policy_legs_controller:
     fall_threshold: 0.5   # |proj_grav_z| < 0.5 -> fallen -> hold default (while RUNNING)
     upright_threshold: 0.8  # |proj_grav_z| >= 0.8 REQUIRED to START (~within 37° of vertical)
     start_enabled: false  # false = WAIT for ~/enable=true (safe, hardware). true = auto-run (sim)
+    dry_run: false        # true = SHADOW: policy runs + logs (~/debug) but motors HOLD default
+                          #        (policy target NOT sent to drives). Safe obs/action validation.
     # Observation freshness gate — policy runs ONLY while sensors are fresh.
     obs_timeout: 0.2      # s — max age of IMU / odom; older -> hold default (never walk blind)
     require_odom: true    # also gate on /odometry/filtered (base_lin_vel). false to bench-test w/o VIO

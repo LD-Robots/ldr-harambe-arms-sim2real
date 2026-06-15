@@ -158,6 +158,11 @@ private:
   bool policy_active_{false};
   bool fallen_{false};
   bool enabled_{true};
+  // dry_run: the policy runs normally (inference, gait, action history, ~/debug
+  // → CSV) but writeCommands HOLDS the default pose instead of sending the
+  // policy target — the motors never follow the policy. Safe shadow/observe mode
+  // for validating the obs pipeline + action sanity on real hardware.
+  bool dry_run_{false};
 
   // Subscribers (non-RT side, write to realtime buffers)
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr pelvis_imu_sub_;

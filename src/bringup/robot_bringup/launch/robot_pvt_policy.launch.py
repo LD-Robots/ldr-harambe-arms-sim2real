@@ -92,6 +92,10 @@ def _policy_config_path(context):
     # the sim-format CSV.
     if LaunchConfiguration("log_csv").perform(context) == "true":
         params["publish_debug"] = True
+    # dry_run:=true → the policy runs + logs but the motors HOLD the default pose
+    # (policy target is never sent to the drives). Safe shadow mode.
+    if LaunchConfiguration("dry_run").perform(context) == "true":
+        params["dry_run"] = True
     # Register the controller type in the controller_manager block.
     cm = cfg.setdefault("controller_manager", {}).setdefault("ros__parameters", {})
     cm.setdefault(POLICY_CONTROLLER, {})["type"] = POLICY_TYPE
@@ -286,6 +290,16 @@ def generate_launch_description():
                         "pose and HOLDS it waiting for ~/enable (does NOT walk on "
                         "its own). false: spawn INACTIVE (drives back-drivable), "
                         "operator activates by hand.",
+        ),
+        DeclareLaunchArgument(
+            "dry_run",
+            default_value="false",
+            choices=["true", "false"],
+            description="true: SHADOW mode — the policy runs and logs (~/debug, "
+                        "CSV) but the motors HOLD the default pose; the policy "
+                        "target is never sent to the drives. Safe way to validate "
+                        "the obs pipeline + action sanity on hardware. Pair with "
+                        "log_csv:=true.",
         ),
         DeclareLaunchArgument(
             "log_csv",
