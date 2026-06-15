@@ -86,8 +86,12 @@ def _policy_config_path(context):
 
     with open(config_file, "r") as f:
         cfg = yaml.safe_load(f)
-    cfg.setdefault(POLICY_CONTROLLER, {}).setdefault("ros__parameters", {})[
-        "onnx_path"] = onnx_path
+    params = cfg.setdefault(POLICY_CONTROLLER, {}).setdefault("ros__parameters", {})
+    params["onnx_path"] = onnx_path
+    # log_csv:=true → the controller publishes ~/debug so obs_csv_logger can write
+    # the sim-format CSV.
+    if LaunchConfiguration("log_csv").perform(context) == "true":
+        params["publish_debug"] = True
     # Register the controller type in the controller_manager block.
     cm = cfg.setdefault("controller_manager", {}).setdefault("ros__parameters", {})
     cm.setdefault(POLICY_CONTROLLER, {})["type"] = POLICY_TYPE
@@ -174,6 +178,20 @@ def _launch_setup(context):
     # above, so this spawns by name like the others (no -t, no --param-file).
     legs_spawner = _make_spawner(POLICY_CONTROLLER, inactive=inactive)
 
+    # Optional CSV logger — subscribes to the controller's ~/debug and writes the
+    # SAME obs CSV format as the sims (play_mjx / play_isaac / Gazebo plugin), so a
+    # real run drops into scripts/plot_csv_gui.py next to the sim CSVs.
+    csv_logger = Node(
+        package=POLICY_CONTROLLER,
+        executable="obs_csv_logger.py",
+        output="screen",
+        parameters=[{
+            "csv_path": LaunchConfiguration("csv_path"),
+            "debug_topic": f"/{POLICY_CONTROLLER}/debug",
+        }],
+        condition=IfCondition(LaunchConfiguration("log_csv")),
+    )
+
     safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
@@ -238,6 +256,7 @@ def _launch_setup(context):
     nodes.append(safety_launch)
     nodes.append(joint_state_publisher)
     nodes.append(rviz)
+    nodes.append(csv_logger)
     return nodes
 
 
@@ -267,6 +286,19 @@ def generate_launch_description():
                         "pose and HOLDS it waiting for ~/enable (does NOT walk on "
                         "its own). false: spawn INACTIVE (drives back-drivable), "
                         "operator activates by hand.",
+        ),
+        DeclareLaunchArgument(
+            "log_csv",
+            default_value="false",
+            choices=["true", "false"],
+            description="true: publish ~/debug and run obs_csv_logger, writing the "
+                        "same obs CSV format as the sims (play_mjx/play_isaac/"
+                        "Gazebo) to csv_path — drops into scripts/plot_csv_gui.py.",
+        ),
+        DeclareLaunchArgument(
+            "csv_path",
+            default_value="/tmp/csv_real/obs_real.csv",
+            description="Output path for the obs CSV when log_csv:=true.",
         ),
         DeclareLaunchArgument(
             "use_rviz",

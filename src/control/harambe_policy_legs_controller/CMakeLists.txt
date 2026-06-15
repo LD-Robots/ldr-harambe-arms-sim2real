@@ -81,6 +81,13 @@ install(DIRECTORY config launch models
   OPTIONAL
 )
 
+# obs_csv_logger.py — runnable via `ros2 run harambe_policy_legs_controller
+# obs_csv_logger.py`. Writes the same obs CSV format as the sims from ~/debug.
+install(PROGRAMS
+  scripts/obs_csv_logger.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 pluginlib_export_plugin_description_file(controller_interface harambe_policy_legs_controller.xml)
 
 ament_package()
