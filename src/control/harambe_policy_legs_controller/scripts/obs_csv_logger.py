@@ -31,6 +31,7 @@ import os
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from std_msgs.msg import Float32MultiArray
 
 DEFAULT_DIR = "/tmp/csv_real"
@@ -94,10 +95,17 @@ class ObsCsvLogger(Node):
         self.fh.flush()
         self.tick = 0
 
+        # The controller publishes ~/debug with SensorDataQoS = BEST_EFFORT (it
+        # uses a RealtimePublisher and drops samples rather than block the 1 kHz
+        # loop). A RELIABLE subscriber is INCOMPATIBLE with a best-effort publisher
+        # and receives NOTHING — so we MUST subscribe best-effort (a best-effort
+        # sub also accepts reliable publishers, so this is the robust choice).
+        qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                         history=HistoryPolicy.KEEP_LAST, depth=50)
         self.sub = self.create_subscription(
-            Float32MultiArray, topic, self._on_debug, 50)
+            Float32MultiArray, topic, self._on_debug, qos)
         self.get_logger().info(
-            f"obs_csv_logger: '{topic}' -> {path} "
+            f"obs_csv_logger: '{topic}' (BEST_EFFORT) -> {path} "
             f"(same columns as the sims; tau reconstructed from kp/kd)")
 
     @staticmethod
