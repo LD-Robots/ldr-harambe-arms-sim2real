@@ -88,7 +88,7 @@ robot_safety_supervisor:
         sustained_effort_threshold: 10.0
         sustained_effort_window_sec: 1.0
         # 3.3 velocity
-        velocity_limit: 5.0           # rad/s
+        velocity_limit: 8.0           # rad/s
         slew_rate_limit: 2.5          # rad/s — position-command slew
         acceleration_limit: 30.0      # rad/s^2
         # 3.4 temperature / bus voltage (MyActuator X-series envelope)
@@ -264,7 +264,7 @@ robot_pvt_controller:
         effort_limit: 12.0
         sustained_effort_threshold: 10.0
         sustained_effort_window_sec: 1.0
-        velocity_limit: 5.0
+        velocity_limit: 8.0
         slew_rate_limit: 2.5
         acceleration_limit: 30.0
         motor_temp_warn: 70.0
@@ -422,7 +422,7 @@ upper_body_pvt_controller:
         effort_limit: 12.0
         sustained_effort_threshold: 10.0
         sustained_effort_window_sec: 1.0
-        velocity_limit: 5.0
+        velocity_limit: 8.0
         slew_rate_limit: 2.5
         acceleration_limit: 30.0
         motor_temp_warn: 70.0
@@ -575,7 +575,7 @@ lower_body_pvt_controller:
         effort_limit: 12.0
         sustained_effort_threshold: 10.0
         sustained_effort_window_sec: 1.0
-        velocity_limit: 5.0
+        velocity_limit: 8.0
         slew_rate_limit: 2.5
         acceleration_limit: 30.0
         motor_temp_warn: 70.0
