@@ -428,21 +428,24 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_activate(
 controller_interface::CallbackReturn HarambePolicyLegsController::on_deactivate(
   const rclcpp_lifecycle::State &)
 {
-  // Leave the drives in a SAFE static hold. These values persist after the
-  // interfaces are released (the hardware keeps applying the last command), so:
-  //   - HOLD the MEASURED pose (NOT default) — snapping a standing/walking robot
-  //     to the default pose with full kp would jerk the legs.
-  //   - WRITE velocity=0 AND effort=0 — an unwritten interface stays NaN and the
-  //     drive/ankle-linkage driver would push a garbage velocity/torque
-  //     feed-forward forever (this is what broke an ankle eccentric).
+  // Leave the drives LIMP (kp=kd=0) on deactivation — this is the SAFE state.
+  // Rationale (learned the hard way): if we left kp>0 here, then in the shutdown
+  // window the position command can be corrupted (the interface is released and
+  // 0x607A has no PDO `default`, unlike vel/eff/kp/kd) → the still-stiff drive
+  // SNAPS the ankle to a garbage position / its limit. Zeroing kp/kd guarantees
+  // NO active torque survives deactivation, so a corrupted position can't drive
+  // anything; the legs just go gently back-drivable. (vel=0, eff=0 too, so the
+  // ankle-linkage driver never transforms a NaN feed-forward.) Position is set to
+  // the measured pose for hygiene, but with kp=kd=0 it has no effect.
+  // NOTE: limp means a STANDING robot will sag — support it before deactivating.
   for (size_t i = 0; i < num_joints_; ++i) {
     const double q = state_interfaces_[joints_[i].pos_state_idx]
                        .get_optional().value_or(joints_[i].default_pos);
     (void)command_interfaces_[joints_[i].pos_cmd_idx].set_value(q);
     (void)command_interfaces_[joints_[i].vel_cmd_idx].set_value(0.0);
     (void)command_interfaces_[joints_[i].eff_cmd_idx].set_value(0.0);
-    (void)command_interfaces_[joints_[i].kp_cmd_idx].set_value(joints_[i].kp);
-    (void)command_interfaces_[joints_[i].kd_cmd_idx].set_value(joints_[i].kd);
+    (void)command_interfaces_[joints_[i].kp_cmd_idx].set_value(0.0);
+    (void)command_interfaces_[joints_[i].kd_cmd_idx].set_value(0.0);
   }
   RCLCPP_INFO(get_node()->get_logger(), "HarambePolicyLegsController deactivated");
   return controller_interface::CallbackReturn::SUCCESS;
