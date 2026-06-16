@@ -678,12 +678,20 @@ void HarambePolicyLegsController::buildObservation()
   }
 
   // [48:52] gait clock = [cos phL, cos phR, sin phL, sin phR], phR = phL + pi.
+  // FREEZE the clock to "stand" (zeros) at |cmd|~0 — MUST mirror training
+  // (gait_clock_obs) + sim (play_mjx / Gazebo). The clock advances on wall-time
+  // regardless of cmd; an always-rotating clock made the policy micro-step in
+  // sync while standing. *** Pairs with the post-2026-06-16 (clock-gated) model;
+  // for a pre-gating model (e.g. v8) this is a mismatch — deploy them together. ***
+  const double cmd_mag = std::sqrt(cmd[0] * cmd[0] + cmd[1] * cmd[1] +
+                                   cmd[2] * cmd[2]);
+  const double gait_on = (cmd_mag > 0.1) ? 1.0 : 0.0;
   const double phL = gait_phase_;
   const double phR = gait_phase_ + M_PI;
-  obs_[kObsGaitClock + 0] = static_cast<float>(std::cos(phL));
-  obs_[kObsGaitClock + 1] = static_cast<float>(std::cos(phR));
-  obs_[kObsGaitClock + 2] = static_cast<float>(std::sin(phL));
-  obs_[kObsGaitClock + 3] = static_cast<float>(std::sin(phR));
+  obs_[kObsGaitClock + 0] = static_cast<float>(gait_on * std::cos(phL));
+  obs_[kObsGaitClock + 1] = static_cast<float>(gait_on * std::cos(phR));
+  obs_[kObsGaitClock + 2] = static_cast<float>(gait_on * std::sin(phL));
+  obs_[kObsGaitClock + 3] = static_cast<float>(gait_on * std::sin(phR));
 }
 
 // ============================================================================
