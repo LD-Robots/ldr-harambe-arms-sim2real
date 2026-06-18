@@ -9,7 +9,8 @@
 **/__pycache__/
 **/.pytest_cache/
 *.pyc
-
+**/bags/
+*/bags/
 # Colcon specific
 */.colcon_
 */colcon-
