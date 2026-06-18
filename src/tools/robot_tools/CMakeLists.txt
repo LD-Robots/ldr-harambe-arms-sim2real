@@ -33,6 +33,12 @@ install(PROGRAMS
   RENAME bus_voltage_viewer
 )
 
+install(PROGRAMS
+  src/${PROJECT_NAME}/policy_legs_panel.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME policy_legs_panel
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
