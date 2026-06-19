@@ -116,6 +116,7 @@ private:
 
   // Topic names
   std::string pelvis_imu_topic_;
+  std::string torso_imu_topic_;   // torso IMU — its gyro drives the ZUPT stationarity gate
   std::string pelvis_grav_topic_;   // optional — BNO055 "gravity vector" output
   std::string odom_topic_;
   std::string cmd_vel_topic_;
@@ -144,6 +145,7 @@ private:
     bool valid{false};
   };
   realtime_tools::RealtimeBuffer<ImuState> pelvis_imu_buf_;
+  realtime_tools::RealtimeBuffer<std::array<double, 3>> torso_gyro_buf_;   // raw torso gyro (ZUPT gate)
   realtime_tools::RealtimeBuffer<std::array<float, 3>> base_lin_vel_buf_;
   realtime_tools::RealtimeBuffer<std::array<float, 3>> cmd_buf_;
   realtime_tools::RealtimeBuffer<bool> enable_buf_;
@@ -160,6 +162,22 @@ private:
   std::array<double, 9> imu_mount_R_{{1, 0, 0, 0, 1, 0, 0, 0, 1}};  // row-major
   std::array<double, 3> gyro_bias_{{0.0, 0.0, 0.0}};
   std::atomic<bool> calibrate_pending_{false};
+
+  // base_lin_vel calibration: subtract the standstill bias (captured by the SAME
+  // ~/calibrate_imu command, AVERAGED over a window since VIO velocity is noisy)
+  // and optionally EMA low-pass to suppress VIO noise. Defaults = no-op.
+  std::array<double, 3> vel_bias_{{0.0, 0.0, 0.0}};
+  bool vel_calib_active_{false};
+  std::array<double, 3> vel_calib_sum_{{0.0, 0.0, 0.0}};
+  int vel_calib_count_{0};
+  static constexpr int kVelCalibSamples = 50;   // ~1 s at the 50 Hz policy rate
+  double vel_lp_alpha_{0.0};                     // EMA: v = a*v_prev + (1-a)*v_raw; 0 = off
+  std::array<double, 3> vel_filt_{{0.0, 0.0, 0.0}};
+  bool vel_filt_init_{false};
+  // ZUPT (zero-velocity update): when standing (cmd~0) AND the body isn't rotating
+  // (gyro |w| < vel_zupt_gyro_ => not being pushed), force base_lin_vel -> 0 (the
+  // VIO drift). A push spikes the gyro -> released -> policy still feels it. 0 = off.
+  double vel_zupt_gyro_{0.5};                     // rad/s threshold
 
   // ONNX runtime
   std::unique_ptr<Ort::Env> ort_env_;
@@ -186,6 +204,7 @@ private:
 
   // Subscribers (non-RT side, write to realtime buffers)
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr pelvis_imu_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr torso_imu_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr pelvis_grav_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;

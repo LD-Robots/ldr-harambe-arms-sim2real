@@ -139,11 +139,17 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
       if (R.size() == 9) std::copy(R.begin(), R.end(), imu_mount_R_.begin());
       auto gb = auto_declare<std::vector<double>>("gyro_bias", {0.0, 0.0, 0.0});
       if (gb.size() == 3) std::copy(gb.begin(), gb.end(), gyro_bias_.begin());
+      // base_lin_vel standstill bias (captured by ~/calibrate_imu) + VIO low-pass.
+      auto vb = auto_declare<std::vector<double>>("vel_bias", {0.0, 0.0, 0.0});
+      if (vb.size() == 3) std::copy(vb.begin(), vb.end(), vel_bias_.begin());
+      vel_lp_alpha_ = auto_declare<double>("vel_lowpass_alpha", 0.0);   // 0=off; ~0.8 smooths VIO noise
+      vel_zupt_gyro_ = auto_declare<double>("vel_zupt_gyro", 0.5);      // 0=off; rad/s stationarity gate
     }
     onnx_path_ = auto_declare<std::string>("onnx_path", "");
 
     // Topic names.
     pelvis_imu_topic_ = auto_declare<std::string>("pelvis_imu_topic", "/pelvis/imu");
+    torso_imu_topic_ = auto_declare<std::string>("torso_imu_topic", "/torso_imu/data");
     pelvis_grav_topic_ = auto_declare<std::string>("pelvis_grav_topic", "/pelvis/grav");
     odom_topic_ = auto_declare<std::string>("odom_topic", "/odometry/filtered");
     cmd_vel_topic_ = auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");
@@ -173,6 +179,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
     neutral.valid = false;
     pelvis_imu_buf_.writeFromNonRT(neutral);
     base_lin_vel_buf_.writeFromNonRT({0.0f, 0.0f, 0.0f});
+    torso_gyro_buf_.writeFromNonRT({0.0, 0.0, 0.0});
     cmd_buf_.writeFromNonRT({0.0f, 0.0f, 0.0f});
     // Wait for an explicit ~/enable=true before the policy drives the legs.
     // Until then the controller HOLDS THE DEFAULT POSE. Safer on hardware: you
@@ -217,6 +224,17 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_configure(
       imuToState(*msg, s);
       pelvis_imu_buf_.writeFromNonRT(s);
       last_imu_ns_.store(get_node()->now().nanoseconds());   // freshness gate
+    });
+
+  // Torso IMU — its gyro drives the ZUPT stationarity gate (the base_lin_vel comes
+  // from the torso VIO, so stationarity is judged at the torso). Raw axes only; only
+  // the magnitude |w| is used, so no mount remap is needed.
+  torso_imu_sub_ = node->create_subscription<sensor_msgs::msg::Imu>(
+    torso_imu_topic_, rclcpp::SensorDataQoS(),
+    [this](const sensor_msgs::msg::Imu::SharedPtr msg) {
+      torso_gyro_buf_.writeFromNonRT({msg->angular_velocity.x,
+                                      msg->angular_velocity.y,
+                                      msg->angular_velocity.z});
     });
 
   // Optional: BNO055 /grav topic (Vector3) for projected_gravity. The BNO
@@ -488,6 +506,26 @@ controller_interface::return_type HarambePolicyLegsController::update(
     if (calibrate_pending_.exchange(false)) {
       const auto pelvis = *pelvis_imu_buf_.readFromRT();
       captureImuCalib(pelvis.proj_gravity, pelvis.ang_vel);
+      // same command also (re)starts the velocity-bias capture window. VIO velocity
+      // is noisy (std ~0.17, peaks ~0.8), so AVERAGE over kVelCalibSamples (~1 s)
+      // instead of grabbing one sample. Robot must keep standing still ~1 s.
+      vel_calib_active_ = true;
+      vel_calib_sum_ = {0.0, 0.0, 0.0};
+      vel_calib_count_ = 0;
+    }
+    if (vel_calib_active_) {
+      const auto raw = *base_lin_vel_buf_.readFromRT();
+      vel_calib_sum_[0] += raw[0]; vel_calib_sum_[1] += raw[1]; vel_calib_sum_[2] += raw[2];
+      if (++vel_calib_count_ >= kVelCalibSamples) {
+        for (int i = 0; i < 3; ++i) vel_bias_[i] = vel_calib_sum_[i] / vel_calib_count_;
+        vel_calib_active_ = false;
+        vel_filt_init_ = false;   // re-seed the low-pass after re-biasing
+        RCLCPP_WARN(get_node()->get_logger(),
+          "VELOCITY CALIBRATED: bias [%.4f %.4f %.4f] (avg of %d samples). "
+          "To PERSIST, set in config:  vel_bias: [%.5f, %.5f, %.5f]",
+          vel_bias_[0], vel_bias_[1], vel_bias_[2], vel_calib_count_,
+          vel_bias_[0], vel_bias_[1], vel_bias_[2]);
+      }
     }
     buildObservation();
 
@@ -610,11 +648,34 @@ controller_interface::return_type HarambePolicyLegsController::update(
 // ============================================================================
 void HarambePolicyLegsController::buildObservation()
 {
-  // [0:3] base_lin_vel — from /odometry/filtered, already body frame (no remap).
+  // [0:3] base_lin_vel — from /odometry/filtered, body frame. Subtract the
+  // calibrated standstill bias (vel_bias_, from ~/calibrate_imu), then optional
+  // EMA low-pass to suppress VIO noise (vel_lowpass_alpha; 0 = off). Defaults = raw.
   const auto blv = *base_lin_vel_buf_.readFromRT();
-  obs_[kObsBaseLinVel + 0] = blv[0];
-  obs_[kObsBaseLinVel + 1] = blv[1];
-  obs_[kObsBaseLinVel + 2] = blv[2];
+  std::array<double, 3> v = {
+    blv[0] - vel_bias_[0], blv[1] - vel_bias_[1], blv[2] - vel_bias_[2]};
+  // ZUPT: standing (cmd~0) AND body not rotating (gyro small => not being pushed)
+  // => true velocity ~0, so kill the VIO drift. A push spikes the gyro -> released
+  // -> the policy still feels real disturbances. The low-pass below smooths the
+  // engage/release transition. vel_zupt_gyro_ <= 0 disables it.
+  if (vel_zupt_gyro_ > 0.0) {
+    const auto cmd = *cmd_buf_.readFromRT();
+    const auto tw = *torso_gyro_buf_.readFromRT();   // TORSO gyro (where the velocity is measured)
+    const double cmd_mag = std::sqrt(cmd[0] * cmd[0] + cmd[1] * cmd[1] + cmd[2] * cmd[2]);
+    const double gyro_mag = std::sqrt(tw[0] * tw[0] + tw[1] * tw[1] + tw[2] * tw[2]);
+    if (cmd_mag <= 0.1 && gyro_mag < vel_zupt_gyro_) v = {0.0, 0.0, 0.0};
+  }
+  if (vel_lp_alpha_ > 0.0) {
+    if (!vel_filt_init_) { vel_filt_ = v; vel_filt_init_ = true; }
+    else {
+      for (int i = 0; i < 3; ++i)
+        vel_filt_[i] = vel_lp_alpha_ * vel_filt_[i] + (1.0 - vel_lp_alpha_) * v[i];
+    }
+    v = vel_filt_;
+  }
+  obs_[kObsBaseLinVel + 0] = static_cast<float>(v[0]);
+  obs_[kObsBaseLinVel + 1] = static_cast<float>(v[1]);
+  obs_[kObsBaseLinVel + 2] = static_cast<float>(v[2]);
 
   // [3:6] base_ang_vel (gyro, body frame) and [6:9] projected_gravity (body).
   // Apply the IMU calibration FILTER: rotate by imu_mount_R_ (removes the mounting
