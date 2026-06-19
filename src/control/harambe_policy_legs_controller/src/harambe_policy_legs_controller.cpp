@@ -144,6 +144,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
       if (vb.size() == 3) std::copy(vb.begin(), vb.end(), vel_bias_.begin());
       vel_lp_alpha_ = auto_declare<double>("vel_lowpass_alpha", 0.0);   // 0=off; ~0.8 smooths VIO noise
       vel_zupt_gyro_ = auto_declare<double>("vel_zupt_gyro", 0.5);      // 0=off; rad/s stationarity gate
+      vel_zupt_scale_ = auto_declare<double>("vel_zupt_scale", 0.3);    // velocity kept when stationary (0=hard zero)
     }
     onnx_path_ = auto_declare<std::string>("onnx_path", "");
 
@@ -663,7 +664,9 @@ void HarambePolicyLegsController::buildObservation()
     const auto tw = *torso_gyro_buf_.readFromRT();   // TORSO gyro (where the velocity is measured)
     const double cmd_mag = std::sqrt(cmd[0] * cmd[0] + cmd[1] * cmd[1] + cmd[2] * cmd[2]);
     const double gyro_mag = std::sqrt(tw[0] * tw[0] + tw[1] * tw[1] + tw[2] * tw[2]);
-    if (cmd_mag <= 0.1 && gyro_mag < vel_zupt_gyro_) v = {0.0, 0.0, 0.0};
+    if (cmd_mag <= 0.1 && gyro_mag < vel_zupt_gyro_) {
+      v[0] *= vel_zupt_scale_; v[1] *= vel_zupt_scale_; v[2] *= vel_zupt_scale_;
+    }
   }
   if (vel_lp_alpha_ > 0.0) {
     if (!vel_filt_init_) { vel_filt_ = v; vel_filt_init_ = true; }

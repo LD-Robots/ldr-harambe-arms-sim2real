@@ -177,7 +177,9 @@ private:
   // ZUPT (zero-velocity update): when standing (cmd~0) AND the body isn't rotating
   // (gyro |w| < vel_zupt_gyro_ => not being pushed), force base_lin_vel -> 0 (the
   // VIO drift). A push spikes the gyro -> released -> policy still feels it. 0 = off.
-  double vel_zupt_gyro_{0.5};                     // rad/s threshold
+  double vel_zupt_gyro_{0.5};                     // rad/s threshold (0 = ZUPT off)
+  double vel_zupt_scale_{0.3};                    // velocity fraction KEPT when stationary
+                                                  // (0 = hard zero, 1 = no damping)
 
   // ONNX runtime
   std::unique_ptr<Ort::Env> ort_env_;
