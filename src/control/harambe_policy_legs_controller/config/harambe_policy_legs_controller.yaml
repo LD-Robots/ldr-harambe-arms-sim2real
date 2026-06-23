@@ -146,6 +146,23 @@ harambe_policy_legs_controller:
     gyro_bias:   [0.0, 0.0, 0.0]
 
     # ------------------------------------------------------------------
+    # Velocity ZUPT (Zero-velocity UPdaTe) — suppress base_lin_vel drift at standstill.
+    # The VIO velocity has a slow, low-frequency drift (a low-pass filter barely
+    # helps): standing still the policy still sees |vel| ~0.17 m/s (peaks 0.8) and
+    # micro-steps to "cancel" it. ZUPT detects standstill and shrinks the reported
+    # base_lin_vel toward 0. Standstill = commanded still (|cmd| <= 0.1) AND
+    # actually still (TORSO IMU gyro magnitude < vel_zupt_gyro). Only the obs fed
+    # to the policy is scaled; the raw odometry/EKF is untouched.
+    # ------------------------------------------------------------------
+    vel_zupt_gyro:  0.5   # rad/s — torso-IMU gyro magnitude BELOW which the robot
+                          #   is treated as stationary (the ZUPT gate). 0 = ZUPT OFF.
+                          #   Too high triggers ZUPT mid-walk (zeros real velocity);
+                          #   too low never triggers (drift leaks through).
+    vel_zupt_scale: 0.3   # fraction of base_lin_vel KEPT while stationary.
+                          #   0 = hard zero (too aggressive — snaps exactly to 0),
+                          #   1 = no effect. 0.3 -> standstill |vel| ~0.17 -> ~0.05 m/s.
+
+    # ------------------------------------------------------------------
     # Topics
     # ------------------------------------------------------------------
     pelvis_imu_topic:  "/pelvis/imu"        # sensor_msgs/Imu (gyro + orientation)
