@@ -3,12 +3,27 @@
 `policy.onnx` (+ `policy.onnx.data`, external weights — keep both together) is the
 deploy policy this controller loads by default.
 
-* **Model:** harambe_mjx_v10 (legs-only MJX walker) — sha1 `e4132c10c869`
+* **Model:** harambe_mjx_v11 (legs-only MJX walker) — sha1 `5d4f55161e5f`
 * **Contract:** 52 obs / 12 act, `action_scale = 0.5`, gait_freq 1.5 Hz
 * **Obs normalizer is baked into the ONNX** — feed raw obs.
-* **Source:** `pnd_adam_test/models/harambe_mjx_v10/` (run 2026-06-18_14-45-44, model_17000).
+* **Source:** `pnd_adam_test/models/harambe_mjx_v11/` (run 2026-06-22_19-42-35, model_14300).
 
-* **sim2real-robust:** trained with random obs LATENCY (0-100 ms on base_lin_vel + gyro + gravity) + widened noise, so it tolerates the real VIO velocity lag that made v7 thrash on hardware. Deploy with `action_scale=0.5`, ankle kp/kd match-pitch (~0.95/0.07 motor), and IMU calibration.
+## ⚠️ NEW default pose — must match `default_positions` in the controller yaml
+v11 was trained with a **new, straighter default pose** (CONTRACT change vs v8-v10,
+since obs[12:24] = q − default and target = default + 0.5·action):
+
+* legs (this controller): hip_pitch **−0.05**, knee **0.10**, ankle_pitch **−0.05**
+  (was −0.15 / 0.30 / −0.15) — already set in
+  `config/harambe_policy_legs_controller.yaml` `default_positions`
+  (`[-0.05, 0, 0, 0.10, -0.05, 0,  -0.05, 0, 0, 0.10, -0.05, 0]`).
+* arms/waist (held by the upper-body controller): shoulder_pitch 0.3845,
+  shoulder_roll ±0.1175, shoulder_yaw −0.0323, elbow −1.2686, wrist −0.0168/−0.0052.
+
+A v8-v10 bundle with these new `default_positions` (or vice-versa) is a mismatch
+and will walk wrong. Keep model + default_positions on the SAME pose.
+
+* **gait clock** MUST be gated to zero at |cmd|≤0.1 in the controller (mirror the
+  training/sim) or standing will micro-step.
 
 * **Velocity frame / IMU notes:**
   * During training, `base_lin_vel` was computed using the IMU mounted in the **torso**, not the pelvis IMU.
