@@ -150,7 +150,7 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
 
     // Topic names.
     pelvis_imu_topic_ = auto_declare<std::string>("pelvis_imu_topic", "/pelvis/imu");
-    torso_imu_topic_ = auto_declare<std::string>("torso_imu_topic", "/torso_imu/data");
+    torso_imu_topic_ = auto_declare<std::string>("torso_imu_topic", "/torso/imu");
     pelvis_grav_topic_ = auto_declare<std::string>("pelvis_grav_topic", "/pelvis/grav");
     odom_topic_ = auto_declare<std::string>("odom_topic", "/odometry/filtered");
     cmd_vel_topic_ = auto_declare<std::string>("cmd_vel_topic", "/cmd_vel");

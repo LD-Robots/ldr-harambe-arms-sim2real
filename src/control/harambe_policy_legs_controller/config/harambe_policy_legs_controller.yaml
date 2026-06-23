@@ -154,10 +154,11 @@ harambe_policy_legs_controller:
     # actually still (TORSO IMU gyro magnitude < vel_zupt_gyro). Only the obs fed
     # to the policy is scaled; the raw odometry/EKF is untouched.
     # ------------------------------------------------------------------
-    vel_zupt_gyro:  0.5   # rad/s — torso-IMU gyro magnitude BELOW which the robot
-                          #   is treated as stationary (the ZUPT gate). 0 = ZUPT OFF.
-                          #   Too high triggers ZUPT mid-walk (zeros real velocity);
-                          #   too low never triggers (drift leaks through).
+    vel_zupt_gyro:  0.2   # rad/s — torso-IMU gyro |w|=sqrt(x²+y²+z²) BELOW which the
+                          #   robot is treated as stationary (the ZUPT gate). 0 = OFF.
+                          #   Measured standstill noise ~0.005 rad/s, so 0.2 is ~40x
+                          #   above it (no false ZUPT-off at rest) yet low enough to
+                          #   release on a real push/sway. Was 0.5 (more conservative).
     vel_zupt_scale: 0.3   # fraction of base_lin_vel KEPT while stationary.
                           #   0 = hard zero (too aggressive — snaps exactly to 0),
                           #   1 = no effect. 0.3 -> standstill |vel| ~0.17 -> ~0.05 m/s.
@@ -166,6 +167,7 @@ harambe_policy_legs_controller:
     # Topics
     # ------------------------------------------------------------------
     pelvis_imu_topic:  "/pelvis/imu"        # sensor_msgs/Imu (gyro + orientation)
+    torso_imu_topic:   "/torso/imu"         # sensor_msgs/Imu — TORSO gyro, used ONLY by velocity ZUPT
     pelvis_grav_topic: "/pelvis/grav"       # geometry_msgs/Vector3 (BNO055 grav)
     use_grav_topic:    false                # false -> derive proj_gravity from orientation
     odom_topic:        "/odometry/filtered" # nav_msgs/Odometry -> base_lin_vel (body frame)
