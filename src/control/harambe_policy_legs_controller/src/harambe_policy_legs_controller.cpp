@@ -67,8 +67,8 @@ controller_interface::CallbackReturn HarambePolicyLegsController::on_init()
       120.0, 120.0, 120.0, 120.0, 80.0, 80.0,
       120.0, 120.0, 120.0, 120.0, 80.0, 80.0};
     const std::vector<double> default_pos = {
-      -0.15, 0.0, 0.0, 0.30, -0.15, 0.0,
-      -0.15, 0.0, 0.0, 0.30, -0.15, 0.0};
+      -0.05, 0.0, 0.0, 0.10, -0.05, 0.0,
+      -0.05, 0.0, 0.0, 0.10, -0.05, 0.0};
 
     auto kp_vec = auto_declare<std::vector<double>>("kp", default_kp);
     auto kd_vec = auto_declare<std::vector<double>>("kd", default_kd);
