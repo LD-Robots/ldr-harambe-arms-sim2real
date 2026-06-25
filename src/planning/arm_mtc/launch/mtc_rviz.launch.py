@@ -6,7 +6,7 @@ Keep this running in a separate terminal. Use mtc_run.launch.py to execute tasks
 
 Usage:
     # Terminal 1: Start the full system
-    ros2 launch arm_system_bringup full_system.launch.py
+    ros2 launch arm_system_bringup headless.launch.py
     
     # Terminal 2: Start RViz with MTC panels (keep running)
     ros2 launch arm_mtc mtc_rviz.launch.py

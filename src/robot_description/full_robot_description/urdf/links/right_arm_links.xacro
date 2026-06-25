@@ -170,6 +170,7 @@
       <mass value="0.69"/>
       <inertia ixx="0.00248005" ixy="1.0712e-08" ixz="-7.96759e-05" iyy="0.00272432" iyz="3.9857e-08" izz="0.00046834"/>
     </inertial>
+     <!-- START OF Disable fake hands
     <visual>
       <origin xyz="-0.0303429 -2.67e-09 -0.135203" rpy="0 0 3.14159"/>
       <geometry>
@@ -185,6 +186,7 @@
         <mesh filename="package://full_robot_description/meshes/collision/r_hand.stl"/>
       </geometry>
     </collision>
+    ENB OF Disable fake hands -->
     <visual>
       <origin xyz="-0.01 0 0" rpy="0 0 -1.5708"/>
       <geometry>

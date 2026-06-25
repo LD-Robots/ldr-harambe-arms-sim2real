@@ -8,25 +8,34 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
+from launch.conditions import IfCondition
 from moveit_configs_utils import MoveItConfigsBuilder
 
 def generate_launch_description():
     """
-    Alternative launch file using the legacy moveit_gazebo.launch.py
-    This launches:
-    1. Gazebo with full visualization
-    2. MoveIt with RViz
-    3. MTC pick and place demo node
+    Full-GUI launch variant. This launches:
+    1. Gazebo WITH GUI + robot + controllers (arm_gazebo/arm_world.launch.py)
+    2. MoveIt move_group
+    3. RViz (MoveIt config)
+    4. MTC pick and place demo node
     """
 
     # Declare launch arguments
     simulation_world_arg = DeclareLaunchArgument(
         'simulation_world',
-        default_value='',
-        description='Optional world file for the simulation (uses default if empty)'
+        default_value=PathJoinSubstitution([
+            FindPackageShare('arm_gazebo'), 'worlds', 'lab-mtc.sdf'
+        ]),
+        description='World file for the simulation (MTC scene by default)'
     )
 
-    # ========== BUILD MOVEIT CONFIGURATION ==========
+    use_rviz_arg = DeclareLaunchArgument(
+        'use_rviz',
+        default_value='true',
+        description='Launch RViz for visualization'
+    )
+
+    # ========== BUILD MOVEIT CONFIGURATION (for the MTC node) ==========
     moveit_config = (
         MoveItConfigsBuilder("arm_description", package_name="arm_moveit_config")
         .robot_description(file_path="config/arm_description.urdf.xacro")
@@ -36,21 +45,65 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
-    # ========== LAUNCH MOVEIT + GAZEBO (with GUI) ==========
-    moveit_gazebo_launch = IncludeLaunchDescription(
+    # ========== LAUNCH GAZEBO (with GUI) + robot + controllers ==========
+    gazebo_gui_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
-                FindPackageShare('arm_system_bringup'),
+                FindPackageShare('arm_gazebo'),
                 'launch',
-                'moveit_gazebo.launch.py'
+                'arm_world.launch.py'
             ])
-        )
+        ),
+        launch_arguments={
+            'world': LaunchConfiguration('simulation_world')
+        }.items()
+    )
+
+    # ========== LAUNCH MOVEIT MOVE_GROUP ==========
+    # Wait for Gazebo and controllers to come up
+    moveit_launch = TimerAction(
+        period=8.0,
+        actions=[
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution([
+                        FindPackageShare('arm_moveit_config'),
+                        'launch',
+                        'move_group.launch.py'
+                    ])
+                )
+            )
+        ]
+    )
+
+    # ========== LAUNCH RVIZ (Optional) ==========
+    rviz_config_file = PathJoinSubstitution([
+        FindPackageShare('arm_moveit_config'),
+        'config',
+        'moveit.rviz'
+    ])
+
+    rviz_node = TimerAction(
+        period=10.0,
+        actions=[
+            Node(
+                package='rviz2',
+                executable='rviz2',
+                name='rviz2',
+                output='log',
+                arguments=['-d', rviz_config_file],
+                parameters=[
+                    {'use_sim_time': True}
+                ],
+                condition=IfCondition(LaunchConfiguration('use_rviz'))
+            )
+        ]
     )
 
     # ========== LAUNCH MTC PICK AND PLACE NODE ==========
-    # Wait 15 seconds for full system initialization
+    # Wait for full system + move_group initialization
     mtc_node = TimerAction(
-        period=15.0,
+        period=18.0,
         actions=[
             Node(
                 package='arm_mtc',
@@ -68,8 +121,11 @@ def generate_launch_description():
     return LaunchDescription([
         # Arguments
         simulation_world_arg,
+        use_rviz_arg,
 
         # Launch sequence
-        moveit_gazebo_launch,    # Start full system with GUI
-        mtc_node,                # Start MTC demo after 15s
+        gazebo_gui_launch,       # 0s:  Gazebo GUI + controllers
+        moveit_launch,           # 8s:  move_group
+        rviz_node,               # 10s: RViz (optional)
+        mtc_node,                # 18s: MTC demo
     ])

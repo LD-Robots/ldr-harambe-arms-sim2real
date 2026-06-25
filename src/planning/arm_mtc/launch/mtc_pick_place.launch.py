@@ -9,7 +9,7 @@ Usage:
     ros2 launch arm_mtc mtc_pick_place.launch.py
 
 Prerequisites:
-    - Gazebo + controllers: ros2 launch arm_system_bringup full_system.launch.py
+    - Gazebo + controllers: ros2 launch arm_system_bringup headless.launch.py
     - MoveIt move_group: Must be running (included in full_system or demo.launch.py)
     - Planning scene: ros2 run arm_mtc planning_scene_publisher.py
 """

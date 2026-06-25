@@ -199,7 +199,7 @@
 
       Geometry:
         - Size: 0.5m (X) × 0.3m (Y) × 0.95m (Z)
-        - Center pose: [-0.45, 0.35, 0.475] (center of mass at half-height)
+        - Center pose: [0.45, 0.35, 0.475] (center of mass at half-height)
         - Surface height: z = 0.95m (top surface where objects rest)
 
       Physical Properties:
@@ -230,7 +230,8 @@
       Note: Inertial properties are included for completeness but ignored by physics engine
     -->
     <model name="test_table">
-      <pose>-0.45 0.35 0.475 0 0 0</pose>
+      <pose>0.45 0.35 0.475 0 0 0</pose>
+      <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>
@@ -295,7 +296,7 @@
         - Shape: Cylinder (vertical orientation)
         - Radius: 0.03035m (~60.7mm diameter)
         - Length: 0.15m (150mm height)
-        - Initial pose: [-0.45, 0.35, 1.025] (centered on test_table surface)
+        - Initial pose: [0.45, 0.35, 1.025] (centered on test_table surface)
                         z = 1.025 = table_surface(0.95) + cylinder_half_length(0.075)
 
       Physical Properties:
@@ -325,7 +326,7 @@
         - Collides realistically with environment
     -->
     <model name="lever">
-      <pose>-0.45 0.35 1.025 0 0 0</pose>
+      <pose>0.45 0.35 1.025 0 0 0</pose>
       <link name="lever_arm">
         <collision name="collision">
           <geometry>
@@ -385,7 +386,7 @@
 
       Geometry:
         - Size: 0.5m (X) × 0.3m (Y) × 0.95m (Z)
-        - Center pose: [-0.45, -0.35, 0.475] (0.7m away from source table in Y-axis)
+        - Center pose: [0.45, -0.35, 0.475] (0.7m away from source table in Y-axis)
         - Surface height: z = 0.95m (same as source table)
 
       Physical Properties:
@@ -417,7 +418,8 @@
       Note: Inertial properties included for completeness but ignored by physics engine
     -->
     <model name="destination_table">
-      <pose>-0.45 -0.35 0.475 0 0 0</pose>
+      <pose>0.45 -0.35 0.475 0 0 0</pose>
+      <static>true</static>
       <link name="link">
         <collision name="collision">
           <geometry>

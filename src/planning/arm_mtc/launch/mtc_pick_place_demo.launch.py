@@ -3,30 +3,32 @@ from launch.actions import (
     IncludeLaunchDescription,
     DeclareLaunchArgument,
     TimerAction,
-    RegisterEventHandler
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
-from launch.event_handlers import OnProcessExit
 from launch.conditions import IfCondition
 from moveit_configs_utils import MoveItConfigsBuilder
 
 def generate_launch_description():
     """
     Launch file that integrates:
-    1. Full system (headless Gazebo + controllers)
-    2. MoveIt move_group for motion planning
+    1. Headless system (Gazebo + controllers + move_group) via arm_system_bringup/headless.launch.py
+    2. Optional RViz visualization
     3. MTC pick and place demo node
-    4. Optional RViz visualization
+
+    Note: headless.launch.py already starts move_group internally (at ~10s),
+    so this file must NOT launch a second move_group.
     """
 
     # Declare launch arguments
     simulation_world_arg = DeclareLaunchArgument(
         'simulation_world',
-        default_value='',
-        description='Optional world file for the simulation (uses default if empty)'
+        default_value=PathJoinSubstitution([
+            FindPackageShare('arm_gazebo'), 'worlds', 'lab-mtc.sdf'
+        ]),
+        description='World file for the simulation (MTC scene by default)'
     )
 
     use_rviz_arg = DeclareLaunchArgument(
@@ -35,7 +37,7 @@ def generate_launch_description():
         description='Launch RViz for visualization'
     )
 
-    # ========== BUILD MOVEIT CONFIGURATION ==========
+    # ========== BUILD MOVEIT CONFIGURATION (for the MTC node) ==========
     moveit_config = (
         MoveItConfigsBuilder("arm_description", package_name="arm_moveit_config")
         .robot_description(file_path="config/arm_description.urdf.xacro")
@@ -45,35 +47,18 @@ def generate_launch_description():
         .to_moveit_configs()
     )
 
-    # ========== LAUNCH FULL SYSTEM (Headless Gazebo + Controllers) ==========
+    # ========== LAUNCH HEADLESS SYSTEM (Gazebo + controllers + move_group) ==========
     full_system_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
                 FindPackageShare('arm_system_bringup'),
                 'launch',
-                'full_system.launch.py'
+                'headless.launch.py'
             ])
         ),
         launch_arguments={
-            'simulation_world': LaunchConfiguration('simulation_world')
+            'world': LaunchConfiguration('simulation_world')
         }.items()
-    )
-
-    # ========== LAUNCH MOVEIT MOVE_GROUP ==========
-    # Wait 8 seconds for Gazebo and controllers to fully initialize
-    moveit_launch = TimerAction(
-        period=8.0,
-        actions=[
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    PathJoinSubstitution([
-                        FindPackageShare('arm_moveit_config'),
-                        'launch',
-                        'move_group.launch.py'
-                    ])
-                )
-            )
-        ]
     )
 
     # ========== LAUNCH RVIZ (Optional) ==========
@@ -84,7 +69,7 @@ def generate_launch_description():
     ])
 
     rviz_node = TimerAction(
-        period=10.0,
+        period=14.0,
         actions=[
             Node(
                 package='rviz2',
@@ -101,9 +86,9 @@ def generate_launch_description():
     )
 
     # ========== LAUNCH MTC PICK AND PLACE NODE ==========
-    # Wait 12 seconds for MoveIt to fully initialize
+    # Wait for Gazebo, controllers and move_group (started at ~10s inside headless) to be ready
     mtc_node = TimerAction(
-        period=12.0,
+        period=20.0,
         actions=[
             Node(
                 package='arm_mtc',
@@ -124,8 +109,7 @@ def generate_launch_description():
         use_rviz_arg,
 
         # Launch sequence
-        full_system_launch,      # 0s: Start Gazebo + controllers
-        moveit_launch,           # 8s: Start MoveIt
-        rviz_node,              # 10s: Start RViz (optional)
-        mtc_node,               # 12s: Start MTC demo
+        full_system_launch,      # 0s:  Gazebo + controllers + move_group (move_group at ~10s)
+        rviz_node,               # 14s: RViz (optional)
+        mtc_node,                # 20s: MTC demo
     ])

@@ -52,7 +52,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "world",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("arm_gazebo"), "worlds", "lab2.sdf"]
+                [FindPackageShare("arm_gazebo"), "worlds", "lab-ldr.sdf"]
             ),
             description="Path to Gazebo world file",
         )
@@ -88,6 +88,7 @@ def generate_launch_description():
     install_dir = get_package_prefix("arm_description")
     install_dir_hand = get_package_prefix("hand_description")
     install_dir_camera = get_package_prefix("camera_description")
+    install_dir_full_robot = get_package_prefix("full_robot_description")
 
     # Set GZ_SIM_RESOURCE_PATH to ROS workspace for package:// URI resolution
     gz_resource_path = SetEnvironmentVariable(
@@ -96,6 +97,7 @@ def generate_launch_description():
             os.path.join(install_dir, "share"),
             os.path.join(install_dir_hand, "share"),
             os.path.join(install_dir_camera, "share"),
+            os.path.join(install_dir_full_robot, "share"),
         ])
     )
 

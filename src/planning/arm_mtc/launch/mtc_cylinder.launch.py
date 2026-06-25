@@ -2,7 +2,7 @@
 """
 MTC Pick Place Cylinder - Standalone Launch
 
-This launch file assumes full_system.launch.py is already running.
+This launch file assumes headless.launch.py is already running.
 It only starts:
   1. MoveIt move_group (if not already running)
   2. RViz with MTC visualization
@@ -10,7 +10,7 @@ It only starts:
 
 Usage:
     # First terminal: Start the full system
-    ros2 launch arm_system_bringup full_system.launch.py
+    ros2 launch arm_system_bringup headless.launch.py
     
     # Second terminal: Run this MTC demo
     ros2 launch arm_mtc mtc_cylinder.launch.py

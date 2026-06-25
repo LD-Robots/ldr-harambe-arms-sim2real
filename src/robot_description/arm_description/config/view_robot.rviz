@@ -66,72 +66,302 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
+        left_hand_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        elbow_flange_link:
+        left_index_intermediate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        elbow_motor_link:
+        left_index_proximal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        end_effector_link:
+        left_index_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_middle_intermediate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        end_motor_link:
+        left_middle_proximal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        forearm_link:
+        left_middle_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_pinky_intermediate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        shoulder_motor_link:
+        left_pinky_proximal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        shoulder_pitch_motor_link:
+        left_pinky_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_ring_intermediate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        upper_arm_link:
+        left_ring_proximal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wrist_assembly_link:
+        left_ring_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_thumb_distal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wrist_base_link:
+        left_thumb_intermediate:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wrist_motor_link:
+        left_thumb_proximal:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wrist_pitch_link:
+        left_thumb_proximal_base:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wrist_roll_motor_link:
+        left_thumb_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_middle_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_middle_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_middle_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_pinky_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_pinky_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_pinky_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_ring_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ring_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ring_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_thumb_distal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_intermediate:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_proximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_proximal_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        urdf_ankle_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_ankle_assembly_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_foot_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_foot_assembly_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_hip_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_hip_assembly_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_elbow_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_lower_forearm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_shoulder_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_tibia_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_upper_arm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_upper_femur_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_upper_forearm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_l_wrist_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_lower_femur_left_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_lower_femur_right_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_elbow_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_lower_forearm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_shoulder_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_tibia_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_upper_arm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_upper_femur_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_upper_forearm_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_r_wrist_assembly:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        urdf_simplified_torso:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -190,7 +420,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 2.936988115310669
+      Distance: 0.6962424516677856
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -205,10 +435,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5953981876373291
+      Pitch: -0.5496013164520264
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.20039701461792
+      Yaw: 1.525396466255188
     Saved: ~
 Window Geometry:
   Displays:

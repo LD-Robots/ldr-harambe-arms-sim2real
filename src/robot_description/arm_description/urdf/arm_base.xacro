@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
+    <!-- Actuator properties (effort, velocity, damping, friction) -->
+    <xacro:include filename="$(find full_robot_description)/urdf/macros/actuator_properties.xacro" />
+
     <!-- Include macros -->
     <xacro:include filename="$(find arm_description)/urdf/macros/materials.xacro" />
 
@@ -31,21 +34,21 @@
     <xacro:inspire_hand_left
         parent="urdf_l_wrist_assembly"
         prefix="left_"
-        mount_x="-0.034"
-        mount_y="0.015"
+        mount_x="-0.0303429"
+        mount_y="4.99302e-07"
         mount_z="-0.06"
-        mount_roll="1.424576"
-        mount_pitch="-0.201364"
-        mount_yaw="2.205507"/>
+        mount_roll="${pi/2}"
+        mount_pitch="0.0"
+        mount_yaw="${pi/2}"/>
 
     <xacro:inspire_hand_right
         parent="urdf_r_wrist_assembly"
         prefix="right_"
-        mount_x="-0.029"
-        mount_y="-0.011"
+        mount_x="-0.0327429 "
+        mount_y="0.008"
         mount_z="-0.06"
-        mount_roll="1.717027"
-        mount_pitch="-0.201373"
-        mount_yaw="-2.205496"/>
+        mount_roll="${pi/2}"
+        mount_pitch="0.0"
+        mount_yaw="-${pi/2}"/>
 
 </robot>

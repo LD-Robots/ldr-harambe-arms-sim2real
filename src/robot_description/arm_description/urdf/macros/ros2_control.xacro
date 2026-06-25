@@ -12,9 +12,8 @@
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>
                 <state_interface name="position">
-                    <param name="initial_value">0.1</param>
+                    <param name="initial_value">0.0</param>
                 </state_interface>
-                <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
@@ -37,9 +36,8 @@
             <joint name="left_elbow_pitch_joint_X6">
                 <command_interface name="position"/>
                 <state_interface name="position">
-                    <param name="initial_value">0.3</param>
+                    <param name="initial_value">-0.1</param>
                 </state_interface>
-                <state_interface name="position"/>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
@@ -63,37 +61,49 @@
             <xacro:unless value="${only_left == 'true'}">
                 <joint name="right_shoulder_pitch_joint_X6">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">0.0</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>
                 <joint name="right_shoulder_roll_joint_X6">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">-0.1</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>
                 <joint name="right_shoulder_yaw_joint_X4">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">0.0</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>
                 <joint name="right_elbow_pitch_joint_X6">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">-0.1</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>
                 <joint name="right_wrist_yaw_joint_X4">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">0.0</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>
                 <joint name="right_wrist_roll_joint_X4">
                     <command_interface name="position"/>
-                    <state_interface name="position"/>
+                    <state_interface name="position">
+                        <param name="initial_value">0.0</param>
+                    </state_interface>
                     <state_interface name="velocity"/>
                     <state_interface name="effort"/>
                 </joint>

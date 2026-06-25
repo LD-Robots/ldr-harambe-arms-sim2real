@@ -1,6 +1,8 @@
-sensors:
-  - depth_camera
- 
+# Octomap disabled: the depth-camera occupancy map fills the planning scene with
+# voxels, making collision checking (and therefore planning) very slow.
+# To re-enable camera-based collision avoidance, restore: sensors: [depth_camera]
+sensors: []
+
 depth_camera:
   # Plugin type for point cloud processing
   sensor_plugin: occupancy_map_monitor/PointCloudOctomapUpdater

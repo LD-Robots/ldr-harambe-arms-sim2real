@@ -3,12 +3,12 @@
 MTC Run - Execute MTC pick and place task only
 
 This launch file ONLY runs the MTC node. Assumes:
-  1. full_system.launch.py is running
+  1. headless.launch.py is running
   2. mtc_rviz.launch.py is running (move_group + RViz)
 
 Usage:
     # Terminal 1: Start the full system
-    ros2 launch arm_system_bringup full_system.launch.py
+    ros2 launch arm_system_bringup headless.launch.py
     
     # Terminal 2: Start RViz with MTC panels (keep running)
     ros2 launch arm_mtc mtc_rviz.launch.py

@@ -24,7 +24,7 @@ def generate_launch_description():
     rviz_config = PathJoinSubstitution([
         pkg_share,
         'config',
-        'view_arm.rviz'
+        'view_robot.rviz'
     ])
 
     # Declare arguments
@@ -48,7 +48,7 @@ def generate_launch_description():
 
     use_rviz_config_arg = DeclareLaunchArgument(
         'use_rviz_config',
-        default_value='false',
+        default_value='true',
         description='Use saved RViz configuration file'
     )
 
