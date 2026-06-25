@@ -76,14 +76,16 @@ bool MTCPickPlaceCylinder::loadObjectConfig()
   };
 
   declare_if_not_declared("object_id", std::string("target_cylinder"));
-  declare_if_not_declared("object_radius", 0.025);
-  declare_if_not_declared("object_height", 0.15);
-  declare_if_not_declared("pick_x", -0.2);
-  declare_if_not_declared("pick_y", 0.5);
-  declare_if_not_declared("pick_z", 1.2);
-  declare_if_not_declared("place_x", -0.2);
-  declare_if_not_declared("place_y", -0.5);
-  declare_if_not_declared("place_z", 1.2);
+  // Defaults match the Gazebo lab-mtc.sdf scene, transformed world -> urdf_base
+  // (robot spawns at world z=0.85, so subtract 0.85 from world Z).
+  declare_if_not_declared("object_radius", 0.03035);   // = Gazebo lever radius
+  declare_if_not_declared("object_height", 0.15);      // = Gazebo lever length
+  declare_if_not_declared("pick_x", 0.45);             // test_table / lever world (0.45, 0.35, 1.025)
+  declare_if_not_declared("pick_y", 0.35);
+  declare_if_not_declared("pick_z", 0.175);            // 1.025 - 0.85
+  declare_if_not_declared("place_x", 0.45);            // destination_table world (0.45, -0.35, 1.025)
+  declare_if_not_declared("place_y", -0.35);
+  declare_if_not_declared("place_z", 0.175);
 
   object_config_.id = node_->get_parameter("object_id").as_string();
   object_config_.radius = node_->get_parameter("object_radius").as_double();
@@ -123,7 +125,7 @@ void MTCPickPlaceCylinder::setupPlanningScene()
   if (spawn_object) {
     moveit_msgs::msg::CollisionObject cylinder;
     cylinder.id = object_config_.id;
-    cylinder.header.frame_id = "base_link";
+    cylinder.header.frame_id = "urdf_base";
     cylinder.primitives.resize(1);
     cylinder.primitives[0].type = shape_msgs::msg::SolidPrimitive::CYLINDER;
     cylinder.primitives[0].dimensions = { object_config_.height, object_config_.radius };
@@ -148,20 +150,38 @@ void MTCPickPlaceCylinder::setupPlanningScene()
   if (node_->get_parameter("spawn_table").as_bool()) {
     moveit_msgs::msg::CollisionObject table;
     table.id = "table";
-    table.header.frame_id = "base_link";
+    table.header.frame_id = "urdf_base";
     table.primitives.resize(1);
     table.primitives[0].type = shape_msgs::msg::SolidPrimitive::BOX;
-    table.primitives[0].dimensions = { 0.5, 0.5, 0.2 };
+    table.primitives[0].dimensions = { 0.5, 0.3, 0.95 };  // = Gazebo test_table size
 
     geometry_msgs::msg::Pose table_pose;
-    table_pose.position.x = 0.3;
-    table_pose.position.y = 0.0;
-    table_pose.position.z = 0.6;
+    table_pose.position.x = 0.45;     // test_table world (0.45, 0.35, 0.475)
+    table_pose.position.y = 0.35;
+    table_pose.position.z = -0.375;   // 0.475 - 0.85; top at -0.375 + 0.475 = 0.1 = cylinder bottom
     table_pose.orientation.w = 1.0;
     table.pose = table_pose;
 
     psi.applyCollisionObject(table);
     RCLCPP_INFO(LOGGER, "Spawned table");
+
+    // Destination table (= Gazebo destination_table), world (0.45, -0.35, 0.475)
+    moveit_msgs::msg::CollisionObject dest_table;
+    dest_table.id = "destination_table";
+    dest_table.header.frame_id = "urdf_base";
+    dest_table.primitives.resize(1);
+    dest_table.primitives[0].type = shape_msgs::msg::SolidPrimitive::BOX;
+    dest_table.primitives[0].dimensions = { 0.5, 0.3, 0.95 };  // = Gazebo destination_table size
+
+    geometry_msgs::msg::Pose dest_table_pose;
+    dest_table_pose.position.x = 0.45;
+    dest_table_pose.position.y = -0.35;
+    dest_table_pose.position.z = -0.375;   // 0.475 - 0.85; top at 0.1
+    dest_table_pose.orientation.w = 1.0;
+    dest_table.pose = dest_table_pose;
+
+    psi.applyCollisionObject(dest_table);
+    RCLCPP_INFO(LOGGER, "Spawned destination table");
   }
 
   RCLCPP_INFO(LOGGER, "Planning scene setup complete");
@@ -377,7 +397,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       stage->properties().set("marker_ns", "lift");
 
       geometry_msgs::msg::Vector3Stamped vec;
-      vec.header.frame_id = "base_link";
+      vec.header.frame_id = "urdf_base";
       vec.vector.z = 1.0;  // Lift upward
       stage->setDirection(vec);
       grasp->insert(std::move(stage));
@@ -410,7 +430,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
 
       // Place pose from parameters
       geometry_msgs::msg::PoseStamped place_pose;
-      place_pose.header.frame_id = "base_link";
+      place_pose.header.frame_id = "urdf_base";
       place_pose.pose.position.x = object_config_.place_x;
       place_pose.pose.position.y = object_config_.place_y;
       place_pose.pose.position.z = object_config_.place_z;
@@ -469,7 +489,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
 
       // Move UP in world frame (avoids collision with stacked cylinders)
       geometry_msgs::msg::Vector3Stamped vec;
-      vec.header.frame_id = "world";
+      vec.header.frame_id = "urdf_base";
       vec.vector.z = 1.0;  // Retreat upward
       stage->setDirection(vec);
       place->insert(std::move(stage));
