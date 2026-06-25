@@ -108,7 +108,7 @@ def generate_launch_description():
         .robot_description_semantic(file_path="config/arm_description.srdf")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_pipelines(
-            pipelines=["ompl", "pilz_industrial_motion_planner", "chomp"]
+            pipelines=["pilz_industrial_motion_planner", "chomp", "ompl"]
         )
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_scene_monitor(
