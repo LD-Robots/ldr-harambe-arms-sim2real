@@ -101,6 +101,31 @@ def generate_launch_description():
         ]
     )
 
+    # ========== LEVER RESET HELPER ==========
+    # Reads the world name + lever home pose from the launched world file, then
+    # teleports the lever back on `/reset_lever`. Acts on demand (no start delay).
+    reset_lever_node = Node(
+        package='arm_gazebo',
+        executable='reset_lever',
+        name='reset_lever',
+        output='screen',
+        parameters=[
+            {'world_file': LaunchConfiguration('simulation_world')},
+            {'use_sim_time': True},
+        ]
+    )
+
+    # ========== ROBOT RESET HELPER ==========
+    # Commands the trajectory controllers back to the SRDF "home"/"open" poses on
+    # `/reset_robot`. Acts on demand (no start delay).
+    reset_robot_node = Node(
+        package='arm_gazebo',
+        executable='reset_robot',
+        name='reset_robot',
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
+
     # ========== LAUNCH MTC PICK AND PLACE NODE ==========
     # Wait for full system + move_group initialization
     mtc_node = TimerAction(
@@ -126,6 +151,8 @@ def generate_launch_description():
 
         # Launch sequence
         gazebo_gui_launch,       # 0s:  Gazebo GUI + controllers
+        reset_lever_node,        # 0s:  /reset_lever helper
+        reset_robot_node,        # 0s:  /reset_robot helper
         moveit_launch,           # 8s:  move_group
         rviz_node,               # 10s: RViz (optional)
         mtc_node,                # 18s: MTC demo

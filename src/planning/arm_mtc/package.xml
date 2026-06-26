@@ -31,6 +31,9 @@
   <!-- Eigen -->
   <depend>eigen3_cmake_module</depend>
 
+  <!-- reset_lever node launched from mtc_cylinder_grasp.launch.py -->
+  <exec_depend>arm_gazebo</exec_depend>
+
   <!-- Package dependencies -->
   <depend>moveit_msgs</depend>
   <depend>std_msgs</depend>

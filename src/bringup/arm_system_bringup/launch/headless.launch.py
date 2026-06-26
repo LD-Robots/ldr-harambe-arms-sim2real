@@ -176,6 +176,30 @@ def generate_launch_description():
         actions=[move_group_node],
     )
 
+    # Lever reset helper: reads the world name + lever home pose from the launched
+    # world file, then teleports the lever back on `/reset_lever`. Acts on demand,
+    # so no start delay is needed.
+    reset_lever_node = Node(
+        package="arm_gazebo",
+        executable="reset_lever",
+        name="reset_lever",
+        output="screen",
+        parameters=[
+            {"world_file": world_file},
+            {"use_sim_time": use_sim_time},
+        ],
+    )
+
+    # Robot reset helper: commands the trajectory controllers back to the SRDF
+    # "home"/"open" poses on `/reset_robot`. Acts on demand, no start delay.
+    reset_robot_node = Node(
+        package="arm_gazebo",
+        executable="reset_robot",
+        name="reset_robot",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
     return LaunchDescription(
         declared_arguments
         + [
@@ -184,5 +208,7 @@ def generate_launch_description():
             clock_bridge,
             spawn_arm,
             delayed_move_group,
+            reset_lever_node,
+            reset_robot_node,
         ]
     )

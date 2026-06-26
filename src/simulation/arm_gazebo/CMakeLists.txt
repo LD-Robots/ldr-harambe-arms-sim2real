@@ -19,6 +19,18 @@ install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
+# Python utility nodes (run with `ros2 run arm_gazebo <name>`)
+install(PROGRAMS
+  scripts/reset_lever.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME reset_lever
+)
+install(PROGRAMS
+  scripts/reset_robot.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME reset_robot
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
