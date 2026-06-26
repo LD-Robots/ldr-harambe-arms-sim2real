@@ -42,6 +42,7 @@ def generate_launch_description():
         MoveItConfigsBuilder("arm_description", package_name="arm_moveit_config")
         .robot_description(file_path="config/arm_description.urdf.xacro")
         .robot_description_semantic(file_path="config/arm_description.srdf")
+        .robot_description_kinematics(file_path="config/kinematics.yaml")  # TRAC-IK
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner", "chomp", "stomp"])
         .to_moveit_configs()

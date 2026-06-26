@@ -163,6 +163,9 @@ def generate_launch_description():
             moveit_config.to_dict(),
             {"use_sim_time": True},
             {"publish_monitored_planning_scene": True},
+            # Don't reject a trajectory whose start drifts from the current state (MTC stitches
+            # many sub-trajectories; intermediate states never match exactly to 0.01 rad).
+            {"trajectory_execution.allowed_start_tolerance": 0.0},
         ],
         arguments=["--ros-args", "--log-level", log_level],
     )

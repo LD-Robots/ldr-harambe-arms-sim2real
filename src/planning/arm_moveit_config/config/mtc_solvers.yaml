@@ -47,7 +47,7 @@ pilz_industrial_motion_planner:
 deep_grasp:
   type: "deep_grasp"
   angle_delta: 0.1         # Angular resolution for grasp sampling (radians)
-  ik_frame: "tcp_link"     # End-effector frame for IK
+  ik_frame: "left_tcp_link"     # End-effector frame for IK
 
 # MTC-specific solver parameters
 mtc:
