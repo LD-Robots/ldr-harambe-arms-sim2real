@@ -369,11 +369,9 @@ mtc::Task MTCPickPlaceCylinder::createTask()
   {
     auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (object,table)");
     stage->allowCollisions(object_config_.id, "table", true);
-    // The closed hand wraps the cylinder down to its base (= table top), so the fingers/palm
-    // touch the table at the place pose. Allow hand<->table too, else "move to place" rejects the
-    // goal (GOAL_STATE_INVALID). At the pick the fingers are open and clear, so this is harmless there.
-    const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
-    stage->allowCollisions("table", hand_links, true);
+    // NOTE: hand<->table is intentionally NOT allowed task-wide. A persistent hand<->table allowance
+    // made the palm/fingers clip through the table during approach/lift/transport. The hand must
+    // respect the table everywhere; only object<->table (the cylinder resting on it) is expected.
     task.add(std::move(stage));
   }
 
@@ -497,7 +495,10 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       grasp->insert(std::move(stage));
     }
 
-    // 6.4: Close gripper (use named pose from SRDF)
+    // 6.4: Close gripper (use named pose from SRDF). JointInterpolationPlanner is fine here — the
+    //      staggered look in Gazebo is NOT the trajectory (verified: a free-space close via either
+    //      planner is synchronous); it's the fingers stalling against the rigid cylinder at
+    //      different closing angles, i.e. the grip conforming to the object.
     {
       auto stage = std::make_unique<mtc::stages::MoveTo>("close gripper", interpolation_planner);
       stage->setGroup(hand_group_name);
@@ -513,16 +514,14 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       grasp->insert(std::move(stage));
     }
 
-    // 6.5b: Allow the now-ATTACHED object + closed hand to touch the table. The world-object
-    //        allowance (stage 1b) does NOT carry over once the object is attached to the robot,
-    //        so re-allow it here. GeneratePlacePose monitors THIS stage, so the place IK collision
-    //        check sees the allowance and produces collision-free (reachable) goals.
+    // 6.5b: Allow the now-ATTACHED object to rest on the table. The world-object allowance (stage 1b)
+    //        does NOT carry over once the object is attached to the robot, so re-allow it here.
+    //        GeneratePlacePose monitors THIS stage, so the place IK sees that the placed cylinder may
+    //        touch the table. hand<->table is deliberately NOT allowed — the hand must clear the table.
     {
       auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow attached object<->table");
       stage->allowCollisions(object_config_.id, "table", true);
-      const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
-      stage->allowCollisions("table", hand_links, true);
-      attach_object_ptr = stage.get();  // place IK monitors this (object attached + table allowed)
+      attach_object_ptr = stage.get();  // place IK monitors this (attached object<->table allowed)
       grasp->insert(std::move(stage));
     }
 
