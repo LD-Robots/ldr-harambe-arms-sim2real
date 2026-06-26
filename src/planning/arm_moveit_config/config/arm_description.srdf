@@ -33,6 +33,14 @@
         <joint name="left_wrist_yaw_joint_X4" value="0.0"/>
         <joint name="left_wrist_roll_joint_X4" value="0.0"/>
     </group_state>
+    <group_state name="pre_grasp" group="arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="-0.296706"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.488692"/>
+        <joint name="left_elbow_pitch_joint_X6" value="-1.082104"/>
+        <joint name="left_wrist_yaw_joint_X4" value="-0.139626"/>
+        <joint name="left_wrist_roll_joint_X4" value="-0.174533"/>
+    </group_state>
     <group_state name="open" group="hand">
         <joint name="left_thumb_proximal_yaw_joint" value="0.0"/>
         <joint name="left_thumb_proximal_pitch_joint" value="0.0"/>
