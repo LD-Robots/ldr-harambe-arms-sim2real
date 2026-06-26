@@ -43,31 +43,31 @@ joint_limits:
     max_acceleration: 5.0  # rad/s² (wrist roll)
   left_thumb_proximal_yaw_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
   left_thumb_proximal_pitch_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
   left_index_proximal_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
   left_middle_proximal_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
   left_ring_proximal_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
   left_pinky_proximal_joint:
     has_velocity_limits: true
-    max_velocity: 0.5  # rad/s (from URDF)
+    max_velocity: 2.0  # rad/s (raised from URDF 0.5 for a faster, snappier close)
     has_acceleration_limits: true
-    max_acceleration: 1.0  # rad/s²
+    max_acceleration: 10.0  # rad/s² (raised from 1.0 — low accel was the main slowdown)
