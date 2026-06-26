@@ -13,6 +13,12 @@
 #include <moveit/task_constructor/solvers.h>
 #include <moveit/task_constructor/stages.h>
 
+#if __has_include(<moveit/robot_model/robot_model.hpp>)
+  #include <moveit/robot_model/robot_model.hpp>
+#else
+  #include <moveit/robot_model/robot_model.h>
+#endif
+
 #if __has_include(<tf2_geometry_msgs/tf2_geometry_msgs.hpp>)
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #else
@@ -27,6 +33,35 @@
 
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_pick_place_cylinder");
 namespace mtc = moveit::task_constructor;
+
+// Collect every link WITH collision geometry in the kinematic subtree rooted at
+// `root_link` (inclusive). The hand's intermediate/distal finger links are driven by
+// MIMIC joints that are NOT part of the "hand" planning group, so
+// getJointModelGroup("hand")->getLinkModelNamesWithCollisionGeometry() omits them.
+// Those omitted links (e.g. left_thumb_distal) then collide with the table and stop
+// the Cartesian approach short ("min_fraction not met"). Walking the subtree from
+// left_hand_base_link catches the whole hand — palm, proximals, intermediates, distals.
+static std::vector<std::string>
+handCollisionLinks(const moveit::core::RobotModelConstPtr& model, const std::string& root_link)
+{
+  std::vector<std::string> links;
+  const moveit::core::LinkModel* root = model->getLinkModel(root_link);
+  if (!root) {
+    RCLCPP_WARN(LOGGER, "handCollisionLinks: link '%s' not found", root_link.c_str());
+    return links;
+  }
+  std::vector<const moveit::core::LinkModel*> stack{ root };
+  while (!stack.empty()) {
+    const moveit::core::LinkModel* link = stack.back();
+    stack.pop_back();
+    if (!link->getShapes().empty())  // has collision geometry
+      links.push_back(link->getName());
+    for (const moveit::core::JointModel* joint : link->getChildJointModels())
+      if (const moveit::core::LinkModel* child = joint->getChildLinkModel())
+        stack.push_back(child);
+  }
+  return links;
+}
 
 // Object configuration structure
 struct ObjectConfig {
@@ -50,11 +85,15 @@ public:
   
   bool loadObjectConfig();
 
+  // Diagnostic: log the exact link pairs colliding at the close-gripper pose.
+  void dumpCloseGripperContacts();
+
 private:
   mtc::Task createTask();
   mtc::Task task_;
   rclcpp::Node::SharedPtr node_;
   ObjectConfig object_config_;
+  mtc::Stage* close_gripper_ptr_{ nullptr };  // for failure diagnostics
 };
 
 MTCPickPlaceCylinder::MTCPickPlaceCylinder(const rclcpp::NodeOptions& options)
@@ -188,6 +227,45 @@ void MTCPickPlaceCylinder::setupPlanningScene()
   RCLCPP_INFO(LOGGER, "Planning scene setup complete");
 }
 
+// Diagnostic: take the REAL state at which "close gripper" failed (its own failure carries the true
+// grasp arm config, the real right-arm pose, and every MTC allowance applied so far), drive the hand
+// to the "close" pose, and list the contacts that remain. Whatever remains is exactly what blocks the
+// close. Using the stage's failure (not a synthetic proxy) avoids fake collisions from default poses.
+void MTCPickPlaceCylinder::dumpCloseGripperContacts()
+{
+  if (!close_gripper_ptr_ || close_gripper_ptr_->failures().empty()) {
+    RCLCPP_WARN(LOGGER, "dumpCloseGripperContacts: no 'close gripper' failures to inspect");
+    return;
+  }
+
+  collision_detection::CollisionRequest req;
+  req.contacts = true;
+  req.max_contacts = 200;
+  req.max_contacts_per_pair = 1;
+
+  int idx = 0;
+  for (const auto& failure : close_gripper_ptr_->failures()) {
+    const moveit::task_constructor::InterfaceState* start = failure->start();
+    if (!start || !start->scene())
+      continue;
+    // Editable copy of the real pre-close scene (grasp config, hand open, MTC allowances intact).
+    planning_scene::PlanningScenePtr scene = start->scene()->diff();
+    moveit::core::RobotState& state = scene->getCurrentStateNonConst();
+    if (const auto* hand = state.getJointModelGroup("hand"))
+      state.setToDefaultValues(hand, "close");  // drive to the full close pose
+    state.update();
+
+    collision_detection::CollisionResult res;
+    scene->checkCollision(req, res, state);  // uses the scene's (MTC) ACM => only real blockers remain
+
+    RCLCPP_WARN(LOGGER, "=== close gripper failure #%d: %zu BLOCKING contact(s) ===",
+                idx++, res.contacts.size());
+    for (const auto& entry : res.contacts)
+      RCLCPP_WARN(LOGGER, "  BLOCKER: %s  <->  %s",
+                  entry.first.first.c_str(), entry.first.second.c_str());
+  }
+}
+
 bool MTCPickPlaceCylinder::doTask()
 {
   task_ = createTask();
@@ -206,6 +284,7 @@ bool MTCPickPlaceCylinder::doTask()
   if (!task_.plan(5))
   {
     RCLCPP_ERROR_STREAM(LOGGER, "Task planning failed");
+    dumpCloseGripperContacts();  // name the exact links blocking "close gripper"
     return false;
   }
 
@@ -241,17 +320,15 @@ mtc::Task MTCPickPlaceCylinder::createTask()
 
   const double pre_grasp_offset_x = 0.05;  // stand-off > finger length (~0.05) so the OPEN hand sits
                                          // just in front of the object, not penetrating it
-  const double pre_grasp_offset_y = 0.0;   // stand-off in y-direction
-  const double pre_grasp_offset_z = -0.04;   // stand-off in z-direction
+  const double pre_grasp_offset_y = 0.02;   // stand-off in y-direction
+  const double pre_grasp_offset_z = -0.06;   // stand-off in z-direction
 
   // Approach: move from pre_grasp position toward the object
   // Final grasp position = pre_grasp_offset_x - approach_distance
-  const double approach_min_dist = 0.02;  // 2cm minimum approach
+  const double approach_min_dist = 0.01;  // 1cm minimum approach
   const double approach_max_dist = 0.05;  // bring the hand all the way in to the grasp
   
-  // Grasp offset for place stage (where object center is relative to palm)
-  const double grasp_offset = 0.02;  // 2cm - approximate final grasp position
-  const double grasp_tilt = 0.5;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
+  const double grasp_tilt = 0.2;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
   
   const double lift_min_dist = 0.02;
   const double lift_max_dist = 0.10;
@@ -295,9 +372,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
     // The closed hand wraps the cylinder down to its base (= table top), so the fingers/palm
     // touch the table at the place pose. Allow hand<->table too, else "move to place" rejects the
     // goal (GOAL_STATE_INVALID). At the pick the fingers are open and clear, so this is harmless there.
-    auto hand_links =
-      task.getRobotModel()->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry();
-    hand_links.push_back("left_hand_base_link");
+    const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
     stage->allowCollisions("table", hand_links, true);
     task.add(std::move(stage));
   }
@@ -345,11 +420,8 @@ mtc::Task MTCPickPlaceCylinder::createTask()
     // 6.1: Allow collision FIRST (needed for grasp pose IK to succeed)
     {
       auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (hand,object)");
-      // Hand group links (fingers) ...
-      auto hand_links =
-        task.getRobotModel()->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry();
-      // ... plus the palm (parent of the hand group), which contacts the object during an in-palm grasp.
-      hand_links.push_back("left_hand_base_link");
+      // Whole hand subtree (palm + every finger link, incl. mimic-driven distals) vs the object.
+      const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
       stage->allowCollisions(object_config_.id, hand_links, true);
       grasp->insert(std::move(stage));
     }
@@ -396,7 +468,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       grasp->insert(std::move(wrapper));
     }
 
-    // 6.3: Approach object (move gripper toward object along Y-axis of hand frame)
+    // 6.3: Approach object (move gripper toward object along X-axis of hand frame)
     {
       auto stage = std::make_unique<mtc::stages::MoveRelative>("approach object", cartesian_planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group" });
@@ -407,8 +479,21 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       // Move along Y-axis of hand_frame (toward the object)
       geometry_msgs::msg::Vector3Stamped vec;
       vec.header.frame_id = hand_frame;
-      vec.vector.y = 1.0;  // Positive Y = toward object (based on your gripper orientation)
+      vec.vector.x = 1.0;  // Positive X = toward object (based on your gripper orientation)
       stage->setDirection(vec);
+      grasp->insert(std::move(stage));
+    }
+
+    // 6.3b: Allow hand<->object AND hand self-collision for the close — in a FORWARD-propagating
+    //        stage. Stage 6.1 ("allow collision (hand,object)") sits BEFORE the grasp-pose-IK
+    //        generator, so it only propagates BACKWARD and never reaches "close gripper". Closing
+    //        drives the fingers INTO the cylinder (the intended grasp) and into each other; both must
+    //        be allowed here, after the generator, so the forward close stage sees them.
+    {
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow hand collisions (close)");
+      const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
+      stage->allowCollisions(object_config_.id, hand_links, true);  // fingers grip INTO the cylinder
+      stage->allowCollisions(hand_links, hand_links, true);         // fingers touch each other
       grasp->insert(std::move(stage));
     }
 
@@ -417,6 +502,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       auto stage = std::make_unique<mtc::stages::MoveTo>("close gripper", interpolation_planner);
       stage->setGroup(hand_group_name);
       stage->setGoal("close");
+      close_gripper_ptr_ = stage.get();  // for failure diagnostics
       grasp->insert(std::move(stage));
     }
 
@@ -434,9 +520,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
     {
       auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow attached object<->table");
       stage->allowCollisions(object_config_.id, "table", true);
-      auto hand_links =
-        task.getRobotModel()->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry();
-      hand_links.push_back("left_hand_base_link");
+      const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
       stage->allowCollisions("table", hand_links, true);
       attach_object_ptr = stage.get();  // place IK monitors this (object attached + table allowed)
       grasp->insert(std::move(stage));
@@ -514,13 +598,17 @@ mtc::Task MTCPickPlaceCylinder::createTask()
         wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
         wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
 
-        // Same orientation as the grasp (object is held in that orientation), so the place hand
-        // pose is feasible like the grasp.
+        // Use the SAME IK frame as the grasp — same rotation AND same translation offsets. The object
+        // is held by the hand in exactly that relationship, so the place hand pose must mirror the grasp
+        // hand pose for IK to be feasible. (Previously only y was set, which is a different hand<->object
+        // relationship than how the object is actually grasped, hence "no IK found".)
         Eigen::Isometry3d place_frame_transform = Eigen::Isometry3d::Identity();
         place_frame_transform.linear() =
           (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
            Eigen::AngleAxisd(M_PI - grasp_tilt, Eigen::Vector3d::UnitX())).toRotationMatrix();
-        place_frame_transform.translation().y() = grasp_offset;
+        place_frame_transform.translation().x() = pre_grasp_offset_x;
+        place_frame_transform.translation().y() = pre_grasp_offset_y;
+        place_frame_transform.translation().z() = pre_grasp_offset_z;
         wrapper->setIKFrame(place_frame_transform, hand_frame);
 
         alternatives->insert(std::move(wrapper));
@@ -550,9 +638,8 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("forbid collision (hand,object)");
       stage->allowCollisions(
         object_config_.id,
-        task.getRobotModel()->getJointModelGroup(hand_group_name)->getLinkModelNamesWithCollisionGeometry(),
+        handCollisionLinks(task.getRobotModel(), "left_hand_base_link"),
         false);
-      stage->allowCollisions(object_config_.id, "left_hand_base_link", false);
       place->insert(std::move(stage));
     }
 
