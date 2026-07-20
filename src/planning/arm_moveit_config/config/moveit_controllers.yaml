@@ -10,6 +10,7 @@ moveit_simple_controller_manager:
   left_arm_controller:
     type: FollowJointTrajectory
     joints:
+      - waist_yaw_joint_X8
       - left_shoulder_pitch_joint_X6
       - left_shoulder_roll_joint_X6
       - left_shoulder_yaw_joint_X4
