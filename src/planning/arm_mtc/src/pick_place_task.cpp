@@ -140,6 +140,14 @@ void MTCTaskNode::doTask()
   const std::string arm_ready_pose = this->get_parameter("poses.arm_ready").as_string();
   const std::string world_frame = this->get_parameter("world_frame").as_string();
 
+  const moveit::core::JointModelGroup* arm_joint_group =
+      task_.getRobotModel()->getJointModelGroup(arm_group);
+  if (!arm_joint_group) {
+    throw std::runtime_error("Planning group '" + arm_group + "' does not exist");
+  }
+  RCLCPP_INFO(LOGGER, "Planning with group '%s' (%u DOF)", arm_group.c_str(),
+              arm_joint_group->getVariableCount());
+
   const double dest_table_x = this->get_parameter("destination_table.position.x").as_double();
   const double dest_table_y = this->get_parameter("destination_table.position.y").as_double();
   const double dest_table_z = this->get_parameter("destination_table.position.z").as_double();
@@ -251,7 +259,7 @@ void MTCTaskNode::doTask()
   {
     // Only move the arm between open-hand and grasp setup to avoid mixed arm+gripper trajectories
     auto stage = std::make_unique<mtc::stages::Connect>(
-        "move to pick", mtc::stages::Connect::GroupPlannerVector{ { "arm", sampling_planner } });
+        "move to pick", mtc::stages::Connect::GroupPlannerVector{ { arm_group, sampling_planner } });
     stage->setTimeout(15.0);  // Increased timeout for complex planning
     stage->properties().configureInitFrom(mtc::Stage::PARENT);
     task_.add(std::move(stage));
@@ -427,7 +435,7 @@ void MTCTaskNode::doTask()
    *****************************************************/
   {
     auto stage = std::make_unique<mtc::stages::Connect>(
-        "move to place", mtc::stages::Connect::GroupPlannerVector{ { "arm", sampling_planner } });
+        "move to place", mtc::stages::Connect::GroupPlannerVector{ { arm_group, sampling_planner } });
     stage->setTimeout(5.0);
     stage->properties().configureInitFrom(mtc::Stage::PARENT);
     task_.add(std::move(stage));

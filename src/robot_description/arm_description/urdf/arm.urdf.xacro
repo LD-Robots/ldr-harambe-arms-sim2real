@@ -11,6 +11,8 @@
         default="false" />
     <xacro:arg name="fixed_legs"
         default="true" />
+    <xacro:arg name="fixed_waist"
+        default="false" />
     <xacro:arg name="only_left"
         default="true" />
 

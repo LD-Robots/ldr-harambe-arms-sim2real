@@ -8,10 +8,10 @@
   <xacro:property name="leg_joint_type" value="${'fixed' if '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
   
   <!-- ================================================================== -->
-  <!-- only_left — when true, also lock waist yaw joint                  -->
+  <!-- Waist joint type — independent from the arm and leg configuration -->
   <!-- ================================================================== -->
-  <xacro:arg name="only_left" default="true"/>
-  <xacro:property name="waist_joint_type" value="${'fixed' if '$(arg only_left)' == 'true' or '$(arg fixed_legs)' == 'true' else 'revolute'}"/>
+  <xacro:arg name="fixed_waist" default="true"/>
+  <xacro:property name="waist_joint_type" value="${'fixed' if '$(arg fixed_waist)' == 'true' else 'revolute'}"/>
 
   <!-- ================================================================== -->
   <!-- Body                                                              -->
