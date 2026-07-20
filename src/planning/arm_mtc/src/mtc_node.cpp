@@ -3,7 +3,7 @@
  * @brief MoveIt Task Constructor Pick and Place Node for LDR Humanoid Arm
  *
  * This node implements a complete pick-and-place task using MoveIt Task Constructor (MTC).
- * It demonstrates complex manipulation with the 6-DOF arm and 2-finger gripper.
+ * It demonstrates complex manipulation with the 7-DOF waist-arm chain and gripper.
  */
 
 #include <rclcpp/rclcpp.hpp>

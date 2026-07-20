@@ -2,7 +2,7 @@
 
 ## Overview
 
-This package provides MoveIt Task Constructor (MTC) implementations for complex manipulation tasks with the 6-DOF humanoid arm. MTC enables creation of sophisticated pick-and-place pipelines with automatic grasp pose generation, collision avoidance, and multi-stage motion planning.
+This package provides MoveIt Task Constructor (MTC) implementations for complex manipulation tasks with the 7-DOF waist-arm chain. MTC enables creation of sophisticated pick-and-place pipelines with automatic grasp pose generation, collision avoidance, and multi-stage motion planning.
 
 ## Features
 

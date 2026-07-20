@@ -1,5 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
+#include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #if __has_include(<moveit/planning_scene/planning_scene.hpp>)
   #include <moveit/planning_scene/planning_scene.hpp>
   #include <moveit/planning_scene_interface/planning_scene_interface.hpp>
@@ -33,6 +35,37 @@
 
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_pick_place_cylinder");
 namespace mtc = moveit::task_constructor;
+
+namespace
+{
+constexpr std::size_t ARM_DOF = 7;
+constexpr char WAIST_JOINT[] = "waist_yaw_joint_X8";
+
+bool validateArmGroup(const moveit::core::RobotModelConstPtr& model,
+                      const std::string& group_name)
+{
+  const moveit::core::JointModelGroup* arm_group = model->getJointModelGroup(group_name);
+  if (!arm_group) {
+    RCLCPP_ERROR(LOGGER, "Planning group '%s' does not exist", group_name.c_str());
+    return false;
+  }
+
+  const std::vector<std::string>& variables = arm_group->getVariableNames();
+  RCLCPP_INFO(LOGGER, "Planning group '%s' contains %zu DOF:", group_name.c_str(), variables.size());
+  for (std::size_t index = 0; index < variables.size(); ++index) {
+    RCLCPP_INFO(LOGGER, "  [%zu] %s", index + 1, variables[index].c_str());
+  }
+
+  const bool has_waist = std::find(variables.begin(), variables.end(), WAIST_JOINT) != variables.end();
+  if (variables.size() != ARM_DOF || !has_waist) {
+    RCLCPP_ERROR(LOGGER,
+                 "Expected a %zu-DOF arm group containing '%s', but the loaded robot model does not match",
+                 ARM_DOF, WAIST_JOINT);
+    return false;
+  }
+  return true;
+}
+}  // namespace
 
 // Collect every link WITH collision geometry in the kinematic subtree rooted at
 // `root_link` (inclusive). The hand's intermediate/distal finger links are driven by
@@ -268,15 +301,19 @@ void MTCPickPlaceCylinder::dumpHandGraspContacts()
 
 bool MTCPickPlaceCylinder::doTask()
 {
-  task_ = createTask();
-
   try
   {
+    task_ = createTask();
     task_.init();
   }
   catch (mtc::InitStageException& e)
   {
     RCLCPP_ERROR_STREAM(LOGGER, "Task initialization failed: " << e);
+    return false;
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR(LOGGER, "Task creation failed: %s", e.what());
     return false;
   }
 
@@ -313,6 +350,10 @@ mtc::Task MTCPickPlaceCylinder::createTask()
   const auto& arm_group_name = "arm";
   const auto& hand_group_name = "hand";
   const auto& hand_frame = "left_tcp_link";
+
+  if (!validateArmGroup(task.getRobotModel(), arm_group_name)) {
+    throw std::runtime_error("The MTC arm group is not configured as the expected 7-DOF waist-arm chain");
+  }
 
   // ========== CONFIGURABLE PARAMETERS ==========
   // Pre-grasp offset: distance from palm origin for IK (must be > 0 to avoid collision)
