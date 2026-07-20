@@ -33,13 +33,45 @@
         <joint name="left_wrist_yaw_joint_X4" value="0.0"/>
         <joint name="left_wrist_roll_joint_X4" value="0.0"/>
     </group_state>
+    <group_state name="up" group="arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
+        <joint name="left_shoulder_roll_joint_X6" value="1.57"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
+        <joint name="left_elbow_pitch_joint_X6" value="0.0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.0"/>
+        <joint name="left_wrist_roll_joint_X4" value="0.0"/>
+    </group_state>
     <group_state name="pre_grasp" group="arm">
-        <joint name="left_shoulder_pitch_joint_X6" value="-0.296706"/>
+        <joint name="left_shoulder_pitch_joint_X6" value="-0.2094395"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.174533"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.314159"/>
+        <joint name="left_elbow_pitch_joint_X6" value="-1.186824"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.052360"/>
+        <joint name="left_wrist_roll_joint_X4" value="-0.157080"/>
+    </group_state>
+    <group_state name="lift" group="arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="-1.57"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.174"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
+        <joint name="left_elbow_pitch_joint_X6" value="0.0"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.0"/>
+        <joint name="left_wrist_roll_joint_X4" value="0.0"/>
+    </group_state>
+    <group_state name="release" group="arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
-        <joint name="left_shoulder_yaw_joint_X4" value="0.488692"/>
-        <joint name="left_elbow_pitch_joint_X6" value="-1.082104"/>
-        <joint name="left_wrist_yaw_joint_X4" value="-0.139626"/>
-        <joint name="left_wrist_roll_joint_X4" value="-0.174533"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="0.471239"/>
+        <joint name="left_elbow_pitch_joint_X6" value="-1.570796"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.209440"/>
+        <joint name="left_wrist_roll_joint_X4" value="-0.104720"/>
+    </group_state>
+    <group_state name="after_release" group="arm">
+        <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
+        <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
+        <joint name="left_shoulder_yaw_joint_X4" value="1.571239"/>
+        <joint name="left_elbow_pitch_joint_X6" value="-1.570796"/>
+        <joint name="left_wrist_yaw_joint_X4" value="0.209440"/>
+        <joint name="left_wrist_roll_joint_X4" value="-0.104720"/>
     </group_state>
     <group_state name="open" group="hand">
         <joint name="left_thumb_proximal_yaw_joint" value="0.0"/>
@@ -56,6 +88,22 @@
         <joint name="left_middle_proximal_joint" value="1.2"/>
         <joint name="left_ring_proximal_joint" value="1.2"/>
         <joint name="left_pinky_proximal_joint" value="1.2"/>
+    </group_state>
+    <group_state name="pre_grasp" group="hand">
+        <joint name="left_thumb_proximal_yaw_joint" value="1.3"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.0"/>
+        <joint name="left_index_proximal_joint" value="0.0"/>
+        <joint name="left_middle_proximal_joint" value="0.0"/>
+        <joint name="left_ring_proximal_joint" value="0.0"/>
+        <joint name="left_pinky_proximal_joint" value="0.0"/>
+    </group_state>
+    <group_state name="grasp" group="hand">
+        <joint name="left_thumb_proximal_yaw_joint" value="1.3"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.17"/>
+        <joint name="left_index_proximal_joint" value="0.61"/>
+        <joint name="left_middle_proximal_joint" value="0.61"/>
+        <joint name="left_ring_proximal_joint" value="0.61"/>
+        <joint name="left_pinky_proximal_joint" value="0.61"/>
     </group_state>
     <!--END EFFECTOR-->
     <end_effector name="hand" parent_link="urdf_l_wrist_assembly" group="hand"/>
