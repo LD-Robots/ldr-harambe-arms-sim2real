@@ -123,8 +123,8 @@ bool MTCPickPlaceCylinder::loadObjectConfig()
   declare_if_not_declared("pick_x", 0.45);             // test_table / lever world (0.45, 0.35, 1.025)
   declare_if_not_declared("pick_y", 0.35);
   declare_if_not_declared("pick_z", 0.175);            // 1.025 - 0.85
-  declare_if_not_declared("place_x", 0.40);            // 5 cm toward the robot from the pick
-  declare_if_not_declared("place_y", 0.35);            // same Y/Z as the pick
+  declare_if_not_declared("place_x", 0.35);            // 5 cm toward the robot from the pick
+  declare_if_not_declared("place_y", 0.46);            // same Y/Z as the pick
   declare_if_not_declared("place_z", 0.175);
 
   object_config_.id = node_->get_parameter("object_id").as_string();
@@ -336,7 +336,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
   const double approach_min_dist = 0.00;  // 1cm minimum approach
   const double approach_max_dist = 0.05;  // bring the hand all the way in to the grasp
   
-  const double grasp_tilt = 0.2;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
+  const double grasp_tilt = 0.18;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
   
   const double lift_min_dist = 0.02;
   const double lift_max_dist = 0.10;
@@ -638,11 +638,20 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       place->insert(std::move(stage));
     }
 
-    // 8.2: Open gripper to release
+    // 8.2a: Relax the thumb pitch first while the other fingers continue to
+    //       support the cylinder, as defined by the dedicated SRDF state.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("release gripper", interpolation_planner);
+      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare cylinder release", interpolation_planner);
       stage->setGroup(hand_group_name);
-      stage->setGoal("open");
+      stage->setGoal("07_hand_cylinder_release");
+      place->insert(std::move(stage));
+    }
+
+    // 8.2b: Fully open the hand and release the cylinder.
+    {
+      auto stage = std::make_unique<mtc::stages::MoveTo>("fully release cylinder", interpolation_planner);
+      stage->setGroup(hand_group_name);
+      stage->setGoal("08_hand_cylinder_release");
       place->insert(std::move(stage));
     }
 

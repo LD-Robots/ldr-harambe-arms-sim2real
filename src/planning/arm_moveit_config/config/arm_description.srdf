@@ -106,11 +106,11 @@
     <!-- 04: Close the hand around the cylinder. -->
     <group_state name="04_hand_cylinder_grasp" group="hand">
         <joint name="left_thumb_proximal_yaw_joint" value="1.3"/>
-        <joint name="left_thumb_proximal_pitch_joint" value="0.17"/>
-        <joint name="left_index_proximal_joint" value="0.61"/>
-        <joint name="left_middle_proximal_joint" value="0.61"/>
-        <joint name="left_ring_proximal_joint" value="0.61"/>
-        <joint name="left_pinky_proximal_joint" value="0.61"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.296706"/>
+        <joint name="left_index_proximal_joint" value="0.698132"/>
+        <joint name="left_middle_proximal_joint" value="0.645772"/>
+        <joint name="left_ring_proximal_joint" value="0.645772"/>
+        <joint name="left_pinky_proximal_joint" value="0.645772"/>
     </group_state>
 
     <!-- 05: Lift the grasped cylinder above the table. -->
@@ -133,8 +133,18 @@
         <joint name="left_wrist_roll_joint_X4" value="-0.104720"/>
     </group_state>
 
-    <!-- 07: Open the hand and release the cylinder. Same joint values as generic "open". -->
+    <!-- 07: Open the hand thumb proximal pitchjoint and release the cylinder. -->
     <group_state name="07_hand_cylinder_release" group="hand">
+        <joint name="left_thumb_proximal_yaw_joint" value="1.3"/>
+        <joint name="left_thumb_proximal_pitch_joint" value="0.0"/>
+        <joint name="left_index_proximal_joint" value="0.698132"/>
+        <joint name="left_middle_proximal_joint" value="0.645772"/>
+        <joint name="left_ring_proximal_joint" value="0.645772"/>
+        <joint name="left_pinky_proximal_joint" value="0.645772"/>
+    </group_state>
+
+    <!-- 08: Open the hand and fully release the cylinder. Same joint values as generic "open". -->
+    <group_state name="08_hand_cylinder_release" group="hand">
         <joint name="left_thumb_proximal_yaw_joint" value="0.0"/>
         <joint name="left_thumb_proximal_pitch_joint" value="0.0"/>
         <joint name="left_index_proximal_joint" value="0.0"/>
@@ -144,7 +154,7 @@
     </group_state>
 
     <!-- 08: Retreat from the released cylinder while maintaining table clearance. -->
-    <group_state name="08_arm_post_release_retreat" group="arm">
+    <group_state name="09_arm_post_release_retreat" group="arm">
         <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
         <joint name="left_shoulder_yaw_joint_X4" value="1.571239"/>
@@ -154,7 +164,7 @@
     </group_state>
 
     <!-- 09: Return to the initial arm pose. Same joint values as generic "home". -->
-    <group_state name="09_arm_return_home" group="arm">
+    <group_state name="10_arm_return_home" group="arm">
         <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.1"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
