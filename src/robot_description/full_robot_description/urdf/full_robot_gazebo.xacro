@@ -14,6 +14,7 @@
 
   <!-- Full robot: all joints active (not fixed) -->
   <xacro:arg name="fixed_legs" default="false" />
+  <xacro:arg name="fixed_waist" default="false" />
   <xacro:arg name="only_left" default="false" />
 
   <!-- Actuator properties macros -->
