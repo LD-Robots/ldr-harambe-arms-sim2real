@@ -85,15 +85,15 @@ public:
   
   bool loadObjectConfig();
 
-  // Diagnostic: log the exact link pairs colliding at the close-gripper pose.
-  void dumpCloseGripperContacts();
+  // Diagnostic: log the exact link pairs colliding at the final hand-grasp pose.
+  void dumpHandGraspContacts();
 
 private:
   mtc::Task createTask();
   mtc::Task task_;
   rclcpp::Node::SharedPtr node_;
   ObjectConfig object_config_;
-  mtc::Stage* close_gripper_ptr_{ nullptr };  // for failure diagnostics
+  mtc::Stage* hand_grasp_ptr_{ nullptr };  // final hand-grasp stage, used for failure diagnostics
 };
 
 MTCPickPlaceCylinder::MTCPickPlaceCylinder(const rclcpp::NodeOptions& options)
@@ -227,14 +227,14 @@ void MTCPickPlaceCylinder::setupPlanningScene()
   RCLCPP_INFO(LOGGER, "Planning scene setup complete");
 }
 
-// Diagnostic: take the REAL state at which "close gripper" failed (its own failure carries the true
-// grasp arm config, the real right-arm pose, and every MTC allowance applied so far), drive the hand
-// to the "close" pose, and list the contacts that remain. Whatever remains is exactly what blocks the
-// close. Using the stage's failure (not a synthetic proxy) avoids fake collisions from default poses.
-void MTCPickPlaceCylinder::dumpCloseGripperContacts()
+// Diagnostic: take the REAL state at which the final hand-grasp stage failed (its failure carries
+// the true arm configuration and every MTC allowance applied so far), drive the hand to the named
+// cylinder-grasp pose, and list the contacts that remain. Using the stage's failure rather than a
+// synthetic proxy avoids reporting collisions caused by unrelated default robot poses.
+void MTCPickPlaceCylinder::dumpHandGraspContacts()
 {
-  if (!close_gripper_ptr_ || close_gripper_ptr_->failures().empty()) {
-    RCLCPP_WARN(LOGGER, "dumpCloseGripperContacts: no 'close gripper' failures to inspect");
+  if (!hand_grasp_ptr_ || hand_grasp_ptr_->failures().empty()) {
+    RCLCPP_WARN(LOGGER, "dumpHandGraspContacts: no 'grasp cylinder' failures to inspect");
     return;
   }
 
@@ -244,21 +244,21 @@ void MTCPickPlaceCylinder::dumpCloseGripperContacts()
   req.max_contacts_per_pair = 1;
 
   int idx = 0;
-  for (const auto& failure : close_gripper_ptr_->failures()) {
+  for (const auto& failure : hand_grasp_ptr_->failures()) {
     const moveit::task_constructor::InterfaceState* start = failure->start();
     if (!start || !start->scene())
       continue;
-    // Editable copy of the real pre-close scene (grasp config, hand open, MTC allowances intact).
+    // Editable copy of the real pre-grasp scene, with all upstream MTC allowances intact.
     planning_scene::PlanningScenePtr scene = start->scene()->diff();
     moveit::core::RobotState& state = scene->getCurrentStateNonConst();
     if (const auto* hand = state.getJointModelGroup("hand"))
-      state.setToDefaultValues(hand, "close");  // drive to the full close pose
+      state.setToDefaultValues(hand, "04_hand_cylinder_grasp");
     state.update();
 
     collision_detection::CollisionResult res;
     scene->checkCollision(req, res, state);  // uses the scene's (MTC) ACM => only real blockers remain
 
-    RCLCPP_WARN(LOGGER, "=== close gripper failure #%d: %zu BLOCKING contact(s) ===",
+    RCLCPP_WARN(LOGGER, "=== grasp cylinder failure #%d: %zu BLOCKING contact(s) ===",
                 idx++, res.contacts.size());
     for (const auto& entry : res.contacts)
       RCLCPP_WARN(LOGGER, "  BLOCKER: %s  <->  %s",
@@ -284,7 +284,7 @@ bool MTCPickPlaceCylinder::doTask()
   if (!task_.plan(5))
   {
     RCLCPP_ERROR_STREAM(LOGGER, "Task planning failed");
-    dumpCloseGripperContacts();  // name the exact links blocking "close gripper"
+    dumpHandGraspContacts();  // name the exact links blocking the final hand-grasp pose
     return false;
   }
 
@@ -318,14 +318,22 @@ mtc::Task MTCPickPlaceCylinder::createTask()
   // Pre-grasp offset: distance from palm origin for IK (must be > 0 to avoid collision)
   // This is where the gripper will be BEFORE the approach
 
-  const double pre_grasp_offset_x = 0.05;  // stand-off > finger length (~0.05) so the OPEN hand sits
-                                         // just in front of the object, not penetrating it
-  const double pre_grasp_offset_y = 0.02;   // stand-off in y-direction
-  const double pre_grasp_offset_z = -0.06;   // stand-off in z-direction
+  /** Y AXIS of Lever ( +X = +Y ) 
+   * stand-off in y-direction | stand-off > finger length (~0.05) so the OPEN hand sits
+   * just in front of the object, not penetrating it*/
+  const double pre_grasp_offset_x = 0.035;
+
+  /** X AXIS of Lever ( +Y = +X ) 
+   * stand-off in y-direction */
+  const double pre_grasp_offset_y = 0.045;  
+  
+  /** Z AXIS of Lever ( +Z = +Z ) 
+   * stand-off in z-direction */
+  const double pre_grasp_offset_z = -0.03; 
 
   // Approach: move from pre_grasp position toward the object
   // Final grasp position = pre_grasp_offset_x - approach_distance
-  const double approach_min_dist = 0.01;  // 1cm minimum approach
+  const double approach_min_dist = 0.00;  // 1cm minimum approach
   const double approach_max_dist = 0.05;  // bring the hand all the way in to the grasp
   
   const double grasp_tilt = 0.2;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
@@ -441,7 +449,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       // A dexterous hand always contacts the object at the grasp pose, and the upstream
       // "allow collision" stage does NOT reach the grasp-IK check (generator uses the
       // current_state scene). Skip collision checking for the grasp IK itself; the approach /
-      // close / attach stages downstream run with hand-object collisions allowed.
+      // hand-pregrasp / hand-grasp / attach stages downstream run with hand-object collisions allowed.
       wrapper->setIgnoreCollisions(true);
       wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
       wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
@@ -482,32 +490,38 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       grasp->insert(std::move(stage));
     }
 
-    // 6.3b: Allow hand<->object AND hand self-collision for the close — in a FORWARD-propagating
+    // 6.3b: Allow hand<->object AND hand self-collision for the grasp — in a FORWARD-propagating
     //        stage. Stage 6.1 ("allow collision (hand,object)") sits BEFORE the grasp-pose-IK
-    //        generator, so it only propagates BACKWARD and never reaches "close gripper". Closing
-    //        drives the fingers INTO the cylinder (the intended grasp) and into each other; both must
-    //        be allowed here, after the generator, so the forward close stage sees them.
+    //        generator, so it only propagates BACKWARD and never reaches the hand-grasp stages.
+    //        Grasping drives the fingers into the cylinder and potentially into each other; both
+    //        collision classes must be allowed here, after the generator.
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow hand collisions (close)");
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow hand collisions (grasp)");
       const auto hand_links = handCollisionLinks(task.getRobotModel(), "left_hand_base_link");
       stage->allowCollisions(object_config_.id, hand_links, true);  // fingers grip INTO the cylinder
       stage->allowCollisions(hand_links, hand_links, true);         // fingers touch each other
       grasp->insert(std::move(stage));
     }
 
-    // 6.4: Close gripper (use named pose from SRDF). JointInterpolationPlanner is fine here — the
-    //      staggered look in Gazebo is NOT the trajectory (verified: a free-space close via either
-    //      planner is synchronous); it's the fingers stalling against the rigid cylinder at
-    //      different closing angles, i.e. the grip conforming to the object.
+    // 6.4a: Prepare the hand for a multi-directional cylinder grasp. This SRDF pose rotates the
+    //       thumb around the cylinder while keeping the other fingers open.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("close gripper", interpolation_planner);
+      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare hand for cylinder grasp", interpolation_planner);
       stage->setGroup(hand_group_name);
-      stage->setGoal("close");
-      close_gripper_ptr_ = stage.get();  // for failure diagnostics
+      stage->setGoal("03_hand_cylinder_pregrasp");
       grasp->insert(std::move(stage));
     }
 
-    // 6.5: Attach object after gripper closed
+    // 6.4b: Close the prepared hand around the cylinder using the dedicated SRDF grasp pose.
+    {
+      auto stage = std::make_unique<mtc::stages::MoveTo>("grasp cylinder", interpolation_planner);
+      stage->setGroup(hand_group_name);
+      stage->setGoal("04_hand_cylinder_grasp");
+      hand_grasp_ptr_ = stage.get();  // for failure diagnostics
+      grasp->insert(std::move(stage));
+    }
+
+    // 6.5: Attach the object after the dedicated hand-grasp pose has completed.
     {
       auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("attach object");
       stage->attachObject(object_config_.id, hand_frame);
