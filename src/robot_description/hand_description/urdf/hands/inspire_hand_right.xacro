@@ -98,7 +98,7 @@
         <child link="${prefix}thumb_proximal_base"/>
         <axis xyz="0 0 -1"/>
         <limit lower="0.0" upper="1.308" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}thumb_proximal">
         <inertial>
@@ -125,7 +125,7 @@
         <child link="${prefix}thumb_proximal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="0.6" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}thumb_intermediate">
         <inertial>
@@ -152,7 +152,7 @@
         <child link="${prefix}thumb_intermediate"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="0.8" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}thumb_proximal_pitch_joint" multiplier="1.334" offset="0"/>
       </joint>
       <link name="${prefix}thumb_distal">
@@ -180,7 +180,7 @@
         <child link="${prefix}thumb_distal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="0.4" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}thumb_proximal_pitch_joint" multiplier="0.667" offset="0"/>
       </joint>
       <link name="${prefix}index_proximal">
@@ -208,7 +208,7 @@
         <child link="${prefix}index_proximal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="1.47" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}index_intermediate">
         <inertial>
@@ -235,7 +235,7 @@
         <child link="${prefix}index_intermediate"/>
         <axis xyz="0 0 1"/>
         <limit lower="-0.04545" upper="1.56" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}index_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
       </joint>
       <link name="${prefix}middle_proximal">
@@ -263,7 +263,7 @@
         <child link="${prefix}middle_proximal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="1.47" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}middle_intermediate">
         <inertial>
@@ -290,7 +290,7 @@
         <child link="${prefix}middle_intermediate"/>
         <axis xyz="0 0 1"/>
         <limit lower="-0.04545" upper="1.56" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}middle_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
       </joint>
       <link name="${prefix}ring_proximal">
@@ -318,7 +318,7 @@
         <child link="${prefix}ring_proximal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="1.47" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}ring_intermediate">
         <inertial>
@@ -345,7 +345,7 @@
         <child link="${prefix}ring_intermediate"/>
         <axis xyz="0 0 1"/>
         <limit lower="-0.04545" upper="1.56" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}ring_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
       </joint>
       <link name="${prefix}pinky_proximal">
@@ -373,7 +373,7 @@
         <child link="${prefix}pinky_proximal"/>
         <axis xyz="0 0 1"/>
         <limit lower="0" upper="1.47" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.005" friction="0.0001"/>
       </joint>
       <link name="${prefix}pinky_intermediate">
         <inertial>
@@ -400,7 +400,7 @@
         <child link="${prefix}pinky_intermediate"/>
         <axis xyz="0 0 1"/>
         <limit lower="-0.04545" upper="1.56" effort="1" velocity="2.0"/>
-        <dynamics damping="0.3" friction="0.05"/>
+        <dynamics damping="0.002" friction="0.00005"/>
         <mimic joint="${prefix}pinky_proximal_joint" multiplier="1.06399" offset="-0.04545"/>
       </joint>
 
