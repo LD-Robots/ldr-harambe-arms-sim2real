@@ -168,6 +168,22 @@ def generate_launch_description():
         parameters=[{'use_sim_time': True}],
     )
 
+    # ========== PLANNING SCENE ==========
+    # Owns the collision objects and republishes them, so it must be up before the
+    # task node plans. mtc_pick_place waits for the object regardless.
+    scene_publisher_launch = TimerAction(
+        period=12.0,
+        actions=[
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution([
+                        FindPackageShare('arm_mtc'), 'launch', 'publish_planning_scene.launch.py'
+                    ])
+                )
+            )
+        ],
+    )
+
     # ========== MTC NODE ==========
     # Wait for Gazebo, controllers and move_group (started at ~10s on the
     # headless path) to be up before planning.
@@ -189,7 +205,8 @@ def generate_launch_description():
         headless_launch,     # 0s:  headless bringup (Gazebo + controllers + move_group)
         reset_lever_node,    # 0s:  /reset_lever helper
         reset_robot_node,    # 0s:  /reset_robot helper
-        move_group_launch,   # 8s:  move_group (GUI path only)
-        rviz_node,           # 14s: RViz (optional)
-        mtc_node_launch,     # 20s: MTC task node
+        move_group_launch,       # 8s:  move_group (GUI path only)
+        scene_publisher_launch,  # 12s: collision objects
+        rviz_node,               # 14s: RViz (optional)
+        mtc_node_launch,         # 20s: MTC task node
     ])

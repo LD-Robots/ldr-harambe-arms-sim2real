@@ -1,245 +1,196 @@
 #!/usr/bin/env python3
 """
-Planning Scene Publisher for Pick-and-Place Operations
+Planning scene publisher for the MTC pick-and-place task.
 
-Publishes collision objects (tables and cylinders) to the MoveIt planning scene
-for pick-and-place testing and demonstrations.
+Owns the collision scene: the object to pick and the two tables. Geometry comes
+from config/mtc_task.yaml (scene.*), so this node and mtc_pick_place read the
+same numbers rather than each carrying its own copy.
+
+Objects are applied through the /apply_planning_scene SERVICE rather than the
+/collision_object topic. The topic is fire-and-forget: a move_group that starts
+late silently misses the objects, which is why this node used to re-publish on a
+timer -- at the cost of move_group logging every update forever. The service
+call is acknowledged, so waiting for it to appear and calling once is both
+race-free and silent.
 
 Usage:
-    ros2 run arm_perception planning_scene_publisher.py
-
-Author: LDR Humanoid Arm System
+    ros2 launch arm_mtc publish_planning_scene.launch.py
 """
 
 import rclpy
 from rclpy.node import Node
-from moveit_msgs.msg import CollisionObject
+from moveit_msgs.msg import CollisionObject, PlanningScene
+from moveit_msgs.srv import ApplyPlanningScene
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 from std_msgs.msg import Header
 
+SERVICE = '/apply_planning_scene'
+
 
 class PlanningScenePublisher(Node):
-    """Publishes collision objects (tables + cylinder) to MoveIt planning scene"""
+    """Applies the pick-and-place collision objects to the MoveIt planning scene."""
 
     def __init__(self):
         super().__init__('planning_scene_publisher')
 
-        # Declare parameters from YAML
-        self.declare_parameter('world_frame', 'world')
-        self.declare_parameter('source_table.name', 'test_table')
-        self.declare_parameter('source_table.position.x', -0.30)
-        self.declare_parameter('source_table.position.y', 0.35)
-        self.declare_parameter('source_table.position.z', 0.2125)
-        self.declare_parameter('source_table.dimensions.length', 0.45)
-        self.declare_parameter('source_table.dimensions.width', 0.25)
-        self.declare_parameter('source_table.dimensions.thickness', 0.425)
+        self.declare_parameter('robot.planning_frame', 'urdf_base')
 
-        self.declare_parameter('destination_table.name', 'destination_table')
-        self.declare_parameter('destination_table.position.x', -0.30)
-        self.declare_parameter('destination_table.position.y', -0.35)
-        self.declare_parameter('destination_table.position.z', 0.2125)
-        self.declare_parameter('destination_table.dimensions.length', 0.45)
-        self.declare_parameter('destination_table.dimensions.width', 0.25)
-        self.declare_parameter('destination_table.dimensions.thickness', 0.425)
+        self.declare_parameter('scene.spawn_object', True)
+        self.declare_parameter('scene.spawn_tables', True)
+        self.declare_parameter('scene.republish_period', 0.0)
 
-        self.declare_parameter('cylinder.name', 'test_cylinder')
-        self.declare_parameter('cylinder.dimensions.height', 0.15)
-        self.declare_parameter('cylinder.dimensions.radius', 0.02025)
-        self.declare_parameter('cylinder.position_offset.x', 0.0)
-        self.declare_parameter('cylinder.position_offset.y', 0.0)
+        self.declare_parameter('scene.object.id', 'target_cylinder')
+        self.declare_parameter('scene.object.radius', 0.03035)
+        self.declare_parameter('scene.object.height', 0.15)
+        self.declare_parameter('scene.object.pose', [0.45, 0.35, 0.175])
 
-        # Load parameters
-        self.frame_id = self.get_parameter('world_frame').value
+        self.declare_parameter('scene.source_table.name', 'table')
+        self.declare_parameter('scene.source_table.pose', [0.45, 0.35, -0.375])
+        self.declare_parameter('scene.source_table.size', [0.5, 0.3, 0.95])
 
-        # Source table
-        self.table_name = self.get_parameter('source_table.name').value
-        self.table_x = self.get_parameter('source_table.position.x').value
-        self.table_y = self.get_parameter('source_table.position.y').value
-        self.table_z = self.get_parameter('source_table.position.z').value
-        self.table_length = self.get_parameter('source_table.dimensions.length').value
-        self.table_width = self.get_parameter('source_table.dimensions.width').value
-        self.table_thickness = self.get_parameter('source_table.dimensions.thickness').value
+        self.declare_parameter('scene.destination_table.name', 'destination_table')
+        self.declare_parameter('scene.destination_table.pose', [0.45, -0.35, -0.375])
+        self.declare_parameter('scene.destination_table.size', [0.5, 0.3, 0.95])
 
-        # Destination table
-        self.dest_table_name = self.get_parameter('destination_table.name').value
-        self.dest_table_x = self.get_parameter('destination_table.position.x').value
-        self.dest_table_y = self.get_parameter('destination_table.position.y').value
-        self.dest_table_z = self.get_parameter('destination_table.position.z').value
+        get = lambda name: self.get_parameter(name).value  # noqa: E731
 
-        # Cylinder
-        self.cylinder_name = self.get_parameter('cylinder.name').value
-        self.cylinder_height = self.get_parameter('cylinder.dimensions.height').value
-        self.cylinder_radius = self.get_parameter('cylinder.dimensions.radius').value
-        self.cylinder_offset_x = self.get_parameter('cylinder.position_offset.x').value
-        self.cylinder_offset_y = self.get_parameter('cylinder.position_offset.y').value
+        self.frame_id = get('robot.planning_frame')
+        self.spawn_object = get('scene.spawn_object')
+        self.spawn_tables = get('scene.spawn_tables')
+        self.republish_period = get('scene.republish_period')
 
-        # Publisher for collision objects
-        self.collision_pub = self.create_publisher(
-            CollisionObject,
-            '/collision_object',
-            10
-        )
+        self.object_id = get('scene.object.id')
+        self.object_radius = get('scene.object.radius')
+        self.object_height = get('scene.object.height')
+        self.object_pose = list(get('scene.object.pose'))
 
-        # Publish objects periodically to ensure they stay in planning scene
-        # Initial publish after 1 second, then every 2 seconds
-        self.create_timer(1.0, self.initial_publish)
-        self.create_timer(2.0, self.publish_test_environment)
+        self.tables = [
+            (get(f'scene.{key}.name'),
+             list(get(f'scene.{key}.pose')),
+             list(get(f'scene.{key}.size')))
+            for key in ('source_table', 'destination_table')
+        ]
 
-        self.get_logger().info('Planning Scene Publisher started')
-        self.get_logger().info('Publishing source table, destination table, and cylinder to planning scene...')
-        self.get_logger().info('Objects will be re-published every 2 seconds to keep them visible')
+        self.client = self.create_client(ApplyPlanningScene, SERVICE)
+        self.applied = False
+        self.log_scene()
 
-        # Flag to log only once
-        self.logged_initial = False
+        # Retry until move_group offers the service, then apply once.
+        self.retry_timer = self.create_timer(1.0, self._try_apply)
 
-    def initial_publish(self):
-        """Initial publish with logging"""
-        self.publish_test_environment()
-        if not self.logged_initial:
-            # Calculate cylinder position for logging
-            table_top_z = self.table_z + (self.table_thickness / 2.0)
-            cyl_z = table_top_z + (self.cylinder_height / 2.0)
-            cyl_x = self.table_x + self.cylinder_offset_x
-            cyl_y = self.table_y + self.cylinder_offset_y
+    # ---------------------------------------------------------------- helpers
 
-            self.get_logger().info('✅ Planning scene objects published successfully!')
-            self.get_logger().info('Objects:')
-            self.get_logger().info(
-                f'  - Source Table: {self.table_length}m x {self.table_width}m x {self.table_thickness}m '
-                f'at ({self.table_x}, {self.table_y}, {self.table_z})'
-            )
-            self.get_logger().info(
-                f'  - Destination Table: {self.table_length}m x {self.table_width}m x {self.table_thickness}m '
-                f'at ({self.dest_table_x}, {self.dest_table_y}, {self.dest_table_z})'
-            )
-            self.get_logger().info(
-                f'  - Cylinder: radius={self.cylinder_radius}m, height={self.cylinder_height}m '
-                f'at ({cyl_x:.3f}, {cyl_y:.3f}, {cyl_z:.3f})'
-            )
-            self.logged_initial = True
-
-    def publish_test_environment(self):
-        """Publish table, destination table, and cylinder objects (called periodically)"""
-        # Publish source table
-        self.publish_table()
-
-        # Publish destination table
-        self.publish_destination_table()
-
-        # Publish cylinder
-        self.publish_cylinder()
-
-    def publish_table(self):
-        """Publish a table as a box"""
-        table = CollisionObject()
-        table.header = Header()
-        table.header.frame_id = self.frame_id
-        table.header.stamp = self.get_clock().now().to_msg()
-
-        table.id = self.table_name
-        table.operation = CollisionObject.ADD
-
-        # Table dimensions from parameters
-        box = SolidPrimitive()
-        box.type = SolidPrimitive.BOX
-        box.dimensions = [self.table_length, self.table_width, self.table_thickness]
-
-        # Table position from parameters
-        pose = Pose()
-        pose.position.x = self.table_x
-        pose.position.y = self.table_y
-        pose.position.z = self.table_z
-        pose.orientation.w = 1.0  # No rotation
-
-        table.primitives.append(box)
-        table.primitive_poses.append(pose)
-
-        self.collision_pub.publish(table)
-
-    def publish_destination_table(self):
-        """Publish a destination table as a box"""
-        dest_table = CollisionObject()
-        dest_table.header = Header()
-        dest_table.header.frame_id = self.frame_id
-        dest_table.header.stamp = self.get_clock().now().to_msg()
-
-        dest_table.id = self.dest_table_name
-        dest_table.operation = CollisionObject.ADD
-
-        # Use same dimensions as main table
-        box = SolidPrimitive()
-        box.type = SolidPrimitive.BOX
-        box.dimensions = [self.table_length, self.table_width, self.table_thickness]
-
-        # Destination table position from parameters
-        pose = Pose()
-        pose.position.x = self.dest_table_x
-        pose.position.y = self.dest_table_y
-        pose.position.z = self.dest_table_z
-        pose.orientation.w = 1.0  # No rotation
-
-        dest_table.primitives.append(box)
-        dest_table.primitive_poses.append(pose)
-
-        self.collision_pub.publish(dest_table)
-
-    def publish_cylinder(self):
-        """Publish a cylinder object to grasp (automatically positioned on table)"""
-        cylinder = CollisionObject()
-        cylinder.header = Header()
-        cylinder.header.frame_id = self.frame_id
-        cylinder.header.stamp = self.get_clock().now().to_msg()
-
-        cylinder.id = self.cylinder_name
-        cylinder.operation = CollisionObject.ADD
-
-        # Cylinder dimensions from parameters
-        cyl = SolidPrimitive()
-        cyl.type = SolidPrimitive.CYLINDER
-        cyl.dimensions = [self.cylinder_height, self.cylinder_radius]
-
-        # Calculate cylinder position:
-        # 1. Table top Z = table_z + table_thickness/2
-        # 2. Cylinder center Z = table_top_z + cylinder_height/2
-        # 3. X, Y = TABLE position + offsets
-        table_top_z = self.table_z + (self.table_thickness / 2.0)
-        cylinder_z = table_top_z + (self.cylinder_height / 2.0)
+    def _collision_object(self, object_id, primitive, pose_xyz):
+        obj = CollisionObject()
+        obj.header = Header()
+        obj.header.frame_id = self.frame_id
+        obj.header.stamp = self.get_clock().now().to_msg()
+        obj.id = object_id
+        obj.operation = CollisionObject.ADD
 
         pose = Pose()
-        pose.position.x = self.table_x + self.cylinder_offset_x
-        pose.position.y = self.table_y + self.cylinder_offset_y
-        pose.position.z = cylinder_z
-        pose.orientation.w = 1.0  # Upright orientation
+        pose.position.x, pose.position.y, pose.position.z = pose_xyz
+        pose.orientation.w = 1.0
 
-        cylinder.primitives.append(cyl)
-        cylinder.primitive_poses.append(pose)
+        obj.primitives.append(primitive)
+        obj.primitive_poses.append(pose)
+        return obj
 
-        self.collision_pub.publish(cylinder)
+    def _scene_objects(self):
+        objects = []
+        if self.spawn_object:
+            cylinder = SolidPrimitive()
+            cylinder.type = SolidPrimitive.CYLINDER
+            cylinder.dimensions = [self.object_height, self.object_radius]
+            objects.append(self._collision_object(self.object_id, cylinder, self.object_pose))
 
-    def clear_environment(self):
-        """Clear all test objects from planning scene"""
-        for obj_id in [self.table_name, self.dest_table_name, self.cylinder_name]:
-            remove_obj = CollisionObject()
-            remove_obj.header = Header()
-            remove_obj.header.frame_id = self.frame_id
-            remove_obj.header.stamp = self.get_clock().now().to_msg()
-            remove_obj.id = obj_id
-            remove_obj.operation = CollisionObject.REMOVE
-            self.collision_pub.publish(remove_obj)
+        if self.spawn_tables:
+            for name, pose, size in self.tables:
+                box = SolidPrimitive()
+                box.type = SolidPrimitive.BOX
+                box.dimensions = list(size)
+                objects.append(self._collision_object(name, box, pose))
+        return objects
 
-        self.get_logger().info('Planning scene objects cleared')
+    def _apply(self, objects, done_callback):
+        request = ApplyPlanningScene.Request()
+        request.scene = PlanningScene()
+        request.scene.is_diff = True
+        request.scene.robot_state.is_diff = True
+        request.scene.world.collision_objects = objects
+        self.client.call_async(request).add_done_callback(done_callback)
+
+    # ---------------------------------------------------------------- applying
+
+    def _try_apply(self):
+        if not self.client.service_is_ready():
+            self.get_logger().info(f'Waiting for {SERVICE} ...', throttle_duration_sec=5.0)
+            return
+
+        self.retry_timer.cancel()
+        self._apply(self._scene_objects(), self._on_applied)
+
+    def _on_applied(self, future):
+        try:
+            success = future.result().success
+        except Exception as exc:  # noqa: BLE001 - report any transport failure and retry
+            self.get_logger().error(f'{SERVICE} call failed: {exc}')
+            self.retry_timer.reset()
+            return
+
+        if not success:
+            self.get_logger().error(f'{SERVICE} rejected the scene diff; retrying')
+            self.retry_timer.reset()
+            return
+
+        self.applied = True
+        self.get_logger().info('Planning scene applied')
+
+        # Optional slow re-assert, off by default. Only useful if something else
+        # in the system clears the scene while this node keeps running.
+        if self.republish_period > 0.0:
+            self.get_logger().info(
+                f'Re-asserting the scene every {self.republish_period:.1f} s')
+            self.create_timer(self.republish_period,
+                              lambda: self._apply(self._scene_objects(), lambda _f: None))
+
+    # ---------------------------------------------------------------- logging
+
+    def log_scene(self):
+        self.get_logger().info(f"Planning scene in frame '{self.frame_id}':")
+        if self.spawn_object:
+            x, y, z = self.object_pose
+            self.get_logger().info(
+                f"  object '{self.object_id}': radius={self.object_radius}, "
+                f"height={self.object_height} at ({x:.3f}, {y:.3f}, {z:.3f})")
+        if self.spawn_tables:
+            for name, pose, size in self.tables:
+                self.get_logger().info(
+                    f"  table '{name}': {size[0]}x{size[1]}x{size[2]} "
+                    f"at ({pose[0]:.3f}, {pose[1]:.3f}, {pose[2]:.3f})")
+
+    def clear_scene(self):
+        if not self.applied:
+            return
+        removals = []
+        for object_id in [self.object_id] + [name for name, _, _ in self.tables]:
+            obj = CollisionObject()
+            obj.header = Header()
+            obj.header.frame_id = self.frame_id
+            obj.id = object_id
+            obj.operation = CollisionObject.REMOVE
+            removals.append(obj)
+        self._apply(removals, lambda _f: None)
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = PlanningScenePublisher()
-
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info('Shutting down...')
-        node.clear_environment()
+        node.clear_scene()
     finally:
         node.destroy_node()
         rclpy.shutdown()
