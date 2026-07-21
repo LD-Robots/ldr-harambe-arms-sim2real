@@ -25,11 +25,13 @@
   <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
 
   <!-- Hands -->
-  <!--xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" /-->
-  <!--xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" /-->
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
 
-
-<!--xacro:inspire_hand_left
+  <!-- Mount offsets differ from arm_description/urdf/arm_base.xacro, which uses
+       idealised pi/2 rotations. These are the dual-arm values as measured; do not
+       substitute one set for the other without re-checking against the hardware. -->
+  <xacro:inspire_hand_left
         parent="urdf_l_wrist_assembly"
         prefix="left_"
         mount_x="-0.034"
@@ -37,9 +39,9 @@
         mount_z="-0.06"
         mount_roll="1.544576"
         mount_pitch="-0.201364"
-        mount_yaw="1.6"/-->
+        mount_yaw="1.6"/>
 
-    <!--xacro:inspire_hand_right
+    <xacro:inspire_hand_right
         parent="urdf_r_wrist_assembly"
         prefix="right_"
         mount_x="-0.033"
@@ -47,7 +49,7 @@
         mount_z="-0.06"
         mount_roll="1.617027"
         mount_pitch="-0.301373"
-        mount_yaw="-1.605496"/-->
+        mount_yaw="-1.605496"/>
 
 
 </robot>

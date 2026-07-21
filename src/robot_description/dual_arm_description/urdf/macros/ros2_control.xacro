@@ -83,7 +83,7 @@
         </ros2_control>
 
         <!-- Both hands in one system (like single arm's HandSystem) -->
-        <!--ros2_control name="HandSystem" type="system">
+        <ros2_control name="HandSystem" type="system">
             <hardware>
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
@@ -243,6 +243,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-        </ros2_control-->
+        </ros2_control>
     </xacro:macro>
 </robot>
