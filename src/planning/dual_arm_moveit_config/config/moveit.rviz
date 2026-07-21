@@ -1,46 +1,762 @@
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+    Tree Height: 234
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
 Visualization Manager:
   Class: ""
   Displays:
-    - Class: rviz_default_plugins/Grid
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
       Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
       Value: true
-    - Class: moveit_rviz_plugin/MotionPlanning
-      Name: MotionPlanning
+    - Acceleration_Scaling_Factor: 0.5
+      Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
-      MoveIt_Goal_Tolerance: 0.0
+      MoveIt_Allow_Approximate_IK: false
+      MoveIt_Allow_External_Program: false
+      MoveIt_Allow_Replanning: false
+      MoveIt_Allow_Sensor_Positioning: false
       MoveIt_Planning_Attempts: 10
-      MoveIt_Planning_Time: 5.0
+      MoveIt_Planning_Time: 5
+      MoveIt_Use_Cartesian_Path: false
       MoveIt_Use_Constraint_Aware_IK: true
-      MoveIt_Warehouse_Host: 127.0.0.1
-      MoveIt_Warehouse_Port: 33829
-      Planning Request:
-        Planning Group: left_arm
-        Interactive Marker Size: 0.0
-        Query Goal State: true
-        Query Start State: false
-      Planning Scene Topic: /monitored_planning_scene
-      Robot Description: robot_description
-      Scene Robot:
-        Robot Alpha: 0.5
+      MoveIt_Workspace:
+        Center:
+          X: 0
+          Y: 0
+          Z: 0
+        Size:
+          X: 2
+          Y: 2
+          Z: 2
+      Name: MotionPlanning
       Planned Path:
         Color Enabled: false
+        Interrupt Display: false
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+          left_hand_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_middle_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_middle_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_pinky_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_pinky_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_ring_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_ring_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_hand_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_middle_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_middle_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_pinky_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_pinky_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_ring_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_ring_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          urdf_ankle_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_ankle_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_left_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_right_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_simplified_torso:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
         Loop Animation: false
-        Robot Alpha: 1.0
+        Robot Alpha: 1
+        Robot Color: 150; 50; 150
         Show Robot Collision: false
         Show Robot Visual: true
         Show Trail: false
         State Display Time: 0.05s
+        Trail Step Size: 1
         Trajectory Topic: /display_planned_path
-    - Class: rviz_default_plugins/RobotModel
-      Name: RobotModel
-      Enabled: true
+        Use Sim Time: false
+      Planning Metrics:
+        Payload: 1
+        Show Joint Torques: false
+        Show Manipulability: false
+        Show Manipulability Index: false
+        Show Weight Limit: false
+        TextHeight: 0.07999999821186066
+      Planning Request:
+        Colliding Link Color: 255; 0; 0
+        Goal State Alpha: 1
+        Goal State Color: 250; 128; 0
+        Interactive Marker Size: 0
+        Joint Violation Color: 255; 0; 255
+        Planning Group: right_arm
+        Query Goal State: true
+        Query Start State: false
+        Show Workspace: false
+        Start State Alpha: 1
+        Start State Color: 0; 255; 0
+      Planning Scene Topic: /monitored_planning_scene
       Robot Description: robot_description
+      Scene Geometry:
+        Scene Alpha: 0.8999999761581421
+        Scene Color: 50; 230; 50
+        Scene Display Time: 0.009999999776482582
+        Show Scene Geometry: true
+        Voxel Coloring: Z-Axis
+        Voxel Rendering: Occupied Voxels
+      Scene Robot:
+        Attached Body Color: 150; 50; 150
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+          left_hand_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_middle_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_middle_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_pinky_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_pinky_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_ring_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_ring_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_hand_base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_middle_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_middle_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_pinky_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_pinky_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_ring_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_ring_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          urdf_ankle_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_ankle_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_left_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_right_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_simplified_torso:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+        Robot Alpha: 0.5
+        Show Robot Collision: false
+        Show Robot Visual: true
+      Value: true
+      Velocity_Scaling_Factor: 0.5
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: ""
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: ""
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+  Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: urdf_base
@@ -48,25 +764,49 @@ Visualization Manager:
   Name: root
   Tools:
     - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
   Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 2.0
+      Distance: 2
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
-        X: 0.0
-        Y: 0.0
+        X: 0
+        Y: 0
         Z: 0.5
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
       Name: Current View
-      Near Clip Distance: 0.01
+      Near Clip Distance: 0.009999999776482582
       Pitch: 0.5
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
       Yaw: 0.5
+    Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 800
-  Width: 1200
+  Height: 1531
+  Hide Left Dock: false
+  Hide Right Dock: false
+  MotionPlanning:
+    collapsed: false
+  MotionPlanning - Trajectory Slider:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000002b40000059dfc0200000004fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000004400fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067010000003f000002f00000019600fffffffb000000100044006900730070006c006100790073010000033500000170000000cc00fffffffb0000000a0056006900650077007301000004ab00000131000000a900ffffff000007040000059d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 2494
+  X: 1986
+  Y: 32
