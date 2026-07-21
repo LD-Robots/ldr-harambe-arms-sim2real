@@ -12,6 +12,7 @@
   #error "MoveIt planning_scene header not found"
 #endif
 #include <moveit/task_constructor/task.h>
+#include <moveit/task_constructor/cost_terms.h>
 #include <moveit/task_constructor/solvers.h>
 #include <moveit/task_constructor/stages.h>
 
@@ -40,6 +41,7 @@ namespace
 {
 constexpr std::size_t ARM_DOF = 7;
 constexpr char WAIST_JOINT[] = "waist_yaw_joint_X8";
+constexpr double GRASP_WAIST_COST_WEIGHT = 15.0;
 
 bool validateArmGroup(const moveit::core::RobotModelConstPtr& model,
                       const std::string& group_name)
@@ -114,6 +116,11 @@ public:
 
   bool doTask();
 
+  bool executesAutomatically() const
+  {
+    return execute_automatically_;
+  }
+
   void setupPlanningScene();
   
   bool loadObjectConfig();
@@ -127,6 +134,7 @@ private:
   rclcpp::Node::SharedPtr node_;
   ObjectConfig object_config_;
   mtc::Stage* hand_grasp_ptr_{ nullptr };  // final hand-grasp stage, used for failure diagnostics
+  bool execute_automatically_{ false };
 };
 
 MTCPickPlaceCylinder::MTCPickPlaceCylinder(const rclcpp::NodeOptions& options)
@@ -159,6 +167,7 @@ bool MTCPickPlaceCylinder::loadObjectConfig()
   declare_if_not_declared("place_x", 0.35);            // 5 cm toward the robot from the pick
   declare_if_not_declared("place_y", 0.46);            // same Y/Z as the pick
   declare_if_not_declared("place_z", 0.175);
+  declare_if_not_declared("execute", false);
 
   object_config_.id = node_->get_parameter("object_id").as_string();
   object_config_.radius = node_->get_parameter("object_radius").as_double();
@@ -169,6 +178,7 @@ bool MTCPickPlaceCylinder::loadObjectConfig()
   object_config_.place_x = node_->get_parameter("place_x").as_double();
   object_config_.place_y = node_->get_parameter("place_y").as_double();
   object_config_.place_z = node_->get_parameter("place_z").as_double();
+  execute_automatically_ = node_->get_parameter("execute").as_bool();
 
   RCLCPP_INFO(LOGGER, "Loaded object config: id=%s, radius=%.3f, height=%.3f",
               object_config_.id.c_str(), object_config_.radius, object_config_.height);
@@ -328,6 +338,14 @@ bool MTCPickPlaceCylinder::doTask()
   task_.introspection().publishSolution(*task_.solutions().front());
   RCLCPP_INFO(LOGGER, "Task planning succeeded! %zu solutions found.", task_.solutions().size());
 
+  if (!execute_automatically_)
+  {
+    RCLCPP_INFO(LOGGER, "Automatic execution is disabled.");
+    RCLCPP_INFO(LOGGER,
+                "Select a solution in RViz under 'Motion Planning Tasks' and execute it manually.");
+    return true;
+  }
+
   // Execute the task
   RCLCPP_INFO(LOGGER, "Attempting to execute the task...");
   auto result = task_.execute(*task_.solutions().front());
@@ -379,7 +397,7 @@ mtc::Task MTCPickPlaceCylinder::createTask()
   
   const double grasp_tilt = 0.18;     // tilt of the grasp off straight-down (~28 deg); shared by grasp + place
   
-  const double lift_min_dist = 0.02;
+  const double lift_min_dist = 0.005;
   const double lift_max_dist = 0.10;
   const double retreat_min_dist = 0.02;
   const double retreat_max_dist = 0.10;
@@ -440,13 +458,13 @@ mtc::Task MTCPickPlaceCylinder::createTask()
     task.add(std::move(stage));
   }
 
-  // ========== STAGE 4: Move to Ready Pose ==========
-  {
-    auto stage = std::make_unique<mtc::stages::MoveTo>("move to ready", sampling_planner);
-    stage->setGroup(arm_group_name);
-    stage->setGoal("ready");
-    task.add(std::move(stage));
-  }
+  // ========== STAGE 4: Move to Ready Pose (disabled) ==========
+  // {
+  //   auto stage = std::make_unique<mtc::stages::MoveTo>("move to ready", sampling_planner);
+  //   stage->setGroup(arm_group_name);
+  //   stage->setGoal("ready");
+  //   task.add(std::move(stage));
+  // }
 
   // ========== STAGE 5: Connect to Grasp Pose ==========
   // Use Connect stage to bridge from current state to the grasp pose generator
@@ -455,6 +473,16 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       "move to grasp",
       mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, sampling_planner } });
     connect->properties().configureInitFrom(mtc::Stage::PARENT);
+    connect->setCostTerm(std::make_shared<mtc::cost::PathLength>(
+        std::map<std::string, double>{
+          { WAIST_JOINT, GRASP_WAIST_COST_WEIGHT },
+          { "left_shoulder_pitch_joint_X6", 7.0 },
+          { "left_shoulder_roll_joint_X6", 7.0 },
+          { "left_shoulder_yaw_joint_X4", 5.0 },
+          { "left_elbow_pitch_joint_X6", 3.0 },
+          { "left_wrist_yaw_joint_X4", 1.0 },
+          { "left_wrist_roll_joint_X4", 1.0 },
+        }));
     task.add(std::move(connect));
   }
 
@@ -494,6 +522,13 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       wrapper->setIgnoreCollisions(true);
       wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
       wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
+
+      // Keep all 7 DOF available, but prefer grasp IK solutions with the waist close to zero.
+      // This is a soft cost rather than a constraint: the waist can still move when required.
+      wrapper->setCostTerm(std::make_shared<mtc::cost::DistanceToReference>(
+          std::map<std::string, double>{ { WAIST_JOINT, 0.0 } },
+          mtc::TrajectoryCostTerm::Mode::START_INTERFACE,
+          std::map<std::string, double>{ { WAIST_JOINT, GRASP_WAIST_COST_WEIGHT } }));
 
       // Pre-grasp frame transform: offset + orientation of the IK frame.
       // GenerateGraspPose orients the IK frame with Z along the object axis (cylinder = vertical)
@@ -604,6 +639,16 @@ mtc::Task MTCPickPlaceCylinder::createTask()
       "move to place",
       mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, sampling_planner } });
     connect->properties().configureInitFrom(mtc::Stage::PARENT);
+    connect->setCostTerm(std::make_shared<mtc::cost::PathLength>(
+        std::map<std::string, double>{
+          { WAIST_JOINT, GRASP_WAIST_COST_WEIGHT },
+          { "left_shoulder_pitch_joint_X6", 7.0 },
+          { "left_shoulder_roll_joint_X6", 7.0 },
+          { "left_shoulder_yaw_joint_X4", 5.0 },
+          { "left_elbow_pitch_joint_X6", 3.0 },
+          { "left_wrist_yaw_joint_X4", 1.0 },
+          { "left_wrist_roll_joint_X4", 1.0 },
+        }));
     task.add(std::move(connect));
   }
 
@@ -778,6 +823,13 @@ int main(int argc, char** argv)
   rclcpp::sleep_for(std::chrono::seconds(1));
 
   bool success = mtc_node->doTask();
+
+  if (success && !mtc_node->executesAutomatically()) {
+    RCLCPP_INFO(LOGGER, "Keeping the MTC node alive for manual execution. Press Ctrl+C to stop.");
+    spin_thread->join();
+    rclcpp::shutdown();
+    return 0;
+  }
 
   // Task complete - shutdown cleanly
   RCLCPP_INFO(LOGGER, "Task complete, shutting down...");

@@ -33,7 +33,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 def generate_launch_description():
     # Declare launch arguments
     declared_arguments = [
-        DeclareLaunchArgument('execute', default_value='true',
+        DeclareLaunchArgument('execute', default_value='false',
                               description='Execute the planned trajectory on the robot'),
         DeclareLaunchArgument('object_id', default_value='target_cylinder',
                               description='ID of the object to pick'),

@@ -8,6 +8,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
 from moveit_configs_utils import MoveItConfigsBuilder
 
@@ -35,6 +36,12 @@ def generate_launch_description():
         'use_rviz',
         default_value='true',
         description='Launch RViz for visualization'
+    )
+
+    execute_arg = DeclareLaunchArgument(
+        'execute',
+        default_value='false',
+        description='Execute automatically instead of waiting for manual execution in RViz'
     )
 
     # ========== BUILD MOVEIT CONFIGURATION (for the MTC node) ==========
@@ -98,7 +105,11 @@ def generate_launch_description():
                 output='screen',
                 parameters=[
                     moveit_config.to_dict(),
-                    {'use_sim_time': True}
+                    {
+                        'use_sim_time': True,
+                        'execute': ParameterValue(
+                            LaunchConfiguration('execute'), value_type=bool),
+                    }
                 ]
             )
         ]
@@ -108,6 +119,7 @@ def generate_launch_description():
         # Arguments
         simulation_world_arg,
         use_rviz_arg,
+        execute_arg,
 
         # Launch sequence
         full_system_launch,      # 0s:  Gazebo + controllers + move_group (move_group at ~10s)
