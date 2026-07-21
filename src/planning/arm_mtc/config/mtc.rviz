@@ -4,11 +4,13 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
+        - /Status1
         - /MotionPlanning1/Planning Request1
         - /Motion Planning Tasks1/Robot1
         - /Motion Planning Tasks1/Markers1
       Splitter Ratio: 0.5
-    Tree Height: 322
+    Tree Height: 132
   - Class: rviz_common/Help
     Name: Help
   - Class: rviz_common/Views
@@ -25,23 +27,20 @@ Panels:
     Name: Motion Planning Tasks
     Tasks View:
       property_splitter:
-        - 468
-        - 156
+        - 1034
+        - 345
       solution_sorting:
         column: 0
         order: 1
       solutions_splitter:
         - 302
         - 151
-      solutions_view_columns:
-        - 40
-        - 60
-        - 49
+      solutions_view_columns: ~
       tasks_view_columns:
-        - 188
+        - 193
         - 23
         - 23
-        - 52
+        - 61
 Visualization Manager:
   Class: ""
   Displays:
@@ -94,117 +93,310 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          base_link:
+          left_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow:
+          left_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_actuator:
+          left_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_flange:
+          left_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand:
+          left_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_actuator:
+          left_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_flange:
+          left_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm:
+          left_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_left_finger_link:
+          left_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_right_finger_link:
+          left_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_thumb_distal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch:
+          left_thumb_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_actuator:
+          left_thumb_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_flange:
+          left_thumb_proximal_base:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll:
+          left_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_actuator:
+          right_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_flange:
+          right_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw:
+          right_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_flange:
+          right_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_actuator:
+          right_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_flange:
+          right_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist:
+          right_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_actuator:
+          right_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_rs02_flange:
+          right_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          urdf_ankle_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_ankle_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_left_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_right_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_simplified_torso:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -255,117 +447,310 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          base_link:
+          left_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow:
+          left_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_actuator:
+          left_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_flange:
+          left_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand:
+          left_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_actuator:
+          left_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_flange:
+          left_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm:
+          left_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_left_finger_link:
+          left_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_right_finger_link:
+          left_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_thumb_distal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch:
+          left_thumb_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_actuator:
+          left_thumb_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_flange:
+          left_thumb_proximal_base:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll:
+          left_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_actuator:
+          right_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_flange:
+          right_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw:
+          right_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_flange:
+          right_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_actuator:
+          right_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_flange:
+          right_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist:
+          right_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_actuator:
+          right_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_rs02_flange:
+          right_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          urdf_ankle_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_ankle_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_left_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_right_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_simplified_torso:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -382,6 +767,8 @@ Visualization Manager:
       Markers:
         All at once?: false
         Value: true
+        lift: true
+        retreat: true
       Name: Motion Planning Tasks
       Robot:
         Fixed Robot Color: 150; 50; 150
@@ -391,117 +778,310 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          base_link:
+          left_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow:
+          left_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_actuator:
+          left_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_elbow_rs03_flange:
+          left_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand:
+          left_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_actuator:
+          left_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_hand_rs02_flange:
+          left_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm:
+          left_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_left_finger_link:
+          left_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_palm_right_finger_link:
+          left_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          left_thumb_distal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch:
+          left_thumb_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_actuator:
+          left_thumb_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_pitch_rs04_flange:
+          left_thumb_proximal_base:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll:
+          left_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_hand_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_actuator:
+          right_index_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_roll_rs04_flange:
+          right_index_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw:
+          right_index_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_middle_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_flange:
+          right_middle_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_actuator:
+          right_middle_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_pinky_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_shoulder_yaw_rs03_flange:
+          right_pinky_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist:
+          right_pinky_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_ring_intermediate:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_actuator:
+          right_ring_proximal:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          left_wrist_rs02_flange:
+          right_ring_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_tcp_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          right_thumb_distal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_intermediate:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_proximal_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_thumb_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          urdf_ankle_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_ankle_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_foot_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_hip_assembly_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_l_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_left_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_lower_femur_right_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_elbow_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_lower_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_shoulder_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_tibia_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_arm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_femur_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_upper_forearm_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_r_wrist_assembly:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          urdf_simplified_torso:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -523,13 +1103,13 @@ Visualization Manager:
       State Display Time: 0.05 s
       Task Solution Topic: /solution
       Tasks:
-        Pick and Place Cylinder: 0
+        Pick and Place Cylinder: 5
       Trail Step Size: 1
       Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: world
+    Fixed Frame: urdf_base
     Frame Rate: 30
   Name: root
   Tools:
@@ -566,23 +1146,23 @@ Visualization Manager:
     Saved: ~
 Window Geometry:
   Displays:
-    collapsed: true
-  Height: 975
+    collapsed: false
+  Height: 1531
   Help:
     collapsed: false
-  Hide Left Dock: true
+  Hide Left Dock: false
   Hide Right Dock: false
   Motion Planning Tasks:
     collapsed: false
   Motion Planning Tasks - Slider:
     collapsed: false
   MotionPlanning:
-    collapsed: true
+    collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001ee00000370fc0200000006fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001700000017fb000000100044006900730070006c0061007900730000000040000001c9000000ce00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067000000020f000001a10000019600fffffffb0000000800480065006c0070000000029a0000006e0000007000fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000004400ffffff00000001000001c900000370fc0200000002fb0000000a005600690065007700730100000040000000c0000000aa00fffffffb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730100000106000002aa000000ee00ffffff000003040000037000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001ee0000059dfc0200000007fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000004400fffffffb000000100044006900730070006c006100790073010000003f0000010b000000cc00fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000150000003460000019600fffffffb0000000a00560069006500770073010000049c00000140000000a900fffffffb0000000800480065006c0070000000029a0000006e0000006f00fffffffb000000120020002d00200053006c00690064006500720000000000ffffffff0000000000000000fb0000003c004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b00730020002d00200053006c00690064006500720000000000ffffffff0000004400ffffff00000001000001c90000059dfc0200000001fb0000002a004d006f00740069006f006e00200050006c0061006e006e0069006e00670020005400610073006b0073010000003f0000059d000000ec00ffffff000005fb0000059d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 1235
-  X: 67
-  Y: 39
+  Width: 2494
+  X: 1986
+  Y: 32
