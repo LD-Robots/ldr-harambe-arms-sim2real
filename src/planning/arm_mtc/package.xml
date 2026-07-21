@@ -31,14 +31,20 @@
   <!-- Eigen -->
   <depend>eigen3_cmake_module</depend>
 
-  <!-- reset_lever node launched from mtc_cylinder_grasp.launch.py -->
+  <!-- reset_lever / reset_robot nodes launched from mtc_demo.launch.py -->
   <exec_depend>arm_gazebo</exec_depend>
+
+  <!-- headless bringup used by mtc_demo.launch.py gazebo_gui:=false -->
+  <exec_depend>arm_system_bringup</exec_depend>
 
   <!-- Package dependencies -->
   <depend>moveit_msgs</depend>
-  <depend>std_msgs</depend>
   <depend>arm_description</depend>
   <depend>arm_moveit_config</depend>
+
+  <!-- planning_scene_publisher.py -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

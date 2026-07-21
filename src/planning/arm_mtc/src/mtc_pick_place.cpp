@@ -34,7 +34,7 @@
 #include <tf2_eigen/tf2_eigen.h>
 #endif
 
-static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_pick_place_cylinder");
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_pick_place");
 namespace mtc = moveit::task_constructor;
 
 namespace
@@ -107,10 +107,10 @@ struct ObjectConfig {
   double place_x, place_y, place_z;
 };
 
-class MTCPickPlaceCylinder
+class MTCPickPlace
 {
 public:
-  MTCPickPlaceCylinder(const rclcpp::NodeOptions& options);
+  MTCPickPlace(const rclcpp::NodeOptions& options);
 
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr getNodeBaseInterface();
 
@@ -137,17 +137,17 @@ private:
   bool execute_automatically_{ false };
 };
 
-MTCPickPlaceCylinder::MTCPickPlaceCylinder(const rclcpp::NodeOptions& options)
-  : node_{ std::make_shared<rclcpp::Node>("mtc_pick_place_cylinder", options) }
+MTCPickPlace::MTCPickPlace(const rclcpp::NodeOptions& options)
+  : node_{ std::make_shared<rclcpp::Node>("mtc_pick_place", options) }
 {
 }
 
-rclcpp::node_interfaces::NodeBaseInterface::SharedPtr MTCPickPlaceCylinder::getNodeBaseInterface()
+rclcpp::node_interfaces::NodeBaseInterface::SharedPtr MTCPickPlace::getNodeBaseInterface()
 {
   return node_->get_node_base_interface();
 }
 
-bool MTCPickPlaceCylinder::loadObjectConfig()
+bool MTCPickPlace::loadObjectConfig()
 {
   // Declare parameters if not already declared (handles both command-line and default cases)
   auto declare_if_not_declared = [this](const std::string& name, const auto& default_value) {
@@ -190,7 +190,7 @@ bool MTCPickPlaceCylinder::loadObjectConfig()
   return true;
 }
 
-void MTCPickPlaceCylinder::setupPlanningScene()
+void MTCPickPlace::setupPlanningScene()
 {
   moveit::planning_interface::PlanningSceneInterface psi;
   
@@ -274,7 +274,7 @@ void MTCPickPlaceCylinder::setupPlanningScene()
 // the true arm configuration and every MTC allowance applied so far), drive the hand to the named
 // cylinder-grasp pose, and list the contacts that remain. Using the stage's failure rather than a
 // synthetic proxy avoids reporting collisions caused by unrelated default robot poses.
-void MTCPickPlaceCylinder::dumpHandGraspContacts()
+void MTCPickPlace::dumpHandGraspContacts()
 {
   if (!hand_grasp_ptr_ || hand_grasp_ptr_->failures().empty()) {
     RCLCPP_WARN(LOGGER, "dumpHandGraspContacts: no 'grasp cylinder' failures to inspect");
@@ -309,7 +309,7 @@ void MTCPickPlaceCylinder::dumpHandGraspContacts()
   }
 }
 
-bool MTCPickPlaceCylinder::doTask()
+bool MTCPickPlace::doTask()
 {
   try
   {
@@ -359,7 +359,7 @@ bool MTCPickPlaceCylinder::doTask()
   return true;
 }
 
-mtc::Task MTCPickPlaceCylinder::createTask()
+mtc::Task MTCPickPlace::createTask()
 {
   mtc::Task task;
   task.stages()->setName("Pick and Place Cylinder");
@@ -795,7 +795,7 @@ int main(int argc, char** argv)
   rclcpp::NodeOptions options;
   options.automatically_declare_parameters_from_overrides(true);
 
-  auto mtc_node = std::make_shared<MTCPickPlaceCylinder>(options);
+  auto mtc_node = std::make_shared<MTCPickPlace>(options);
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(mtc_node->getNodeBaseInterface());
 
