@@ -20,6 +20,10 @@
 
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>moveit_kinematics</exec_depend>
+  <!-- config/kinematics.yaml selects trac_ik_kinematics_plugin/TRAC_IKKinematicsPlugin.
+       Without this the workspace still builds and every plan fails at runtime with an
+       unloadable kinematics solver. -->
+  <exec_depend>trac_ik_kinematics_plugin</exec_depend>
   <exec_depend>moveit_planners</exec_depend>
   <exec_depend>moveit_simple_controller_manager</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
