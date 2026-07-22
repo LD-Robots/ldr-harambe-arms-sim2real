@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.8)
+project(dual_arm_mtc)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(ament_cmake REQUIRED)
+find_package(moveit_task_constructor_core REQUIRED)
+find_package(moveit_task_constructor_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
+find_package(moveit_core REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(shape_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(moveit_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+include_directories(${EIGEN3_INCLUDE_DIRS})
+
+# Started as a copy of arm_mtc/src/mtc_pick_place.cpp. It diverges from here: the
+# bimanual handover needs a different stage tree, not a different config, so the two
+# are kept separate on purpose rather than shared behind more parameters.
+add_executable(mtc_pick_place src/mtc_pick_place.cpp)
+
+ament_target_dependencies(mtc_pick_place
+  rclcpp
+  moveit_task_constructor_core
+  moveit_task_constructor_msgs
+  moveit_ros_planning_interface
+  moveit_core
+  geometry_msgs
+  shape_msgs
+  std_msgs
+  moveit_msgs
+  tf2_eigen
+  tf2_geometry_msgs
+)
+
+install(TARGETS
+  mtc_pick_place
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

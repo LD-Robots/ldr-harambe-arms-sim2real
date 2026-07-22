@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>dual_arm_mtc</name>
+  <version>0.1.0</version>
+  <description>
+    MoveIt Task Constructor tasks for the dual-arm robot. The task node started as a
+    copy of arm_mtc's and diverges from here: the bimanual handover needs a different
+    stage tree, not a different config.
+  </description>
+  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>moveit_task_constructor_core</depend>
+  <depend>moveit_task_constructor_msgs</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>moveit_core</depend>
+  <depend>geometry_msgs</depend>
+  <depend>shape_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>moveit_msgs</depend>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>eigen3_cmake_module</depend>
+
+  <!-- planning_scene_publisher.py and config/mtc.rviz are still arm_mtc's: the
+       publisher is generic and config-driven, and nothing dual-arm-specific has
+       needed to change in it. Copy them here too if that stops being true. -->
+  <exec_depend>arm_mtc</exec_depend>
+
+  <exec_depend>dual_arm_moveit_config</exec_depend>
+  <exec_depend>dual_arm_gazebo</exec_depend>
+  <exec_depend>gazebo_worlds</exec_depend>
+  <exec_depend>moveit_configs_utils</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
