@@ -2,10 +2,18 @@ moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControll
 
 moveit_simple_controller_manager:
   controller_names:
+    - waist_controller
     - left_arm_controller
     - right_arm_controller
     - left_hand_controller
     - right_hand_controller
+
+  waist_controller:
+    type: FollowJointTrajectory
+    joints:
+      - waist_yaw_joint_X8
+    action_ns: follow_joint_trajectory
+    default: true
 
   left_arm_controller:
     type: FollowJointTrajectory

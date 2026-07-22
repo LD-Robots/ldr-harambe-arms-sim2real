@@ -6,6 +6,15 @@
             <hardware>
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
+            <!-- Waist (shared by both arm chains) -->
+            <joint name="waist_yaw_joint_X8">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
             <!-- Left arm (6 DOF) -->
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>

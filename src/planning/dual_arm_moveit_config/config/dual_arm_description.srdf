@@ -80,6 +80,7 @@
          right_arm mirrors left_arm: the mirror plane is Y=0, so joints about X (roll)
          and Z (yaw) change sign while the pitches do not.-->
     <group_state name="home" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.1"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -89,6 +90,7 @@
     </group_state>
 
     <group_state name="ready" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-0.5"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.5"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -98,6 +100,7 @@
     </group_state>
 
     <group_state name="table_clearance" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="left_shoulder_roll_joint_X6" value="1.57"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -107,6 +110,7 @@
     </group_state>
 
     <group_state name="cylinder_pregrasp" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-0.2094395"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.174533"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.314159"/>
@@ -116,6 +120,7 @@
     </group_state>
 
     <group_state name="cylinder_lift" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-1.57"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.174"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -125,6 +130,7 @@
     </group_state>
 
     <group_state name="cylinder_place" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.471239"/>
@@ -134,6 +140,7 @@
     </group_state>
 
     <group_state name="post_release_retreat" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
         <joint name="left_shoulder_yaw_joint_X4" value="1.571239"/>
@@ -143,6 +150,7 @@
     </group_state>
 
     <group_state name="hello" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0"/>
         <joint name="left_shoulder_roll_joint_X6" value="1.889"/>
         <joint name="left_shoulder_yaw_joint_X4" value="2.0465"/>
@@ -152,6 +160,7 @@
     </group_state>
 
     <group_state name="waiting" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.2053"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.5067"/>
         <joint name="left_shoulder_yaw_joint_X4" value="-0.8522"/>
@@ -161,6 +170,7 @@
     </group_state>
 
     <group_state name="stop" group="left_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-1.2282"/>
         <joint name="left_shoulder_roll_joint_X6" value="0"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.6613"/>
@@ -170,6 +180,7 @@
     </group_state>
 
     <group_state name="home" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.1"/>
         <joint name="right_shoulder_yaw_joint_X4" value="0.0"/>
@@ -179,6 +190,7 @@
     </group_state>
 
     <group_state name="ready" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="-0.5"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.5"/>
         <joint name="right_shoulder_yaw_joint_X4" value="0.0"/>
@@ -188,6 +200,7 @@
     </group_state>
 
     <group_state name="table_clearance" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="right_shoulder_roll_joint_X6" value="-1.57"/>
         <joint name="right_shoulder_yaw_joint_X4" value="0.0"/>
@@ -197,6 +210,7 @@
     </group_state>
 
     <group_state name="cylinder_pregrasp" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="-0.2094395"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.174533"/>
         <joint name="right_shoulder_yaw_joint_X4" value="-0.314159"/>
@@ -206,6 +220,7 @@
     </group_state>
 
     <group_state name="cylinder_lift" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="-1.57"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.174"/>
         <joint name="right_shoulder_yaw_joint_X4" value="0.0"/>
@@ -215,6 +230,7 @@
     </group_state>
 
     <group_state name="cylinder_place" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.087266"/>
         <joint name="right_shoulder_yaw_joint_X4" value="-0.471239"/>
@@ -224,6 +240,7 @@
     </group_state>
 
     <group_state name="post_release_retreat" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.087266"/>
         <joint name="right_shoulder_yaw_joint_X4" value="-1.571239"/>
@@ -233,6 +250,7 @@
     </group_state>
 
     <group_state name="hello" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0"/>
         <joint name="right_shoulder_roll_joint_X6" value="-1.889"/>
         <joint name="right_shoulder_yaw_joint_X4" value="-2.0465"/>
@@ -242,6 +260,7 @@
     </group_state>
 
     <group_state name="waiting" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="0.2053"/>
         <joint name="right_shoulder_roll_joint_X6" value="-0.5067"/>
         <joint name="right_shoulder_yaw_joint_X4" value="0.8522"/>
@@ -251,6 +270,7 @@
     </group_state>
 
     <group_state name="stop" group="right_arm">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="right_shoulder_pitch_joint_X6" value="-1.2282"/>
         <joint name="right_shoulder_roll_joint_X6" value="0"/>
         <joint name="right_shoulder_yaw_joint_X4" value="-0.6613"/>
@@ -320,6 +340,7 @@
     <!--BOTH ARMS: the left_arm and right_arm states of the same name, combined,
          so a task can command the pair in one goal.-->
     <group_state name="home" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.1"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -335,6 +356,7 @@
     </group_state>
 
     <group_state name="ready" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-0.5"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.5"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -350,6 +372,7 @@
     </group_state>
 
     <group_state name="table_clearance" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.0"/>
         <joint name="left_shoulder_roll_joint_X6" value="1.57"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -365,6 +388,7 @@
     </group_state>
 
     <group_state name="cylinder_pregrasp" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-0.2094395"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.174533"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.314159"/>
@@ -380,6 +404,7 @@
     </group_state>
 
     <group_state name="cylinder_lift" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-1.57"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.174"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.0"/>
@@ -395,6 +420,7 @@
     </group_state>
 
     <group_state name="cylinder_place" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.471239"/>
@@ -410,6 +436,7 @@
     </group_state>
 
     <group_state name="post_release_retreat" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.157080"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.087266"/>
         <joint name="left_shoulder_yaw_joint_X4" value="1.571239"/>
@@ -425,6 +452,7 @@
     </group_state>
 
     <group_state name="hello" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0"/>
         <joint name="left_shoulder_roll_joint_X6" value="1.889"/>
         <joint name="left_shoulder_yaw_joint_X4" value="2.0465"/>
@@ -440,6 +468,7 @@
     </group_state>
 
     <group_state name="waiting" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="0.2053"/>
         <joint name="left_shoulder_roll_joint_X6" value="0.5067"/>
         <joint name="left_shoulder_yaw_joint_X4" value="-0.8522"/>
@@ -455,6 +484,7 @@
     </group_state>
 
     <group_state name="stop" group="both_arms">
+        <joint name="waist_yaw_joint_X8" value="0"/>
         <joint name="left_shoulder_pitch_joint_X6" value="-1.2282"/>
         <joint name="left_shoulder_roll_joint_X6" value="0"/>
         <joint name="left_shoulder_yaw_joint_X4" value="0.6613"/>

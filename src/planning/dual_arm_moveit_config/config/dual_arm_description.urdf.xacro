@@ -3,6 +3,9 @@
     <xacro:arg name="pkg_share" default=""/>
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
     <xacro:arg name="fixed_legs" default="true" />
+    <!-- Declared before the include so it wins over the default="true" in
+         full_robot_description/urdf/joints/body_joints.xacro. -->
+    <xacro:arg name="fixed_waist" default="false" />
 
     <xacro:include filename="$(find dual_arm_description)/urdf/dual_arm_base.xacro" />
 

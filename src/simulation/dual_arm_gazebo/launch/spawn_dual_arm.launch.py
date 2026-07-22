@@ -73,6 +73,21 @@ def generate_launch_description():
         output="screen",
     )
 
+    # The waist is the first joint of BOTH arm chains, so neither arm controller can
+    # own it -- ros2_control rejects a second claim on the same command interface.
+    waist_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "waist_controller",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "20",
+            "--switch-timeout", "20",
+            "--service-call-timeout", "60",
+        ],
+        output="screen",
+    )
+
     left_arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -134,9 +149,16 @@ def generate_launch_description():
         )
     )
 
-    start_left_arm_after_jsb = RegisterEventHandler(
+    start_waist_after_jsb = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
+            on_exit=[waist_controller_spawner],
+        )
+    )
+
+    start_left_arm_after_waist = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=waist_controller_spawner,
             on_exit=[left_arm_controller_spawner],
         )
     )
@@ -211,7 +233,8 @@ def generate_launch_description():
 
         # Sequential controller chain (triggered by events)
         start_jsb_after_spawn,
-        start_left_arm_after_jsb,
+        start_waist_after_jsb,
+        start_left_arm_after_waist,
         start_right_arm_after_left_arm,
         start_left_hand_after_right_arm,
         start_right_hand_after_left_hand,

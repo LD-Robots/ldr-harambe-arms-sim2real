@@ -7,6 +7,14 @@
             <hardware>
                 <plugin>mock_components/GenericSystem</plugin>
             </hardware>
+            <!-- Waist (first joint of both arm chains) -->
+            <joint name="waist_yaw_joint_X8">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['waist_yaw_joint_X8']}</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+            </joint>
             <!-- Left arm -->
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>

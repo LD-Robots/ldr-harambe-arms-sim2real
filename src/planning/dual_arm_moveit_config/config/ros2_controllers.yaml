@@ -2,6 +2,8 @@ controller_manager:
   ros__parameters:
     update_rate: 100
 
+    waist_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
     left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
@@ -74,6 +76,17 @@ right_hand_controller:
       - right_middle_proximal_joint
       - right_ring_proximal_joint
       - right_pinky_proximal_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true
+
+waist_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint_X8
     command_interfaces:
       - position
     state_interfaces:
