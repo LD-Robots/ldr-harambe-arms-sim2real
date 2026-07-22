@@ -34,7 +34,7 @@ def generate_launch_description():
             os.path.join(install_dir_hand, 'share'),
             os.path.join(install_full_robot_dir, 'share'),
             os.path.join(install_dir_camera, 'share'),
-            os.path.join(install_gazebo_dir, 'share', 'arm_gazebo', 'worlds', 'models')
+            os.path.join(get_package_prefix('gazebo_worlds'), 'share', 'gazebo_worlds', 'models'),
         ])
     )
     

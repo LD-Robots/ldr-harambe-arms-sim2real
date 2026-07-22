@@ -442,7 +442,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         return insert_row
 
     def _populate_world_selector(self):
-        """Fill the combo box with *.sdf files from arm_gazebo/worlds."""
+        """Fill the combo box with *.sdf files from gazebo_worlds/worlds."""
         if self._world_combo is None:
             return
 
@@ -471,7 +471,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         try:
             from ament_index_python.packages import get_package_share_directory
 
-            directories.append(Path(get_package_share_directory('arm_gazebo')) / 'worlds')
+            directories.append(Path(get_package_share_directory('gazebo_worlds')) / 'worlds')
         except Exception:
             pass
 
@@ -498,7 +498,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         """Search upwards for the workspace source tree and worlds folder."""
         current = Path(__file__).resolve()
         for parent in [current, *current.parents]:
-            candidate = parent / 'src' / 'simulation' / 'arm_gazebo' / 'worlds'
+            candidate = parent / 'src' / 'simulation' / 'gazebo_worlds' / 'worlds'
             if candidate.exists():
                 return candidate
         return None

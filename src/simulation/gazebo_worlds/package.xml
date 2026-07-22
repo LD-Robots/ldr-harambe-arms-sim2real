@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>gazebo_worlds</name>
+  <version>1.0.0</version>
+  <description>
+    Gazebo world files and the models they include, shared by every simulation
+    package. Each *_gazebo package used to carry its own copy, which is how two
+    different worlds ended up both named lab-ldr.sdf.
+  </description>
+  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Worlds are loaded by gz sim; nothing here is built or linked. -->
+  <exec_depend>ros_gz_sim</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

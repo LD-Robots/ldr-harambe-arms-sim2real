@@ -52,7 +52,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "world",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("arm_gazebo"), "worlds", "lab-ldr.sdf"]
+                [FindPackageShare("gazebo_worlds"), "worlds", "lab-ldr.sdf"]
             ),
             description="Path to Gazebo world file",
         )
@@ -98,6 +98,8 @@ def generate_launch_description():
             os.path.join(install_dir_hand, "share"),
             os.path.join(install_dir_camera, "share"),
             os.path.join(install_dir_full_robot, "share"),
+            # Worlds live in gazebo_worlds; models/ is what their model:// URIs resolve against.
+            os.path.join(get_package_prefix("gazebo_worlds"), "share", "gazebo_worlds", "models"),
         ])
     )
 

@@ -9,6 +9,9 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <!-- Gazebo world and model files -->
+  <exec_depend>gazebo_worlds</exec_depend>
+
   <!-- Gazebo Harmonic dependencies for ROS 2 Humble -->
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>

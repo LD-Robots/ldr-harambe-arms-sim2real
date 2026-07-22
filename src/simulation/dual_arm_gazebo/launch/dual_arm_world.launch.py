@@ -35,7 +35,7 @@ def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument(
             'simulation_world',
-            default_value=PathJoinSubstitution([pkg_dual_arm_gazebo, 'worlds', 'lab-ldr.sdf']),
+            default_value=PathJoinSubstitution([FindPackageShare('gazebo_worlds'), 'worlds', 'lab.sdf']),
             description='Absolute path to the Gazebo world file',
         ),
         DeclareLaunchArgument(
@@ -65,8 +65,7 @@ def generate_launch_description():
             os.path.join(get_package_prefix('hand_description'), 'share'),
             os.path.join(get_package_prefix('full_robot_description'), 'share'),
             os.path.join(get_package_prefix('camera_description'), 'share'),
-            os.path.join(get_package_prefix('dual_arm_gazebo'), 'share',
-                         'dual_arm_gazebo', 'worlds', 'models'),
+            os.path.join(get_package_prefix('gazebo_worlds'), 'share', 'gazebo_worlds', 'models'),
         ]),
     )
 

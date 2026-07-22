@@ -48,7 +48,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'simulation_world',
             default_value=PathJoinSubstitution([
-                FindPackageShare('arm_gazebo'), 'worlds', 'lab-mtc.sdf'
+                FindPackageShare('gazebo_worlds'), 'worlds', 'lab-mtc.sdf'
             ]),
             description='World file for the simulation (MTC scene by default)',
         ),

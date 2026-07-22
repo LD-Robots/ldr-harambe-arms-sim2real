@@ -24,13 +24,15 @@ def generate_launch_description():
             os.path.join(install_dir_full_robot, 'share'),
             os.path.join(install_dir_hand, 'share'),
             os.path.join(install_dir_imu, 'share'),
+            # Worlds live in gazebo_worlds; models/ is what their model:// URIs resolve against.
+            os.path.join(get_package_prefix('gazebo_worlds'), 'share', 'gazebo_worlds', 'models'),
         ])
     )
 
     # Launch arguments
     world_arg = DeclareLaunchArgument(
         'world',
-        default_value=PathJoinSubstitution([pkg_full_robot_gazebo, 'worlds', 'empty.sdf']),
+        default_value=PathJoinSubstitution([FindPackageShare('gazebo_worlds'), 'worlds', 'lab.sdf']),
         description='Path to the world file'
     )
 
