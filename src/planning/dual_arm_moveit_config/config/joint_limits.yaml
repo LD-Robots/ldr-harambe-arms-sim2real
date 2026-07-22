@@ -3,6 +3,11 @@ default_acceleration_scaling_factor: 1.0
 
 joint_limits:
   # Left arm
+  waist_yaw_joint_X8:
+    has_velocity_limits: true
+    max_velocity: 1.0  # rad/s (conservative limit for torso rotation)
+    has_acceleration_limits: true
+    max_acceleration: 2.0  # rad/s² (limits whole-upper-body acceleration)
   left_shoulder_pitch_joint_X6:
     has_velocity_limits: true
     max_velocity: 2.0

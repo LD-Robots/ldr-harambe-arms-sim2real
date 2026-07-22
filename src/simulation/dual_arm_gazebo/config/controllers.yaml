@@ -5,6 +5,8 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
       publish_rate: 50
 
+    waist_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
     left_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
@@ -89,3 +91,14 @@ right_hand_controller:
       goal_time: 0.0
     allow_partial_joints_goal: false
     allow_integration_in_goal_trajectories: true
+
+waist_controller:
+  ros__parameters:
+    joints:
+      - waist_yaw_joint_X8
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_nonzero_velocity_at_trajectory_end: true

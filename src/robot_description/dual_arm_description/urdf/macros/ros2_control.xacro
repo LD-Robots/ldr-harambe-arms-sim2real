@@ -6,84 +6,117 @@
             <hardware>
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
+            <!-- Waist (shared by both arm chains) -->
+            <joint name="waist_yaw_joint_X8">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
+                <state_interface name="velocity"/>
+                <state_interface name="effort"/>
+            </joint>
             <!-- Left arm (6 DOF) -->
             <joint name="left_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="left_shoulder_roll_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.1</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="left_shoulder_yaw_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="left_elbow_pitch_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">-0.1</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="left_wrist_yaw_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="left_wrist_roll_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <!-- Right arm (6 DOF) -->
             <joint name="right_shoulder_pitch_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="right_shoulder_roll_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">-0.1</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="right_shoulder_yaw_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="right_elbow_pitch_joint_X6">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">-0.1</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="right_wrist_yaw_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
             <joint name="right_wrist_roll_joint_X4">
                 <command_interface name="position"/>
-                <state_interface name="position"/>
+                <state_interface name="position">
+                    <param name="initial_value">0.0</param>
+                </state_interface>
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
         </ros2_control>
 
         <!-- Both hands in one system (like single arm's HandSystem) -->
-        <!--ros2_control name="HandSystem" type="system">
+        <ros2_control name="HandSystem" type="system">
             <hardware>
                 <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
@@ -243,6 +276,6 @@
                 <state_interface name="velocity"/>
                 <state_interface name="effort"/>
             </joint>
-        </ros2_control-->
+        </ros2_control>
     </xacro:macro>
 </robot>
