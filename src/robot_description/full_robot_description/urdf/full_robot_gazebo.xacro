@@ -40,30 +40,45 @@
   <xacro:include filename="$(find full_robot_description)/urdf/links/right_foot_links.xacro" />
   <xacro:include filename="$(find full_robot_description)/urdf/joints/right_foot_joints.xacro" />
   
-  <!-- Temporarily disable inspire hands to speed up simulation and avoid issues with the hand meshes. Will be re-enabled once the hand meshes are optimized for simulation. -->
   <!-- Hands -->
-  <!--xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" /-->
-  <!--xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" /-->
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_left.xacro" />
+  <xacro:include filename="$(find hand_description)/urdf/hands/inspire_hand_right.xacro" />
 
-  <!--xacro:inspire_hand_left
-      parent="urdf_l_wrist_assembly"
-      prefix="left_"
-      mount_x="-0.034"
-      mount_y="0.015"
-      mount_z="-0.06"
-      mount_roll="1.424576"
-      mount_pitch="-0.201364"
-      mount_yaw="2.205507"/-->
+  <!-- Mount offsets differ from arm_description/urdf/arm_base.xacro, which uses
+       idealised pi/2 rotations. These are the dual-arm values as measured; do not
+       substitute one set for the other without re-checking against the hardware. -->
+  <xacro:inspire_hand_left
+        parent="urdf_l_wrist_assembly"
+        prefix="left_"
+        mount_x="-0.0303429"
+        mount_y="4.99302e-07"
+        mount_z="-0.06"
+        mount_roll="${pi/2}"
+        mount_pitch="0.0"
+        mount_yaw="${pi/2}"/>
 
-  <!--xacro:inspire_hand_right
-      parent="urdf_r_wrist_assembly"
-      prefix="right_"
-      mount_x="-0.029"
-      mount_y="-0.011"
-      mount_z="-0.06"
-      mount_roll="1.717027"
-      mount_pitch="-0.201373"
-      mount_yaw="-2.205496"/-->
+  <xacro:inspire_hand_right
+        parent="urdf_r_wrist_assembly"
+        prefix="right_"
+        mount_x="-0.0327429 "
+        mount_y="0.008"
+        mount_z="-0.06"
+        mount_roll="${pi/2}"
+        mount_pitch="0.0"
+        mount_yaw="-${pi/2}"/>
+
+
+
+  <!-- Orbbec Gemini 335L/336L Depth Camera -->
+  <xacro:include filename="$(find camera_description)/urdf/gemini335L_336L.urdf.xacro"/>
+  <xacro:include filename="$(find camera_description)/urdf/gemini335L_336L_gazebo.xacro"/>
+
+  <!-- Mount camera on urdf_base, positioned to view the workspace -->
+  <joint name="camera_mount_joint" type="fixed">
+      <parent link="urdf_base"/>
+      <child link="camera_link"/>
+      <origin xyz="0.08 0.0455 0.829" rpy="0 ${pi/12} 0"/>
+  </joint>
 
   <!-- IMU sensors (BNO055) -->
   <xacro:include filename="$(find imu_description)/urdf/bno055_imu.xacro" />

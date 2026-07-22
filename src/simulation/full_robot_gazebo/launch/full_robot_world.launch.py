@@ -78,6 +78,7 @@ def generate_launch_description():
             os.path.join(get_package_prefix('full_robot_description'), 'share'),
             os.path.join(get_package_prefix('hand_description'), 'share'),
             os.path.join(get_package_prefix('imu_description'), 'share'),
+            os.path.join(get_package_prefix('camera_description'), 'share'),
             os.path.join(get_package_prefix('gazebo_worlds'), 'share', 'gazebo_worlds', 'models'),
         ]),
     )

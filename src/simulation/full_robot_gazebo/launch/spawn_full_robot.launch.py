@@ -157,6 +157,44 @@ def generate_launch_description():
         )
     )
 
+    # Camera bridge - bridge Gazebo rgbd_camera topics to ROS 2
+    camera_bridge = TimerAction(
+        period=2.0,
+        actions=[Node(
+            package="ros_gz_bridge",
+            executable="parameter_bridge",
+            arguments=[
+                "/camera/image@sensor_msgs/msg/Image[gz.msgs.Image",
+                "/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+                "/camera/depth_image@sensor_msgs/msg/Image[gz.msgs.Image",
+                "/camera/depth_camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+                "/camera/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked",
+                "--ros-args",
+                "--param", "qos_overrides./camera/depth_image.publisher.depth:=1",
+                "--param", "qos_overrides./camera/image.publisher.depth:=1",
+            ],
+            parameters=[{"use_sim_time": use_sim_time}],
+            output="screen",
+            remappings=[
+                ("/camera/image", "/camera/color/image_raw"),
+                ("/camera/camera_info", "/camera/color/camera_info"),
+                ("/camera/depth_image", "/camera/depth/image_raw"),
+                ("/camera/depth_camera_info", "/camera/depth/camera_info"),
+            ],
+        )]
+    )
+
+    # Static transform to fix Gazebo's frame naming
+    camera_frame_fix = TimerAction(
+        period=3.0,
+        actions=[Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            arguments=["0", "0", "0", "0", "0", "0", "camera_link", "dual_arm/urdf_base/camera"],
+            parameters=[{"use_sim_time": use_sim_time}],
+            output="screen",
+        )]
+    )
     return LaunchDescription([
         # Launch arguments
         use_sim_time_arg, control_mode_arg, controller_type_arg, fixed_base_arg,
@@ -169,4 +207,8 @@ def generate_launch_description():
         # Sequential controller chain (triggered by events)
         start_jsb_after_spawn,
         start_controller_after_jsb,
+        
+        # Camera
+        camera_bridge,
+        camera_frame_fix,
     ])
