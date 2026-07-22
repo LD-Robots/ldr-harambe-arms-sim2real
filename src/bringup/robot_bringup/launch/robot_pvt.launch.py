@@ -65,11 +65,18 @@ def _launch_setup(context):
     # `body_group` parameter (see _make_spawner below). Legs must stay
     # revolute in the kinematic tree (fixed_legs:=false), or the
     # controller_manager fails to claim their hardware interfaces.
+    #
+    # fixed_waist is passed for the same reason, and explicitly even though the
+    # description already defaults it to false: full_robot_description's
+    # body_joints.xacro declares the same arg with the opposite default, and
+    # whichever file is reached first wins. Leaving it implicit is how the waist
+    # ended up fixed in the kinematic tree while EtherCAT was still driving the
+    # motor -- commanded, but frozen in RViz.
     robot_description_content = Command([
         "xacro ",
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
-        " use_sim:=false pvt_mode:=true fixed_legs:=false",
+        " use_sim:=false pvt_mode:=true fixed_legs:=false fixed_waist:=false",
     ])
     robot_description = {
         "robot_description": ParameterValue(

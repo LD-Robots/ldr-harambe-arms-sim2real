@@ -138,7 +138,8 @@ def _launch_setup(context):
         "xacro ",
         PathJoinSubstitution([
             pkg_dual_arm_description, "urdf", "dual_arm.urdf.xacro"]),
-        " use_sim:=false pvt_mode:=true fixed_legs:=false",
+        # Both flags explicit -- see robot_pvt.launch.py for why implicit is unsafe.
+        " use_sim:=false pvt_mode:=true fixed_legs:=false fixed_waist:=false",
     ])
     robot_description = {
         "robot_description": ParameterValue(
