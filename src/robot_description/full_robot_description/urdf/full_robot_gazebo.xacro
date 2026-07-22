@@ -104,6 +104,7 @@
   <xacro:if value="${'$(arg control_mode)' == 'position'}">
     <xacro:include filename="$(find full_robot_description)/urdf/macros/ros2_control_position.xacro" />
     <xacro:full_robot_ros2_control_position />
+    <xacro:full_robot_ros2_control_hands />
   </xacro:if>
 
   <!-- ros2_control: effort mode -->

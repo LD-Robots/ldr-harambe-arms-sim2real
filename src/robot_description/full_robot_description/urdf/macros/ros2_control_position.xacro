@@ -13,7 +13,9 @@
           <param name="min">-2.60054</param>
           <param name="max">2.60054</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -24,7 +26,9 @@
           <param name="min">-3.01942</param>
           <param name="max">1.69297</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -34,7 +38,9 @@
           <param name="min">-0.20944</param>
           <param name="max">2.93215</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -44,7 +50,9 @@
           <param name="min">-1.74533</param>
           <param name="max">2.96706</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -54,7 +62,9 @@
           <param name="min">-1.309</param>
           <param name="max">1.8326</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">-0.1</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -64,7 +74,9 @@
           <param name="min">-2.35619</param>
           <param name="max">2.35619</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -74,7 +86,9 @@
           <param name="min">-1.5708</param>
           <param name="max">1.5708</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -85,7 +99,9 @@
           <param name="min">-3.01942</param>
           <param name="max">1.69297</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -95,7 +111,9 @@
           <param name="min">-2.93215</param>
           <param name="max">0.20944</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">-0.1</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -105,7 +123,9 @@
           <param name="min">-2.96706</param>
           <param name="max">1.74533</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -115,7 +135,9 @@
           <param name="min">-1.309</param>
           <param name="max">1.8326</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">-0.1</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -125,7 +147,9 @@
           <param name="min">-2.35619</param>
           <param name="max">2.35619</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
@@ -135,124 +159,14 @@
           <param name="min">-1.65806</param>
           <param name="max">1.65806</param>
         </command_interface>
-        <state_interface name="position" />
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
         <state_interface name="velocity" />
         <state_interface name="effort" />
       </joint>
 
-      <!-- === LEFT HAND (6 actuated) — DISABLED: inspire hands commented out in URDF === -->
-      <!-- DISABLED
-      <joint name="left_thumb_proximal_yaw_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.31</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
 
-      <joint name="left_thumb_proximal_pitch_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">0.61</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="left_index_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="left_middle_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="left_ring_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="left_pinky_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-      -->
-
-      <!-- === RIGHT HAND (6 actuated) — DISABLED: inspire hands commented out in URDF === -->
-      <!-- DISABLED
-      <joint name="right_thumb_proximal_yaw_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.31</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="right_thumb_proximal_pitch_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">0.61</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="right_index_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="right_middle_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="right_ring_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-
-      <joint name="right_pinky_proximal_joint">
-        <command_interface name="position">
-          <param name="min">0</param>
-          <param name="max">1.47</param>
-        </command_interface>
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-      -->
 
       <!-- === LEFT LEG === -->
       <joint name="left_hip_pitch_joint_X8">
@@ -371,6 +285,215 @@
           <param name="min">-0.785398</param>
           <param name="max">0.785398</param>
         </command_interface>
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+
+    </ros2_control>
+  </xacro:macro>
+
+  <!-- The hands are a separate system, as in dual_arm_description. They are their own
+       hardware on the real robot, and the mimic joints below have no command interface,
+       which keeps that oddity out of the body block. -->
+  <xacro:macro name="full_robot_ros2_control_hands">
+    <ros2_control name="HandSystem" type="system">
+      <hardware>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </hardware>
+
+      <!-- === ACTUATED (6 per hand) === -->
+      <joint name="left_thumb_proximal_yaw_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.31</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_thumb_proximal_pitch_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">0.61</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_index_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_middle_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_ring_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_pinky_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+
+      <joint name="right_thumb_proximal_yaw_joint">
+        <command_interface name="position">
+          <param name="min">0.0</param>
+          <param name="max">1.308</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_thumb_proximal_pitch_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">0.6</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_index_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_middle_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_ring_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_pinky_proximal_joint">
+        <command_interface name="position">
+          <param name="min">0</param>
+          <param name="max">1.47</param>
+        </command_interface>
+        <state_interface name="position">
+          <param name="initial_value">0.1</param>
+        </state_interface>
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+
+      <!-- === MIMIC (driven by the proximal joints; state only, no command) === -->
+      <joint name="left_thumb_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_thumb_distal_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_index_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_middle_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_ring_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="left_pinky_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_thumb_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_thumb_distal_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_index_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_middle_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_ring_intermediate_joint">
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="right_pinky_intermediate_joint">
         <state_interface name="position" />
         <state_interface name="velocity" />
         <state_interface name="effort" />

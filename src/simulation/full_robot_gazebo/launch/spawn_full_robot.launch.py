@@ -136,10 +136,14 @@ def generate_launch_description():
             "waist_controller",
             "left_leg_trajectory_controller",
             "right_leg_trajectory_controller",
-            # Hands disabled — inspire hands commented out in URDF
-            # "left_hand_controller",
-            # "right_hand_controller",
         ]
+    ]
+
+    # Hands, in both modes. Neither whole_body_controller nor the trajectory
+    # controllers above claim a hand joint, so there is nothing to conflict with and
+    # no reason to make the hands follow the body's choice of controller.
+    hand_controller_spawners = [
+        _make_spawner(name) for name in ["left_hand_controller", "right_hand_controller"]
     ]
 
     # Chain: spawn_entity -> (5s) -> JSB -> controller (direct or trajectory)
@@ -153,7 +157,8 @@ def generate_launch_description():
     start_controller_after_jsb = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
-            on_exit=[direct_controller_spawner] + trajectory_controller_spawners,
+            on_exit=([direct_controller_spawner] + trajectory_controller_spawners
+                     + hand_controller_spawners),
         )
     )
 
