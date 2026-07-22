@@ -1,0 +1,113 @@
+# MTC pick-and-place on the dual-arm robot, left hand only.
+#
+# Phase 1 of the bimanual task: the same stage pipeline as arm_mtc, running against
+# dual_arm_moveit_config instead of arm_moveit_config. No C++ differs -- arm_mtc's
+# mtc_pick_place node reads everything from here, so this file is the whole port.
+#
+# Loaded by BOTH nodes via the /** wildcard; each declares only the keys it uses:
+#   planning_scene_publisher.py  ->  robot.planning_frame, scene.*
+#   mtc_pick_place               ->  robot.*, poses.*, task.*,
+#                                    scene.object.id, scene.source_table.name
+#
+# Geometry is expressed in robot.planning_frame (urdf_base). The launch file spawns
+# the robot at world z = 0.85, matching the single-arm setup, so every Z below is
+# the lab-mtc.sdf world value minus 0.85. Gazebo physics and the MoveIt collision
+# scene are two independent worlds kept in sync by hand.
+/**:
+  ros__parameters:
+
+    # ========== ROBOT / MODEL NAMES ==========
+    robot:
+      arm_group: "left_arm"                     # 7-DOF: waist yaw + left arm
+      hand_group: "left_hand"
+      hand_frame: "left_tcp_link"               # IK target frame
+      hand_root_link: "left_hand_base_link"     # subtree root for collision allowances
+      planning_frame: "urdf_base"
+      # Shared by both arm chains on this robot: planning the left arm can rotate
+      # the waist, which moves the right arm with it.
+      waist_joint: "waist_yaw_joint_X8"
+      # Arm joints, shoulder to wrist. Order must match task.cost.arm_weights.
+      arm_joints:
+        - "left_shoulder_pitch_joint_X6"
+        - "left_shoulder_roll_joint_X6"
+        - "left_shoulder_yaw_joint_X4"
+        - "left_elbow_pitch_joint_X6"
+        - "left_wrist_yaw_joint_X4"
+        - "left_wrist_roll_joint_X4"
+
+    # ========== SRDF NAMED STATES ==========
+    # dual_arm_description.srdf drops the 01_/02_ prefixes the single-arm config uses.
+    poses:
+      arm_home: "home"
+      hand_open: "open"
+      hand_pregrasp: "cylinder_pregrasp"        # thumb rotated around the cylinder
+      hand_grasp: "cylinder_grasp"
+      hand_release_partial: "cylinder_release"  # thumb relaxes, fingers still support
+      # The single-arm config has a dedicated fully-open release state; here it is
+      # value-identical to "open", so there is no separate name for it.
+      hand_release_full: "open"
+
+    # ========== COLLISION SCENE ==========
+    scene:
+      spawn_object: true
+      spawn_tables: true
+      republish_period: 0.0     # s; 0 = apply once, via /apply_planning_scene
+
+      object:
+        id: "target_cylinder"
+        radius: 0.03035         # = Gazebo lever radius
+        height: 0.15            # = Gazebo lever length
+        pose: [0.45, 0.35, 0.175]     # lever world (0.45, 0.35, 1.025) - 0.85
+
+      source_table:
+        name: "table"
+        pose: [0.45, 0.35, -0.375]    # test_table world (0.45, 0.35, 0.475) - 0.85
+        size: [0.5, 0.3, 0.95]        # = Gazebo test_table size; top at 0.1
+
+      destination_table:
+        name: "destination_table"
+        pose: [0.45, -0.35, -0.375]   # destination_table world (0.45, -0.35, 0.475) - 0.85
+        size: [0.5, 0.3, 0.95]
+
+    # ========== TASK TUNING ==========
+    # Same values as the single-arm config. The arm below the waist is the same
+    # kinematic chain, so anything tuned there should hold here; if it does not,
+    # that is a finding worth chasing rather than papering over.
+    task:
+      # Reaching the destination table with the left hand is what phase 2 replaces
+      # with a handover. Until then the left arm carries it across the body.
+      place_pose: [0.45, -0.35, 0.175]
+
+      grasp:
+        tilt: 0.18
+        pre_grasp_offset: [0.035, 0.045, -0.03]
+        angle_delta: 0.5235987755982988   # pi/6 -> 12 grasp poses around the cylinder
+        max_ik_solutions: 4
+        min_solution_distance: 0.1
+
+      approach:
+        min_distance: 0.0
+        max_distance: 0.05
+
+      lift:
+        min_distance: 0.005
+        max_distance: 0.1
+
+      retreat:
+        min_distance: 0.02
+        max_distance: 0.1
+
+      place:
+        n_angles: 6
+        max_ik_solutions: 2
+        min_solution_distance: 0.1
+
+      cost:
+        waist_weight: 15.0
+        arm_weights: [7.0, 7.0, 5.0, 3.0, 1.0, 1.0]
+
+      planning:
+        max_solutions: 5
+        goal_joint_tolerance: 0.00001
+        cartesian_step_size: 0.01
+        scene_wait_timeout: 10.0

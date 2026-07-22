@@ -20,4 +20,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+install(PROGRAMS
+  scripts/reset_robot.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME reset_robot
+)
+
 ament_package()
