@@ -1,0 +1,23 @@
+# Everything bridged out of Gazebo for the full robot, in one place.
+#
+# One parameter_bridge process reads this file, replacing the clock_bridge.launch
+# include plus a Node per IMU. Adding a sensor is a stanza here, not another node in
+# the launch file.
+
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/pelvis_imu/data"
+  gz_topic_name: "/pelvis_imu/data"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/torso_imu/data"
+  gz_topic_name: "/torso_imu/data"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS

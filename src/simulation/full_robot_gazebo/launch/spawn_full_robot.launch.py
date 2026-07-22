@@ -1,3 +1,18 @@
+"""
+The full robot itself: robot_state_publisher, the Gazebo spawn, and the controllers.
+
+Assumes Gazebo is already up -- full_robot_world.launch.py starts it and includes
+this file. Run it on its own only against a simulation someone else launched.
+
+The controller chain is sequenced on OnProcessExit rather than fixed timers: the
+switch takes tens of seconds of wall clock under a heavy sim, and a timer long
+enough to be safe is longer than the wait usually needs to be.
+
+Usage:
+    ros2 launch full_robot_gazebo spawn_full_robot.launch.py
+    ros2 launch full_robot_gazebo spawn_full_robot.launch.py controller_type:=trajectory
+"""
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, TimerAction, RegisterEventHandler
 from launch.conditions import IfCondition, UnlessCondition

@@ -33,6 +33,7 @@
   <!-- Package dependencies -->
   <exec_depend>full_robot_description</exec_depend>
   <exec_depend>hand_description</exec_depend>
+  <exec_depend>imu_description</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
