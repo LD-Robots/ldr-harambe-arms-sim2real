@@ -16,6 +16,7 @@ find_package(moveit_ros_planning_interface REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(moveit_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -36,6 +37,7 @@ ament_target_dependencies(mtc_pick_place
   moveit_core
   geometry_msgs
   shape_msgs
+  std_msgs
   moveit_msgs
   tf2_eigen
   tf2_geometry_msgs

@@ -2,9 +2,10 @@
 """
 Dual-arm MTC pick-and-place demo - full stack.
 
-Phase 1 of the bimanual task: the same pipeline arm_mtc runs, on the dual-arm
-robot, using the left arm only. Everything that differs lives in
-config/mtc_task.yaml, so no new node is involved.
+Two single-arm pick-and-places, one per arm: the left arm carries the object to the
+far table and goes home, then the right arm brings it back. They are two separate
+MTC tasks -- the second is built only after the first has run, from the scene as it
+actually ended up.
 
   1. Gazebo + robot + controllers, via dual_arm_gazebo
   2. move_group, with ExecuteTaskSolutionCapability (required by MTC)
@@ -19,6 +20,12 @@ Usage:
 It plans but does not execute by default: pick a solution in the Motion Planning
 Tasks panel and run it from there. To re-plan without restarting the simulation,
 leave this running and use mtc_node_only.launch.py in a second terminal.
+
+Arm 2 waits for a go-ahead so it plans against the object's real position:
+
+    ros2 topic pub --once /mtc_next_arm std_msgs/msg/Empty {}
+
+Pass wait_for_trigger:=false to run both arms back to back instead.
 """
 
 from launch import LaunchDescription

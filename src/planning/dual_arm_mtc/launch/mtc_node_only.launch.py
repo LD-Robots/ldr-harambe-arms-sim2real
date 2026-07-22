@@ -3,8 +3,8 @@
 MTC pick-and-place task node on the dual-arm robot, on its own.
 
 Runs this package's mtc_pick_place node against dual_arm_moveit_config and
-config/mtc_task.yaml. Phase 1 of the bimanual task uses the left arm only; the node
-is still a copy of arm_mtc's, and diverges once the handover lands.
+config/mtc_task.yaml. It plans one task per arm: arm 1 moves the object to the far
+table, arm 2 brings it back. Arm 2's task is built only after arm 1 has run.
 
 Use it to re-plan against an already-running simulation without paying the bringup
 every iteration.
@@ -16,6 +16,12 @@ Usage:
     # Terminal 2: re-plan as often as needed
     ros2 launch dual_arm_mtc mtc_node_only.launch.py
     ros2 launch dual_arm_mtc mtc_node_only.launch.py execute:=true
+
+    # Terminal 3: release arm 2 once arm 1 has actually moved the object
+    ros2 topic pub --once /mtc_next_arm std_msgs/msg/Empty {}
+
+Use wait_for_trigger:=false to skip that pause and plan both arms in one go --
+only sensible together with execute:=true.
 
 Prerequisites: Gazebo, controllers, move_group and the scene publisher must
 already be running.
@@ -44,6 +50,14 @@ def generate_launch_description():
             default_value='false',
             description='Execute automatically instead of waiting for manual execution in RViz',
         ),
+        DeclareLaunchArgument(
+            'wait_for_trigger',
+            default_value='true',
+            description=(
+                'Pause between the two arms until std_msgs/Empty arrives on '
+                '/mtc_next_arm. Set false to plan and run both back to back.'
+            ),
+        ),
     ]
 
     # Pipeline order matches the rest of the workspace: MoveIt takes the LAST entry
@@ -71,6 +85,8 @@ def generate_launch_description():
             {
                 'use_sim_time': True,
                 'execute': ParameterValue(LaunchConfiguration('execute'), value_type=bool),
+                'wait_for_trigger': ParameterValue(
+                    LaunchConfiguration('wait_for_trigger'), value_type=bool),
             },
         ],
     )

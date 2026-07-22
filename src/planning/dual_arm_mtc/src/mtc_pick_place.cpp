@@ -1,7 +1,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <algorithm>
 #include <cmath>
+#include <condition_variable>
+#include <mutex>
 #include <stdexcept>
+#include <std_msgs/msg/empty.hpp>
 #if __has_include(<moveit/planning_scene/planning_scene.hpp>)
   #include <moveit/planning_scene/planning_scene.hpp>
   #include <moveit/planning_scene_interface/planning_scene_interface.hpp>
@@ -97,6 +100,22 @@ handCollisionLinks(const moveit::core::RobotModelConstPtr& model, const std::str
   return links;
 }
 
+// One arm and the hand on it. The task runs the same pick-and-place twice, once per
+// arm: the first carries the object to the far table, the second brings it back.
+struct ArmSpec
+{
+  std::string arm_group;
+  std::string hand_group;
+  std::string hand_frame;       // IK target frame
+  std::string hand_root_link;   // subtree root for collision allowances
+  std::vector<std::string> arm_joints;
+  double grasp_tilt{ 0.18 };
+  std::vector<double> pre_grasp_offset{ 0.035, 0.045, -0.03 };
+  // Extra rotation of the grasp frame, in its own axes, after the standard
+  // RotY(pi) * RotX(pi - tilt).
+  std::vector<double> grasp_frame_rpy{ 0.0, 0.0, 0.0 };
+};
+
 // Everything the task reads from config/mtc_task.yaml. Defaults mirror that file so
 // the node still runs standalone; the YAML remains the source of truth.
 struct TaskConfig
@@ -124,9 +143,11 @@ struct TaskConfig
   // itself belongs to planning_scene_publisher.py.
   std::string object_id{ "target_cylinder" };
   std::string source_table_name{ "table" };
+  std::string destination_table_name{ "destination_table" };
 
   // task.*
-  std::vector<double> place_pose{ 0.35, 0.46, 0.175 };
+  std::vector<double> place_pose{ 0.45, -0.35, 0.175 };        // where the first arm puts it
+  std::vector<double> second_place_pose{ 0.45, 0.35, 0.175 };  // where the second arm puts it back
   double grasp_tilt{ 0.18 };
   std::vector<double> pre_grasp_offset{ 0.035, 0.045, -0.03 };
   double grasp_angle_delta{ M_PI / 6 };
@@ -138,12 +159,30 @@ struct TaskConfig
   int place_n_angles{ 6 };
   int place_max_ik_solutions{ 2 };
   double place_min_solution_distance{ 0.1 };
+  std::vector<double> grasp_frame_rpy{ 0.0, 0.0, 0.0 };
+
+  // The second arm, which brings the object back.
+  std::string second_arm_group{ "right_arm" };
+  std::string second_hand_group{ "right_hand" };
+  std::string second_hand_frame{ "right_tcp_link" };
+  std::string second_hand_root_link{ "right_hand_base_link" };
+  std::vector<std::string> second_arm_joints{
+    "right_shoulder_pitch_joint_X6", "right_shoulder_roll_joint_X6",
+    "right_shoulder_yaw_joint_X4",   "right_elbow_pitch_joint_X6",
+    "right_wrist_yaw_joint_X4",      "right_wrist_roll_joint_X4" };
+  double second_grasp_tilt{ 0.18 };
+  // Mirrored against the left hand, each in the way its own quantity requires -- see
+  // the second_grasp block in config/mtc_task.yaml for why they differ.
+  std::vector<double> second_pre_grasp_offset{ 0.035, 0.045, 0.03 };
+  std::vector<double> second_grasp_frame_rpy{ 0.0, M_PI, 0.0 };
+
   double cost_waist_weight{ 15.0 };
   std::vector<double> cost_arm_weights{ 7.0, 7.0, 5.0, 3.0, 1.0, 1.0 };
   int max_solutions{ 5 };
   double goal_joint_tolerance{ 0.00001 };
   double cartesian_step_size{ 0.01 };
   double scene_wait_timeout{ 10.0 };
+  std::string trigger_topic{ "/mtc_next_arm" };
 };
 
 class MTCPickPlace
@@ -169,12 +208,31 @@ public:
   void dumpHandGraspContacts();
 
 private:
-  mtc::Task createTask();
+  // One task per arm. The second is only built after the first has run, so it
+  // plans from the state the robot is actually in rather than a predicted one.
+  mtc::Task createTask(const std::string& name, const ArmSpec& arm,
+                       const std::vector<double>& place_target);
+  ArmSpec firstArm() const;
+  ArmSpec secondArm() const;
+  bool runArm(const std::string& name, const ArmSpec& arm,
+              const std::vector<double>& place_target);
+
+  // Block until someone publishes on config_.trigger_topic. Returns false if the node
+  // is shut down while waiting.
+  bool waitForTrigger(const std::string& what);
+
   mtc::Task task_;
   rclcpp::Node::SharedPtr node_;
   TaskConfig config_;
   mtc::Stage* hand_grasp_ptr_{ nullptr };  // final hand-grasp stage, used for failure diagnostics
   bool execute_automatically_{ false };
+  bool wait_for_trigger_{ true };
+
+  // The trigger arrives on the executor thread while doTask() sits in waitForTrigger().
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr trigger_sub_;
+  std::mutex trigger_mutex_;
+  std::condition_variable trigger_cv_;
+  bool triggered_{ false };
 };
 
 MTCPickPlace::MTCPickPlace(const rclcpp::NodeOptions& options)
@@ -223,8 +281,19 @@ bool MTCPickPlace::loadTaskConfig()
 
   load("scene.object.id", config_.object_id);
   load("scene.source_table.name", config_.source_table_name);
+  load("scene.destination_table.name", config_.destination_table_name);
 
   load("task.place_pose", config_.place_pose);
+  load("task.second_place_pose", config_.second_place_pose);
+  load("task.grasp.frame_rpy", config_.grasp_frame_rpy);
+  load("robot.second_arm.arm_group", config_.second_arm_group);
+  load("robot.second_arm.hand_group", config_.second_hand_group);
+  load("robot.second_arm.hand_frame", config_.second_hand_frame);
+  load("robot.second_arm.hand_root_link", config_.second_hand_root_link);
+  load("robot.second_arm.arm_joints", config_.second_arm_joints);
+  load("task.second_grasp.tilt", config_.second_grasp_tilt);
+  load("task.second_grasp.pre_grasp_offset", config_.second_pre_grasp_offset);
+  load("task.second_grasp.frame_rpy", config_.second_grasp_frame_rpy);
   load("task.grasp.tilt", config_.grasp_tilt);
   load("task.grasp.pre_grasp_offset", config_.pre_grasp_offset);
   load("task.grasp.angle_delta", config_.grasp_angle_delta);
@@ -245,10 +314,29 @@ bool MTCPickPlace::loadTaskConfig()
   load("task.planning.goal_joint_tolerance", config_.goal_joint_tolerance);
   load("task.planning.cartesian_step_size", config_.cartesian_step_size);
   load("task.planning.scene_wait_timeout", config_.scene_wait_timeout);
+  load("task.trigger_topic", config_.trigger_topic);
 
   if (!node_->has_parameter("execute"))
     node_->declare_parameter("execute", false);
   execute_automatically_ = node_->get_parameter("execute").as_bool();
+
+  if (!node_->has_parameter("wait_for_trigger"))
+    node_->declare_parameter("wait_for_trigger", true);
+  wait_for_trigger_ = node_->get_parameter("wait_for_trigger").as_bool();
+
+  // Default QoS on purpose: `ros2 topic pub` is volatile, and a transient-local
+  // subscription would silently never match it. The subscriber exists from here on, so
+  // a trigger sent while arm 1 is still planning is queued and sets the flag early
+  // rather than being lost.
+  trigger_sub_ = node_->create_subscription<std_msgs::msg::Empty>(
+      config_.trigger_topic, 10,
+      [this](const std_msgs::msg::Empty::SharedPtr) {
+        {
+          std::lock_guard<std::mutex> lock(trigger_mutex_);
+          triggered_ = true;
+        }
+        trigger_cv_.notify_all();
+      });
 
   // The cost map pairs these element-wise; a mismatch would silently drop weights.
   if (config_.arm_joints.size() != config_.cost_arm_weights.size()) {
@@ -348,87 +436,129 @@ void MTCPickPlace::dumpHandGraspContacts()
   }
 }
 
-bool MTCPickPlace::doTask()
+ArmSpec MTCPickPlace::firstArm() const
+{
+  return { config_.arm_group, config_.hand_group, config_.hand_frame, config_.hand_root_link,
+           config_.arm_joints, config_.grasp_tilt, config_.pre_grasp_offset,
+           config_.grasp_frame_rpy };
+}
+
+ArmSpec MTCPickPlace::secondArm() const
+{
+  return { config_.second_arm_group, config_.second_hand_group, config_.second_hand_frame,
+           config_.second_hand_root_link, config_.second_arm_joints, config_.second_grasp_tilt,
+           config_.second_pre_grasp_offset, config_.second_grasp_frame_rpy };
+}
+
+// Plan one arm's pick-and-place and, if asked, run it. Returns false only on a real
+// failure; a successful plan left for manual execution also returns true.
+bool MTCPickPlace::runArm(const std::string& name, const ArmSpec& arm,
+                          const std::vector<double>& place_target)
 {
   try
   {
-    task_ = createTask();
+    task_ = createTask(name, arm, place_target);
     task_.init();
   }
   catch (mtc::InitStageException& e)
   {
-    RCLCPP_ERROR_STREAM(LOGGER, "Task initialization failed: " << e);
+    RCLCPP_ERROR_STREAM(LOGGER, name << ": initialization failed: " << e);
     return false;
   }
   catch (const std::exception& e)
   {
-    RCLCPP_ERROR(LOGGER, "Task creation failed: %s", e.what());
+    RCLCPP_ERROR(LOGGER, "%s: task creation failed: %s", name.c_str(), e.what());
     return false;
   }
 
-  RCLCPP_INFO(LOGGER, "Starting task planning (max %d solutions)...", config_.max_solutions);
+  RCLCPP_INFO(LOGGER, "%s: planning (max %d solutions)...", name.c_str(), config_.max_solutions);
   if (!task_.plan(static_cast<std::size_t>(config_.max_solutions)))
   {
-    RCLCPP_ERROR_STREAM(LOGGER, "Task planning failed");
+    RCLCPP_ERROR(LOGGER, "%s: planning failed", name.c_str());
     dumpHandGraspContacts();  // name the exact links blocking the final hand-grasp pose
     return false;
   }
 
   task_.introspection().publishSolution(*task_.solutions().front());
-  RCLCPP_INFO(LOGGER, "Task planning succeeded! %zu solutions found.", task_.solutions().size());
+  RCLCPP_INFO(LOGGER, "%s: %zu solutions found.", name.c_str(), task_.solutions().size());
 
   if (!execute_automatically_)
-  {
-    RCLCPP_INFO(LOGGER, "Automatic execution is disabled.");
-    RCLCPP_INFO(LOGGER,
-                "Select a solution in RViz under 'Motion Planning Tasks' and execute it manually.");
     return true;
-  }
 
-  // Execute the task
-  RCLCPP_INFO(LOGGER, "Attempting to execute the task...");
+  RCLCPP_INFO(LOGGER, "%s: executing...", name.c_str());
   auto result = task_.execute(*task_.solutions().front());
   if (result.val != moveit_msgs::msg::MoveItErrorCodes::SUCCESS)
   {
-    RCLCPP_ERROR_STREAM(LOGGER, "Task execution failed with error code: " << result.val);
+    RCLCPP_ERROR_STREAM(LOGGER, name << ": execution failed with error code: " << result.val);
     return false;
   }
-
-  RCLCPP_INFO(LOGGER, "Task executed successfully!");
+  RCLCPP_INFO(LOGGER, "%s: executed.", name.c_str());
   return true;
 }
 
-mtc::Task MTCPickPlace::createTask()
+bool MTCPickPlace::waitForTrigger(const std::string& what)
+{
+  std::unique_lock<std::mutex> lock(trigger_mutex_);
+  RCLCPP_INFO(LOGGER, "Waiting for the go-ahead before %s.", what.c_str());
+  RCLCPP_INFO(LOGGER, "  ros2 topic pub --once %s std_msgs/msg/Empty {}",
+              config_.trigger_topic.c_str());
+
+  while (!triggered_)
+  {
+    if (!rclcpp::ok())
+    {
+      RCLCPP_WARN(LOGGER, "Shut down while waiting on %s.", config_.trigger_topic.c_str());
+      return false;
+    }
+    // Timed wait so Ctrl+C is noticed even if the trigger never arrives.
+    trigger_cv_.wait_for(lock, std::chrono::milliseconds(200));
+  }
+
+  triggered_ = false;  // consumed: a later pause needs its own trigger
+  RCLCPP_INFO(LOGGER, "Triggered.");
+  return true;
+}
+
+bool MTCPickPlace::doTask()
+{
+  // Arm 1 carries the object to the far table and goes home.
+  if (!runArm("arm 1 (" + config_.arm_group + ")", firstArm(), config_.place_pose))
+    return false;
+
+  // Arm 2's task is built only now, against the scene as it actually ended up rather
+  // predicted one -- which is the whole reason the two arms are separate tasks. That
+  // pause below load-bearing when nothing executes arm 1's task for us: the object
+  // is still on the near table and the second arm would have nothing to pick.
+  if (wait_for_trigger_)
+  {
+    if (!execute_automatically_)
+    {
+      RCLCPP_INFO(LOGGER, "Arm 1 is planned but not executed (execute:=false).");
+      RCLCPP_INFO(LOGGER, "Run it from RViz under 'Motion Planning Tasks' first, otherwise");
+      RCLCPP_INFO(LOGGER, "arm 2 will plan against an object that never moved.");
+    }
+    if (!waitForTrigger("planning arm 2"))
+      return false;
+  }
+
+  return runArm("arm 2 (" + config_.second_arm_group + ")", secondArm(), config_.second_place_pose);
+}
+
+mtc::Task MTCPickPlace::createTask(const std::string& name, const ArmSpec& arm,
+                                   const std::vector<double>& place_target)
 {
   mtc::Task task;
-  task.stages()->setName("Pick and Place Cylinder");
+  task.stages()->setName(name);
   task.loadRobotModel(node_);
 
   // Everything below comes from config/mtc_task.yaml -- see loadTaskConfig().
-  const std::string& arm_group_name = config_.arm_group;
-  const std::string& hand_group_name = config_.hand_group;
-  const std::string& hand_frame = config_.hand_frame;
+  const std::string& arm_group_name = arm.arm_group;
+  const std::string& hand_group_name = arm.hand_group;
+  const std::string& hand_frame = arm.hand_frame;
 
   if (!validateArmGroup(task.getRobotModel(), arm_group_name, config_.waist_joint)) {
     throw std::runtime_error("The MTC arm group is not configured as the expected 7-DOF waist-arm chain");
   }
-
-  // Pre-grasp offset: IK-frame translation from the hand frame. x must exceed finger
-  // length (~0.05) so the OPEN hand sits in front of the object, not inside it.
-  const double pre_grasp_offset_x = config_.pre_grasp_offset[0];
-  const double pre_grasp_offset_y = config_.pre_grasp_offset[1];
-  const double pre_grasp_offset_z = config_.pre_grasp_offset[2];
-
-  // Approach: from pre-grasp toward the object. Final grasp = offset - approach distance.
-  const double approach_min_dist = config_.approach_min;
-  const double approach_max_dist = config_.approach_max;
-
-  const double grasp_tilt = config_.grasp_tilt;  // off straight-down; shared by grasp + place
-
-  const double lift_min_dist = config_.lift_min;
-  const double lift_max_dist = config_.lift_max;
-  const double retreat_min_dist = config_.retreat_min;
-  const double retreat_max_dist = config_.retreat_max;
 
   // Weighted PathLength map shared by both Connect stages: waist plus one entry per arm joint.
   std::map<std::string, double> connect_cost_weights{ { config_.waist_joint, config_.cost_waist_weight } };
@@ -453,7 +583,98 @@ mtc::Task MTCPickPlace::createTask()
 
   // Forward current_state to later stages
   mtc::Stage* current_state_ptr = nullptr;
-  mtc::Stage* attach_object_ptr = nullptr;  // For GeneratePlacePose to monitor
+
+  // Weighted PathLength for an arm's Connect stages. The waist is shared by both
+  // chains, so it carries the same weight whichever arm is moving.
+  auto connect_cost_for = [&](const ArmSpec& arm) {
+    std::map<std::string, double> weights{ { config_.waist_joint, config_.cost_waist_weight } };
+    for (std::size_t i = 0; i < arm.arm_joints.size() && i < config_.cost_arm_weights.size(); ++i)
+      weights.emplace(arm.arm_joints[i], config_.cost_arm_weights[i]);
+    return std::make_shared<mtc::cost::PathLength>(weights);
+  };
+
+  // Where on the hand the object ends up, and how that frame is oriented.
+  // RotY(pi)*RotX(pi - tilt) tilts the approach off straight down, which a pure top
+  // grasp cannot reach: the arm gets to ~81 deg where 90 would be needed.
+  //
+  // grasp_frame_rpy is applied FIRST, to the hand frame itself, and describes how that
+  // hand's TCP sits relative to the left one. The right hand really is a mirror image:
+  // both TCPs have +Y toward the fingertips, but the thumb sits at +Z on the left and
+  // -Z on the right. Feeding both through one grasp formula therefore rolled the right
+  // hand 180 deg about its approach axis -- it reached the object and closed from the
+  // wrong side. [0, pi, 0] undoes that: a half turn about Y leaves the approach axis
+  // alone and flips only X and Z, which is exactly the mirror.
+  //
+  // It rotates the frame ONLY. pre_grasp_offset is a point in the palm and is mirrored
+  // in the config instead, because the two are not the same mirror: the hands are
+  // reflections (measured: anatomy maps exactly (x,y,z) -> (x,y,-z) in hand-base
+  // coords), while Ry(pi) is a rotation and flips X as well. Running the offset
+  // through it puts the right hand's grasp point 70 mm off, on the wrong side of
+  // the palm.
+  auto grasp_frame_for = [](const ArmSpec& arm) {
+    const Eigen::Matrix3d mirror =
+        (Eigen::AngleAxisd(arm.grasp_frame_rpy[0], Eigen::Vector3d::UnitX()) *
+         Eigen::AngleAxisd(arm.grasp_frame_rpy[1], Eigen::Vector3d::UnitY()) *
+         Eigen::AngleAxisd(arm.grasp_frame_rpy[2], Eigen::Vector3d::UnitZ())).toRotationMatrix();
+    Eigen::Isometry3d frame = Eigen::Isometry3d::Identity();
+    frame.linear() = mirror *
+                     (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
+                      Eigen::AngleAxisd(M_PI - arm.grasp_tilt, Eigen::Vector3d::UnitX()))
+                         .toRotationMatrix();
+    frame.translation().x() = arm.pre_grasp_offset[0];
+    frame.translation().y() = arm.pre_grasp_offset[1];
+    frame.translation().z() = arm.pre_grasp_offset[2];
+    return frame;
+  };
+
+  // Where to put the object an arm is ALREADY holding: sweep yaw around the
+  // (symmetric) cylinder axis and IK every candidate, so Alternatives can try them all.
+  auto held_object_pose_alternatives =
+    [&](const std::string& label, const ArmSpec& arm, mtc::Stage* monitored,
+        const std::vector<double>& target, const std::string& target_frame, int n_angles,
+        int max_ik_solutions, double min_solution_distance) {
+      auto alternatives = std::make_unique<mtc::Alternatives>(label + " pose alternatives");
+      // exposeTo DECLARES eef/group/ik_frame on the container; they are then set to
+      // THIS arm rather than inherited, because the second arm differs from the task.
+      task.properties().exposeTo(alternatives->properties(), { "eef", "group", "ik_frame" });
+      alternatives->setProperty("group", arm.arm_group);
+      alternatives->setProperty("eef", arm.hand_group);
+      alternatives->setProperty("ik_frame", arm.hand_frame);
+
+      for (int i = 0; i < n_angles; ++i) {
+        const double yaw = i * (2.0 * M_PI / n_angles);
+
+        auto generator = std::make_unique<mtc::stages::GeneratePlacePose>("generate " + label + " pose");
+        generator->properties().configureInitFrom(mtc::Stage::PARENT);
+        generator->properties().set("marker_ns", label + "_pose");
+        generator->setObject(config_.object_id);
+
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.frame_id = target_frame;
+        pose.pose.position.x = target[0];
+        pose.pose.position.y = target[1];
+        pose.pose.position.z = target[2];
+        pose.pose.orientation.z = std::sin(yaw / 2.0);  // pure yaw quaternion
+        pose.pose.orientation.w = std::cos(yaw / 2.0);
+        generator->setPose(pose);
+        generator->setMonitoredStage(monitored);  // scene where the object is held
+
+        auto wrapper = std::make_unique<mtc::stages::ComputeIK>(label + " pose IK", std::move(generator));
+        wrapper->setMaxIKSolutions(max_ik_solutions);
+        wrapper->setMinSolutionDistance(min_solution_distance);
+        // Do NOT ignore collisions: these IK results are Connect goals, and an
+        // in-collision goal is rejected by OMPL as GOAL_STATE_INVALID.
+        wrapper->setIgnoreCollisions(false);
+        wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
+        wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
+        // Same frame as the grasp: the object is held in exactly that relationship,
+        // so any pose for it must mirror the grasp hand pose or there is no IK.
+        wrapper->setIKFrame(grasp_frame_for(arm), arm.hand_frame);
+
+        alternatives->insert(std::move(wrapper));
+      }
+      return alternatives;
+    };
 
   // ========== STAGE 1: Current State ==========
   {
@@ -462,343 +683,225 @@ mtc::Task MTCPickPlace::createTask()
     task.add(std::move(current_state));
   }
 
-  // ========== STAGE 1b: Allow object<->table collision for the whole task ==========
-  // The object starts on the table and is placed back on it, so this contact is expected.
-  // Allowing it persistently keeps the "move to place" goal state (object on table) valid;
-  // otherwise OMPL rejects it as GOAL_STATE_INVALID.
+  // ========== STAGE 1b: Allow object<->table collisions for the whole task ==========
+  // The object rests on one table and ends up on the other, so both pairs are
+  // expected contacts. Hand<->table is deliberately NOT allowed anywhere.
   {
-    auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (object,table)");
+    auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (object,tables)");
     stage->allowCollisions(config_.object_id, config_.source_table_name, true);
-    // NOTE: hand<->table is intentionally NOT allowed task-wide. A persistent hand<->table allowance
-    // made the palm/fingers clip through the table during approach/lift/transport. The hand must
-    // respect the table everywhere; only object<->table (the cylinder resting on it) is expected.
+    stage->allowCollisions(config_.object_id, config_.destination_table_name, true);
     task.add(std::move(stage));
   }
 
-  // ========== STAGE 2: Move to Home Position ==========
+  // ========== STAGE 2: This arm home, its hand open ==========
   {
     auto stage = std::make_unique<mtc::stages::MoveTo>("move to home", sampling_planner);
-    stage->setGroup(arm_group_name);
+    stage->setGroup(arm.arm_group);
     stage->setGoal(config_.pose_arm_home);
     task.add(std::move(stage));
   }
-
-  // ========== STAGE 3: Open Gripper ==========
   {
     auto stage = std::make_unique<mtc::stages::MoveTo>("open gripper", interpolation_planner);
-    stage->setGroup(hand_group_name);
+    stage->setGroup(arm.hand_group);
     stage->setGoal(config_.pose_hand_open);
     task.add(std::move(stage));
   }
 
-  // ========== STAGE 4: Move to Ready Pose (disabled) ==========
-  // {
-  //   auto stage = std::make_unique<mtc::stages::MoveTo>("move to ready", sampling_planner);
-  //   stage->setGroup(arm_group_name);
-  //   stage->setGoal("ready");
-  //   task.add(std::move(stage));
-  // }
-
-  // ========== STAGE 5: Connect to Grasp Pose ==========
-  // Use Connect stage to bridge from current state to the grasp pose generator
-  {
-    auto connect = std::make_unique<mtc::stages::Connect>(
-      "move to grasp",
-      mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, sampling_planner } });
-    connect->properties().configureInitFrom(mtc::Stage::PARENT);
-    connect->setCostTerm(std::make_shared<mtc::cost::PathLength>(connect_cost_weights));
-    task.add(std::move(connect));
-  }
-
-  // ========== STAGE 6: Grasp (SerialContainer with Generator) ==========
-  {
-    auto grasp = std::make_unique<mtc::SerialContainer>("grasp");
-    task.properties().exposeTo(grasp->properties(), { "eef", "group", "ik_frame" });
-    grasp->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group", "ik_frame" });
-
-    // 6.1: Allow collision FIRST (needed for grasp pose IK to succeed)
+  // Pick the object up with one arm. `monitored` is the stage whose scene shows where
+  // the object currently sits; `attach_ptr` comes back pointing at the attach stage,
+  // which the matching place sequence has to monitor.
+  auto add_pick = [&](const ArmSpec& arm, mtc::Stage* monitored, mtc::Stage*& attach_ptr) {
+    const std::string label = "grasp";
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (hand,object)");
-      // Whole hand subtree (palm + every finger link, incl. mimic-driven distals) vs the object.
-      const auto hand_links = handCollisionLinks(task.getRobotModel(), config_.hand_root_link);
+      auto connect = std::make_unique<mtc::stages::Connect>(
+        "move to " + label + " grasp",
+        mtc::stages::Connect::GroupPlannerVector{ { arm.arm_group, sampling_planner } });
+      connect->setCostTerm(connect_cost_for(arm));
+      task.add(std::move(connect));
+    }
+
+    auto grasp = std::make_unique<mtc::SerialContainer>(label + " grasp");
+    task.properties().exposeTo(grasp->properties(), { "eef", "group", "ik_frame" });
+    grasp->setProperty("group", arm.arm_group);
+    grasp->setProperty("eef", arm.hand_group);
+    grasp->setProperty("ik_frame", arm.hand_frame);
+
+    const auto hand_links = handCollisionLinks(task.getRobotModel(), arm.hand_root_link);
+
+    // Propagates BACKWARD, so it never reaches the stages after the generator.
+    {
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>(
+        "allow collision (" + label + " hand,object)");
       stage->allowCollisions(config_.object_id, hand_links, true);
       grasp->insert(std::move(stage));
     }
-
-    // 6.2: Generate grasp poses (GENERATOR)
     {
-      auto stage = std::make_unique<mtc::stages::GenerateGraspPose>("generate grasp pose");
+      auto stage = std::make_unique<mtc::stages::GenerateGraspPose>("generate " + label + " grasp pose");
       stage->properties().configureInitFrom(mtc::Stage::PARENT);
-      stage->properties().set("marker_ns", "grasp_pose");
+      stage->properties().set("marker_ns", label + "_grasp_pose");
       stage->setPreGraspPose(config_.pose_hand_open);
       stage->setObject(config_.object_id);
-      stage->setAngleDelta(config_.grasp_angle_delta);  // sweep around the cylinder axis
-      stage->setMonitoredStage(current_state_ptr);
+      stage->setAngleDelta(config_.grasp_angle_delta);
+      stage->setMonitoredStage(monitored);
 
-      // Wrap with ComputeIK
-      auto wrapper = std::make_unique<mtc::stages::ComputeIK>("grasp pose IK", std::move(stage));
+      auto wrapper = std::make_unique<mtc::stages::ComputeIK>(label + " grasp pose IK", std::move(stage));
       wrapper->setMaxIKSolutions(config_.grasp_max_ik_solutions);
       wrapper->setMinSolutionDistance(config_.grasp_min_solution_distance);
-      // A dexterous hand always contacts the object at the grasp pose, and the upstream
-      // "allow collision" stage does NOT reach the grasp-IK check (generator uses the
-      // current_state scene). Skip collision checking for the grasp IK itself; the approach /
-      // hand-pregrasp / hand-grasp / attach stages downstream run with hand-object collisions allowed.
+      // A dexterous hand always contacts the object at the grasp pose, and the
+      // allowance above propagates backward so it never reaches this check.
       wrapper->setIgnoreCollisions(true);
       wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
       wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
-
-      // Keep all 7 DOF available, but prefer grasp IK solutions with the waist close to zero.
-      // This is a soft cost rather than a constraint: the waist can still move when required.
-      wrapper->setCostTerm(std::make_shared<mtc::cost::DistanceToReference>(
-          std::map<std::string, double>{ { config_.waist_joint, 0.0 } },
-          mtc::TrajectoryCostTerm::Mode::START_INTERFACE,
-          std::map<std::string, double>{ { config_.waist_joint, config_.cost_waist_weight } }));
-
-      // Pre-grasp frame transform: offset + orientation of the IK frame.
-      // GenerateGraspPose orients the IK frame with Z along the object axis (cylinder = vertical)
-      // and sweeps around it. With no rotation the hand approaches HORIZONTALLY (side grasp),
-      // which has no IK at this low object pose. RotX(+90deg) makes the TCP +Y (approach) point
-      // along the object's -Z (downward) => a TOP-DOWN grasp, which the arm can reach.
-      Eigen::Isometry3d grasp_frame_transform = Eigen::Isometry3d::Identity();
-      // grasp_frame_transform = RotY(pi)*RotX(alpha). alpha=pi => straight-down top grasp, but that
-      // sits at the kinematic edge (arm reaches ~81deg, grasp needs 90deg) -> no IK for all poses.
-      // Tilt off vertical (alpha = pi - tilt) so the approach is down-forward, inside the reachable set.
-      grasp_frame_transform.linear() =
-        (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
-         Eigen::AngleAxisd(M_PI - grasp_tilt, Eigen::Vector3d::UnitX())).toRotationMatrix();
-      grasp_frame_transform.translation().x() = pre_grasp_offset_x;
-      grasp_frame_transform.translation().y() = pre_grasp_offset_y;
-      grasp_frame_transform.translation().z() = pre_grasp_offset_z;
-      wrapper->setIKFrame(grasp_frame_transform, hand_frame);
-
+      wrapper->setIKFrame(grasp_frame_for(arm), arm.hand_frame);
       grasp->insert(std::move(wrapper));
     }
-
-    // 6.3: Approach object (move gripper toward object along X-axis of hand frame)
     {
-      auto stage = std::make_unique<mtc::stages::MoveRelative>("approach object", cartesian_planner);
+      auto stage = std::make_unique<mtc::stages::MoveRelative>(label + " approach", cartesian_planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group" });
-      stage->setMinMaxDistance(approach_min_dist, approach_max_dist);
-      stage->setIKFrame(hand_frame);
-      stage->properties().set("marker_ns", "approach");
-
-      // Move along Y-axis of hand_frame (toward the object)
+      stage->setMinMaxDistance(config_.approach_min, config_.approach_max);
+      stage->setIKFrame(arm.hand_frame);
+      stage->properties().set("marker_ns", label + "_approach");
       geometry_msgs::msg::Vector3Stamped vec;
-      vec.header.frame_id = hand_frame;
-      vec.vector.x = 1.0;  // Positive X = toward object (based on your gripper orientation)
+      vec.header.frame_id = arm.hand_frame;
+      vec.vector.x = 1.0;   // +X of the hand frame points at the object
       stage->setDirection(vec);
       grasp->insert(std::move(stage));
     }
-
-    // 6.3b: Allow hand<->object AND hand self-collision for the grasp — in a FORWARD-propagating
-    //        stage. Stage 6.1 ("allow collision (hand,object)") sits BEFORE the grasp-pose-IK
-    //        generator, so it only propagates BACKWARD and never reaches the hand-grasp stages.
-    //        Grasping drives the fingers into the cylinder and potentially into each other; both
-    //        collision classes must be allowed here, after the generator.
+    // Forward-propagating twin of the allowance above: grasping drives the fingers
+    // into the object and into each other.
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow hand collisions (grasp)");
-      const auto hand_links = handCollisionLinks(task.getRobotModel(), config_.hand_root_link);
-      stage->allowCollisions(config_.object_id, hand_links, true);  // fingers grip INTO the cylinder
-      stage->allowCollisions(hand_links, hand_links, true);         // fingers touch each other
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>(
+        "allow hand collisions (" + label + ")");
+      stage->allowCollisions(config_.object_id, hand_links, true);
+      stage->allowCollisions(hand_links, hand_links, true);
       grasp->insert(std::move(stage));
     }
-
-    // 6.4a: Prepare the hand for a multi-directional cylinder grasp. This SRDF pose rotates the
-    //       thumb around the cylinder while keeping the other fingers open.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare hand for cylinder grasp", interpolation_planner);
-      stage->setGroup(hand_group_name);
+      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare " + label + " hand", interpolation_planner);
+      stage->setGroup(arm.hand_group);
       stage->setGoal(config_.pose_hand_pregrasp);
       grasp->insert(std::move(stage));
     }
-
-    // 6.4b: Close the prepared hand around the cylinder using the dedicated SRDF grasp pose.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("grasp cylinder", interpolation_planner);
-      stage->setGroup(hand_group_name);
+      auto stage = std::make_unique<mtc::stages::MoveTo>(label + " close on cylinder", interpolation_planner);
+      stage->setGroup(arm.hand_group);
       stage->setGoal(config_.pose_hand_grasp);
-      hand_grasp_ptr_ = stage.get();  // for failure diagnostics
+      hand_grasp_ptr_ = stage.get();   // failure diagnostics
       grasp->insert(std::move(stage));
     }
-
-    // 6.5: Attach the object after the dedicated hand-grasp pose has completed.
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("attach object");
-      stage->attachObject(config_.object_id, hand_frame);
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("attach to " + label);
+      stage->attachObject(config_.object_id, arm.hand_frame);
       grasp->insert(std::move(stage));
     }
-
-    // 6.5b: Allow the now-ATTACHED object to rest on the table. The world-object allowance (stage 1b)
-    //        does NOT carry over once the object is attached to the robot, so re-allow it here.
-    //        GeneratePlacePose monitors THIS stage, so the place IK sees that the placed cylinder may
-    //        touch the table. hand<->table is deliberately NOT allowed — the hand must clear the table.
+    // The world-object allowance does not carry over once the object is attached.
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow attached object<->table");
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>(
+        "allow attached object<->tables (" + label + ")");
       stage->allowCollisions(config_.object_id, config_.source_table_name, true);
-      attach_object_ptr = stage.get();  // place IK monitors this (attached object<->table allowed)
+      stage->allowCollisions(config_.object_id, config_.destination_table_name, true);
+      attach_ptr = stage.get();   // the place generator monitors this
       grasp->insert(std::move(stage));
     }
-
-    // 6.6: Lift object (move up in base_link Z)
     {
-      auto stage = std::make_unique<mtc::stages::MoveRelative>("lift", cartesian_planner);
+      auto stage = std::make_unique<mtc::stages::MoveRelative>(label + " lift", cartesian_planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group" });
-      stage->setMinMaxDistance(lift_min_dist, lift_max_dist);
-      stage->setIKFrame(hand_frame);
-      stage->properties().set("marker_ns", "lift");
-
+      stage->setMinMaxDistance(config_.lift_min, config_.lift_max);
+      stage->setIKFrame(arm.hand_frame);
+      stage->properties().set("marker_ns", label + "_lift");
       geometry_msgs::msg::Vector3Stamped vec;
       vec.header.frame_id = config_.planning_frame;
-      vec.vector.z = 1.0;  // Lift upward
+      vec.vector.z = 1.0;
       stage->setDirection(vec);
       grasp->insert(std::move(stage));
     }
-
     task.add(std::move(grasp));
-  }
+  };
 
-  // ========== STAGE 7: Connect to Place Position ==========
-  {
-    auto connect = std::make_unique<mtc::stages::Connect>(
-      "move to place",
-      mtc::stages::Connect::GroupPlannerVector{ { arm_group_name, sampling_planner } });
-    connect->properties().configureInitFrom(mtc::Stage::PARENT);
-    connect->setCostTerm(std::make_shared<mtc::cost::PathLength>(connect_cost_weights));
-    task.add(std::move(connect));
-  }
-
-  // ========== STAGE 8: Place (SerialContainer) ==========
-  {
-    auto place = std::make_unique<mtc::SerialContainer>("place");
-    task.properties().exposeTo(place->properties(), { "eef", "group", "ik_frame" });
-    place->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group", "ik_frame" });
-
-    // 8.1: Generate place pose — sweep yaw around the (symmetric) cylinder axis, like the grasp
-    //      sweep at pick. Each yaw candidate gets its own IK; Alternatives tries all of them.
+  // Put the object down at `target`, then back the hand out and go home.
+  auto add_place = [&](const ArmSpec& arm, const std::vector<double>& target,
+                       mtc::Stage* monitored, mtc::Stage*& detach_ptr) {
+    const std::string label = "place";
     {
-      auto alternatives = std::make_unique<mtc::Alternatives>("place pose alternatives");
-      // Pass eef/group/ik_frame down through the Alternatives container to its child IK stages:
-      // exposeTo DECLARES the props on the container, configureInitFrom INITS them from the parent.
-      place->properties().exposeTo(alternatives->properties(), { "eef", "group", "ik_frame" });
-      alternatives->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group", "ik_frame" });
-      const int n_place_angles = config_.place_n_angles;  // yaw candidates around the cylinder axis
-      for (int i = 0; i < n_place_angles; ++i)
-      {
-        const double yaw = i * (2.0 * M_PI / n_place_angles);
-
-        auto stage = std::make_unique<mtc::stages::GeneratePlacePose>("generate place pose");
-        stage->properties().configureInitFrom(mtc::Stage::PARENT);
-        stage->properties().set("marker_ns", "place_pose");
-        stage->setObject(config_.object_id);
-
-        geometry_msgs::msg::PoseStamped place_pose;
-        place_pose.header.frame_id = config_.planning_frame;
-        place_pose.pose.position.x = config_.place_pose[0];
-        place_pose.pose.position.y = config_.place_pose[1];
-        place_pose.pose.position.z = config_.place_pose[2];
-        place_pose.pose.orientation.z = std::sin(yaw / 2.0);  // pure yaw quaternion
-        place_pose.pose.orientation.w = std::cos(yaw / 2.0);
-        stage->setPose(place_pose);
-        stage->setMonitoredStage(attach_object_ptr);  // object is attached here
-
-        auto wrapper = std::make_unique<mtc::stages::ComputeIK>("place pose IK", std::move(stage));
-        wrapper->setMaxIKSolutions(config_.place_max_ik_solutions);
-        wrapper->setMinSolutionDistance(config_.place_min_solution_distance);
-        // Do NOT ignore collisions here: the place IK must produce COLLISION-FREE goals (expected
-        // object/hand<->table contacts are already allowed via stage 1b) so the "move to place"
-        // Connect can actually reach them. With ignore=true it generated in-collision goals that
-        // OMPL rejected as GOAL_STATE_INVALID.
-        wrapper->setIgnoreCollisions(false);
-        wrapper->properties().configureInitFrom(mtc::Stage::PARENT, { "eef", "group" });
-        wrapper->properties().configureInitFrom(mtc::Stage::INTERFACE, { "target_pose" });
-
-        // Use the SAME IK frame as the grasp — same rotation AND same translation offsets. The object
-        // is held by the hand in exactly that relationship, so the place hand pose must mirror the grasp
-        // hand pose for IK to be feasible. (Previously only y was set, which is a different hand<->object
-        // relationship than how the object is actually grasped, hence "no IK found".)
-        Eigen::Isometry3d place_frame_transform = Eigen::Isometry3d::Identity();
-        place_frame_transform.linear() =
-          (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
-           Eigen::AngleAxisd(M_PI - grasp_tilt, Eigen::Vector3d::UnitX())).toRotationMatrix();
-        place_frame_transform.translation().x() = pre_grasp_offset_x;
-        place_frame_transform.translation().y() = pre_grasp_offset_y;
-        place_frame_transform.translation().z() = pre_grasp_offset_z;
-        wrapper->setIKFrame(place_frame_transform, hand_frame);
-
-        alternatives->insert(std::move(wrapper));
-      }
-      place->insert(std::move(alternatives));
+      auto connect = std::make_unique<mtc::stages::Connect>(
+        "move to " + label + " place",
+        mtc::stages::Connect::GroupPlannerVector{ { arm.arm_group, sampling_planner } });
+      connect->setCostTerm(connect_cost_for(arm));
+      task.add(std::move(connect));
     }
 
-    // 8.1b: Re-allow object<->table for the FORWARD stages (release/forbid/detach/retreat).
-    //        The place IK generator produces fresh states that don't carry the task-level allowance,
-    //        so re-assert it here (the persistent stage 1b keeps the move-to-place goal valid).
+    auto place = std::make_unique<mtc::SerialContainer>(label + " place");
+    task.properties().exposeTo(place->properties(), { "eef", "group", "ik_frame" });
+    place->setProperty("group", arm.arm_group);
+    place->setProperty("eef", arm.hand_group);
+    place->setProperty("ik_frame", arm.hand_frame);
+
+    const auto hand_links = handCollisionLinks(task.getRobotModel(), arm.hand_root_link);
+
+    place->insert(held_object_pose_alternatives(
+      label + " place", arm, monitored, target, config_.planning_frame,
+      config_.place_n_angles, config_.place_max_ik_solutions,
+      config_.place_min_solution_distance));
+
+    // The place IK spawns fresh states that do not carry the task-level allowance.
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision (object,table) place");
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>(
+        "allow collision (object,tables) " + label + " place");
       stage->allowCollisions(config_.object_id, config_.source_table_name, true);
+      stage->allowCollisions(config_.object_id, config_.destination_table_name, true);
       place->insert(std::move(stage));
     }
-
-    // 8.2a: Relax the thumb pitch first while the other fingers continue to
-    //       support the cylinder, as defined by the dedicated SRDF state.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare cylinder release", interpolation_planner);
-      stage->setGroup(hand_group_name);
+      auto stage = std::make_unique<mtc::stages::MoveTo>("prepare " + label + " release", interpolation_planner);
+      stage->setGroup(arm.hand_group);
       stage->setGoal(config_.pose_hand_release_partial);
       place->insert(std::move(stage));
     }
-
-    // 8.2b: Fully open the hand and release the cylinder.
     {
-      auto stage = std::make_unique<mtc::stages::MoveTo>("fully release cylinder", interpolation_planner);
-      stage->setGroup(hand_group_name);
+      auto stage = std::make_unique<mtc::stages::MoveTo>(label + " release cylinder", interpolation_planner);
+      stage->setGroup(arm.hand_group);
       stage->setGoal(config_.pose_hand_release_full);
       place->insert(std::move(stage));
     }
-
-    // 8.3: Forbid collision
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("forbid collision (hand,object)");
-      stage->allowCollisions(
-        config_.object_id,
-        handCollisionLinks(task.getRobotModel(), config_.hand_root_link),
-        false);
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>(
+        "forbid collision (" + label + " hand,object)");
+      stage->allowCollisions(config_.object_id, hand_links, false);
       place->insert(std::move(stage));
     }
-
-    // 8.4: Detach object
     {
-      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("detach object");
-      stage->detachObject(config_.object_id, hand_frame);
+      auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("detach from " + label);
+      stage->detachObject(config_.object_id, arm.hand_frame);
+      detach_ptr = stage.get();   // the next arm's grasp generator monitors this
       place->insert(std::move(stage));
     }
-
-    // 8.5: Retreat from place (move UP in world frame to avoid stacked objects)
     {
-      auto stage = std::make_unique<mtc::stages::MoveRelative>("retreat", cartesian_planner);
+      auto stage = std::make_unique<mtc::stages::MoveRelative>(label + " retreat", cartesian_planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group" });
-      stage->setMinMaxDistance(retreat_min_dist, retreat_max_dist);
-      stage->setIKFrame(hand_frame);
-      stage->properties().set("marker_ns", "retreat");
-
-      // Move UP in world frame (avoids collision with stacked cylinders)
+      stage->setMinMaxDistance(config_.retreat_min, config_.retreat_max);
+      stage->setIKFrame(arm.hand_frame);
+      stage->properties().set("marker_ns", label + "_retreat");
       geometry_msgs::msg::Vector3Stamped vec;
       vec.header.frame_id = config_.planning_frame;
-      vec.vector.z = 1.0;  // Retreat upward
+      vec.vector.z = 1.0;
       stage->setDirection(vec);
       place->insert(std::move(stage));
     }
-
     task.add(std::move(place));
-  }
 
-  // ========== STAGE 9: Return Home ==========
-  {
-    auto stage = std::make_unique<mtc::stages::MoveTo>("return home", sampling_planner);
-    stage->setGroup(arm_group_name);
-    stage->setGoal(config_.pose_arm_home);
-    task.add(std::move(stage));
-  }
+    {
+      auto stage = std::make_unique<mtc::stages::MoveTo>(label + " return home", sampling_planner);
+      stage->setGroup(arm.arm_group);
+      stage->setGoal(config_.pose_arm_home);
+      task.add(std::move(stage));
+    }
+  };
+
+  // Pick the object up wherever it currently is, put it down at place_target, go home.
+  mtc::Stage* attach_ptr = nullptr;
+  mtc::Stage* detach_ptr = nullptr;
+  add_pick(arm, current_state_ptr, attach_ptr);
+  add_place(arm, place_target, attach_ptr, detach_ptr);
 
   return task;
 }
