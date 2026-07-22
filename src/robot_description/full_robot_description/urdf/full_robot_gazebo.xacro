@@ -75,11 +75,11 @@
 
   <!-- Mount camera on urdf_base, positioned to view the workspace -->
   <joint name="camera_mount_joint" type="fixed">
-      <parent link="urdf_base"/>
+      <parent link="urdf_simplified_torso"/>
       <child link="camera_link"/>
-      <origin xyz="0.08 0.0455 0.829" rpy="0 ${pi/12} 0"/>
+      <origin xyz="0.08 0.0455 0.75" rpy="0 ${pi/12} 0"/>
   </joint>
-
+  
   <!-- IMU sensors (BNO055) -->
   <xacro:include filename="$(find imu_description)/urdf/bno055_imu.xacro" />
 
